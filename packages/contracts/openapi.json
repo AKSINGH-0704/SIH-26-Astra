@@ -43,6 +43,55 @@
                 "unit": "degrees",
                 "value": 18.0
               },
+              "gate_min_hand_m": {
+                "description": "Height above nearest drainage a candidate site must stand at to pass the flood gate. ASTRA does not run a hydraulic model, so HAND is used as the return-period stand-in and is labelled as one: it says how far above its channel a site sits, not what a 100-year discharge would do.",
+                "key": "gate.min_hand_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 20.0
+              },
+              "intervention_healthcare_units": {
+                "description": "Health facility capacity added by one intervention: a sub-centre serving a quarter of the population one full facility unit covers.",
+                "key": "intervention.healthcare_units",
+                "provenance": "DEMO_CONFIG",
+                "unit": "facility units",
+                "value": 0.25
+              },
+              "intervention_land_m2": {
+                "description": "Usable land added by one land intervention: one hectare of terracing or acquisition adjacent to the site.",
+                "key": "intervention.land_m2",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m2",
+                "value": 10000.0
+              },
+              "intervention_power_kva": {
+                "description": "Connected load added by one power intervention: a distribution transformer.",
+                "key": "intervention.power_kva",
+                "provenance": "DEMO_CONFIG",
+                "unit": "kVA",
+                "value": 150.0
+              },
+              "intervention_sanitation_units": {
+                "description": "Latrine units added by one sanitation intervention block.",
+                "key": "intervention.sanitation_units",
+                "provenance": "DEMO_CONFIG",
+                "unit": "latrines",
+                "value": 20.0
+              },
+              "intervention_shelter_units": {
+                "description": "Shelter units added by one construction intervention.",
+                "key": "intervention.shelter_units",
+                "provenance": "DEMO_CONFIG",
+                "unit": "units",
+                "value": 40.0
+              },
+              "intervention_water_litres_day": {
+                "description": "Water supply added by one intervention unit: a borewell with storage, sized at roughly one thousand people at the Sphere minimum.",
+                "key": "intervention.water_litres_per_day",
+                "provenance": "DEMO_CONFIG",
+                "unit": "L/day",
+                "value": 15000.0
+              },
               "landcover_agreement_high_confidence": {
                 "description": "Agreement between the WorldCover reclassification and the Random Forest refinement above which usable-area confidence is reported as High.",
                 "key": "capacity.landcover_agreement_high",
@@ -103,6 +152,13 @@
                 "unit": "m2/person",
                 "value": 45.0
               },
+              "site_measure_radius_m": {
+                "description": "Radius around a candidate site centre within which usable area is measured on the real land-cover, slope and drainage surfaces.",
+                "key": "capacity.site_measure_radius_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 650.0
+              },
               "water_litres_per_person_day": {
                 "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
                 "description": "Minimum water supply per person per day.",
@@ -160,7 +216,7 @@
             "type": "string"
           },
           "engine_version": {
-            "default": "0.3.0",
+            "default": "0.4.0",
             "title": "Engine Version",
             "type": "string"
           },
@@ -1142,7 +1198,7 @@
             }
           },
           "version": {
-            "default": "1.7.0",
+            "default": "1.8.0",
             "title": "Version",
             "type": "string"
           }
@@ -1342,6 +1398,76 @@
               "value": 18.0
             }
           },
+          "gate_min_hand_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Height above nearest drainage a candidate site must stand at to pass the flood gate. ASTRA does not run a hydraulic model, so HAND is used as the return-period stand-in and is labelled as one: it says how far above its channel a site sits, not what a 100-year discharge would do.",
+              "key": "gate.min_hand_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 20.0
+            }
+          },
+          "intervention_healthcare_units": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Health facility capacity added by one intervention: a sub-centre serving a quarter of the population one full facility unit covers.",
+              "key": "intervention.healthcare_units",
+              "provenance": "DEMO_CONFIG",
+              "unit": "facility units",
+              "value": 0.25
+            }
+          },
+          "intervention_land_m2": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Usable land added by one land intervention: one hectare of terracing or acquisition adjacent to the site.",
+              "key": "intervention.land_m2",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m2",
+              "value": 10000.0
+            }
+          },
+          "intervention_power_kva": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Connected load added by one power intervention: a distribution transformer.",
+              "key": "intervention.power_kva",
+              "provenance": "DEMO_CONFIG",
+              "unit": "kVA",
+              "value": 150.0
+            }
+          },
+          "intervention_sanitation_units": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Latrine units added by one sanitation intervention block.",
+              "key": "intervention.sanitation_units",
+              "provenance": "DEMO_CONFIG",
+              "unit": "latrines",
+              "value": 20.0
+            }
+          },
+          "intervention_shelter_units": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Shelter units added by one construction intervention.",
+              "key": "intervention.shelter_units",
+              "provenance": "DEMO_CONFIG",
+              "unit": "units",
+              "value": 40.0
+            }
+          },
+          "intervention_water_litres_day": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Water supply added by one intervention unit: a borewell with storage, sized at roughly one thousand people at the Sphere minimum.",
+              "key": "intervention.water_litres_per_day",
+              "provenance": "DEMO_CONFIG",
+              "unit": "L/day",
+              "value": 15000.0
+            }
+          },
           "landcover_agreement_high_confidence": {
             "$ref": "#/components/schemas/Constant",
             "default": {
@@ -1424,6 +1550,16 @@
               "provenance": "REAL_OPEN",
               "unit": "m2/person",
               "value": 45.0
+            }
+          },
+          "site_measure_radius_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Radius around a candidate site centre within which usable area is measured on the real land-cover, slope and drainage surfaces.",
+              "key": "capacity.site_measure_radius_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 650.0
             }
           },
           "water_litres_per_person_day": {
@@ -2147,6 +2283,62 @@
           "engine"
         ],
         "title": "FormulaSpec",
+        "type": "object"
+      },
+      "GateResult": {
+        "description": "Outcome of one hard suitability gate. A failure is named, never scored away.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "gate": {
+            "$ref": "#/components/schemas/SuitabilityGate"
+          },
+          "observed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "gate",
+          "passed",
+          "detail"
+        ],
+        "title": "GateResult",
         "type": "object"
       },
       "GenerationConfig": {
@@ -3240,6 +3432,77 @@
           "checked_at"
         ],
         "title": "HealthStatus",
+        "type": "object"
+      },
+      "InterventionResponse": {
+        "description": "One unit of investment and the capacity it actually unlocks.",
+        "properties": {
+          "capacity_after": {
+            "title": "Capacity After",
+            "type": "number"
+          },
+          "capacity_before": {
+            "title": "Capacity Before",
+            "type": "number"
+          },
+          "capacity_gain": {
+            "title": "Capacity Gain",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "next_bottleneck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_bottleneck_capacity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Bottleneck Capacity"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceType"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_size": {
+            "title": "Unit Size",
+            "type": "number"
+          },
+          "unlocks": {
+            "title": "Unlocks",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "service",
+          "description",
+          "unit_size",
+          "unit",
+          "capacity_before",
+          "capacity_after",
+          "capacity_gain",
+          "next_bottleneck",
+          "next_bottleneck_capacity",
+          "unlocks"
+        ],
+        "title": "InterventionResponse",
         "type": "object"
       },
       "LayerDescriptor": {
@@ -4682,6 +4945,60 @@
         "title": "ScenarioResponse",
         "type": "object"
       },
+      "ServiceCapacity": {
+        "description": "Capacity of a site as limited by one service.",
+        "properties": {
+          "capacity_persons": {
+            "minimum": 0.0,
+            "title": "Capacity Persons",
+            "type": "number"
+          },
+          "norm_citation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Norm Citation"
+          },
+          "norm_provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "norm_unit": {
+            "title": "Norm Unit",
+            "type": "string"
+          },
+          "norm_value": {
+            "title": "Norm Value",
+            "type": "number"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceType"
+          },
+          "supply": {
+            "title": "Supply",
+            "type": "number"
+          },
+          "supply_unit": {
+            "title": "Supply Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "supply",
+          "supply_unit",
+          "norm_value",
+          "norm_unit",
+          "norm_provenance",
+          "capacity_persons"
+        ],
+        "title": "ServiceCapacity",
+        "type": "object"
+      },
       "ServiceSupply": {
         "description": "Measured or assumed supply of one service at a candidate site.",
         "properties": {
@@ -4735,6 +5052,209 @@
         ],
         "title": "ServiceType",
         "type": "string"
+      },
+      "SiteCapacityListResponse": {
+        "description": "Every candidate site, with the district totals a planner needs first.",
+        "properties": {
+          "bottleneck_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Bottleneck Counts",
+            "type": "object"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "norms": {
+            "items": {
+              "$ref": "#/components/schemas/Constant"
+            },
+            "title": "Norms",
+            "type": "array"
+          },
+          "population_needing_relocation": {
+            "title": "Population Needing Relocation",
+            "type": "integer"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteCapacityResponse"
+            },
+            "title": "Sites",
+            "type": "array"
+          },
+          "suitable_sites": {
+            "title": "Suitable Sites",
+            "type": "integer"
+          },
+          "total_effective_capacity": {
+            "title": "Total Effective Capacity",
+            "type": "number"
+          },
+          "total_theoretical_capacity": {
+            "title": "Total Theoretical Capacity",
+            "type": "number"
+          },
+          "unmet_demand": {
+            "title": "Unmet Demand",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sites",
+          "suitable_sites",
+          "total_effective_capacity",
+          "total_theoretical_capacity",
+          "population_needing_relocation",
+          "unmet_demand",
+          "bottleneck_counts",
+          "norms",
+          "decision_authority",
+          "limitation",
+          "model_config_version",
+          "engine_version"
+        ],
+        "title": "SiteCapacityListResponse",
+        "type": "object"
+      },
+      "SiteCapacityResponse": {
+        "description": "A candidate site's suitability, capacity, bottleneck and interventions.",
+        "properties": {
+          "bottleneck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "centroid": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "distance_to_road_m": {
+            "title": "Distance To Road M",
+            "type": "number"
+          },
+          "effective_capacity": {
+            "title": "Effective Capacity",
+            "type": "number"
+          },
+          "elevation_m": {
+            "title": "Elevation M",
+            "type": "number"
+          },
+          "failed_gates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed Gates",
+            "type": "array"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/GateResult"
+            },
+            "title": "Gates",
+            "type": "array"
+          },
+          "interventions": {
+            "items": {
+              "$ref": "#/components/schemas/InterventionResponse"
+            },
+            "title": "Interventions",
+            "type": "array"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "marginal_headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marginal Headline"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pending_constraints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pending Constraints",
+            "type": "array"
+          },
+          "recorded_parcel_area_m2": {
+            "title": "Recorded Parcel Area M2",
+            "type": "number"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceCapacity"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "suitable": {
+            "title": "Suitable",
+            "type": "boolean"
+          },
+          "theoretical_capacity": {
+            "title": "Theoretical Capacity",
+            "type": "number"
+          },
+          "usable_area": {
+            "$ref": "#/components/schemas/UsableAreaResponse"
+          }
+        },
+        "required": [
+          "site_id",
+          "name",
+          "centroid",
+          "elevation_m",
+          "distance_to_road_m",
+          "recorded_parcel_area_m2",
+          "suitable",
+          "gates",
+          "failed_gates",
+          "usable_area",
+          "services",
+          "theoretical_capacity",
+          "effective_capacity",
+          "bottleneck",
+          "interventions",
+          "marginal_headline",
+          "pending_constraints",
+          "limitation"
+        ],
+        "title": "SiteCapacityResponse",
+        "type": "object"
       },
       "SitesResponse": {
         "description": "The candidate-site layer. Capacity analysis lands with the capacity engine.",
@@ -4840,6 +5360,19 @@
             "title": "Grid",
             "type": "object"
           },
+          "landcover_refinement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The scoped machine-learning component: its labelling rules, what each rule found, its measured accuracy, its agreement with the published land-cover product, and its caveats. Null until the model has been built.",
+            "title": "Landcover Refinement"
+          },
           "layers": {
             "items": {
               "$ref": "#/components/schemas/DerivedLayerSummary"
@@ -4880,6 +5413,103 @@
           "terrain_preview_bbox"
         ],
         "title": "StudyAreaDataResponse",
+        "type": "object"
+      },
+      "SuitabilityGate": {
+        "description": "Hard binary gates a candidate site must pass (\u00a75.4 step 1).\n\nA gate failure is reported as a named gate, never folded into a low score.",
+        "enum": [
+          "OUTSIDE_HAZARD_ZONES",
+          "SLOPE_BUILDABLE",
+          "LANDCOVER_PERMITTED",
+          "ABOVE_FLOOD_LEVEL",
+          "ROAD_ACCESSIBLE"
+        ],
+        "title": "SuitabilityGate",
+        "type": "string"
+      },
+      "UsableAreaResponse": {
+        "description": "Buildable ground at a site, and exactly how it was measured.",
+        "properties": {
+          "buildable_fraction": {
+            "title": "Buildable Fraction",
+            "type": "number"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ConfidenceBand"
+          },
+          "flood_pass_fraction": {
+            "title": "Flood Pass Fraction",
+            "type": "number"
+          },
+          "footprint_mean_hand_m": {
+            "title": "Footprint Mean Hand M",
+            "type": "number"
+          },
+          "footprint_mean_slope_deg": {
+            "title": "Footprint Mean Slope Deg",
+            "type": "number"
+          },
+          "measured_m2": {
+            "title": "Measured M2",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "radius_m": {
+            "title": "Radius M",
+            "type": "number"
+          },
+          "refinement_agreement": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refinement Agreement"
+          },
+          "refinement_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refinement Note"
+          },
+          "slope_pass_fraction": {
+            "title": "Slope Pass Fraction",
+            "type": "number"
+          },
+          "usable_ha": {
+            "title": "Usable Ha",
+            "type": "number"
+          },
+          "usable_m2": {
+            "title": "Usable M2",
+            "type": "number"
+          }
+        },
+        "required": [
+          "usable_m2",
+          "usable_ha",
+          "measured_m2",
+          "radius_m",
+          "buildable_fraction",
+          "slope_pass_fraction",
+          "flood_pass_fraction",
+          "footprint_mean_slope_deg",
+          "footprint_mean_hand_m",
+          "method",
+          "confidence"
+        ],
+        "title": "UsableAreaResponse",
         "type": "object"
       },
       "ValidationCheckResponse": {
@@ -5326,6 +5956,118 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/capacity/sites": {
+      "get": {
+        "description": "Carrying capacity for every candidate site, with the binding constraint named.",
+        "operationId": "capacity_sites_capacity_sites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteCapacityListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Capacity Sites",
+        "tags": [
+          "capacity"
+        ]
+      }
+    },
+    "/capacity/sites/{site_id}": {
+      "get": {
+        "description": "One site's full capacity assessment.",
+        "operationId": "capacity_site_capacity_sites__site_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "title": "Site Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteCapacityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capacity Site",
+        "tags": [
+          "capacity"
+        ]
+      }
+    },
+    "/capacity/sites/{site_id}/interventions": {
+      "get": {
+        "description": "What one unit of each intervention would unlock at this site, ranked.",
+        "operationId": "capacity_interventions_capacity_sites__site_id__interventions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "title": "Site Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InterventionResponse"
+                  },
+                  "title": "Response Capacity Interventions Capacity Sites  Site Id  Interventions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capacity Interventions",
+        "tags": [
+          "capacity"
+        ]
+      }
+    },
     "/habitations": {
       "get": {
         "description": "The habitation layer. Synthetic, fictional, terrain-calibrated records.",

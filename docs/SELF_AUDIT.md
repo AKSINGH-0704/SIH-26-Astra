@@ -279,3 +279,102 @@ sensitivity analysis in Slice 10 has to test rather than assert.
   and that pending constraint checks are declared on every row.
 - `ruff` clean, gate PASS, `tsc --noEmit` clean, ESLint clean, `next build`
   succeeds, screen driven in a real browser with zero console errors.
+
+---
+
+## Slice 5 - suitability gates, usable area, multi-constraint carrying capacity and bottleneck analysis
+
+**Date:** 2026-09-10
+**Commit:** `feat(capacity): multi-constraint carrying-capacity engine with bottleneck analysis`
+
+### What actually works end to end
+
+Every candidate site is now put through five binary suitability gates, measured
+for buildable ground on the real land-cover, slope and drainage surfaces, and
+assessed for capacity service by service against the published per-person norms.
+The effective capacity of a site is the minimum across its services, the
+bottleneck is the argmin, and the marginal intervention table says what one unit
+of each intervention would unlock and which service would bind next. The
+Relocation Sites screen renders all of it: sites ordered availability-first, the
+binding service drawn in red as the shortest bar on the screen, the projected
+next constraint outlined in amber when an intervention row is hovered, every gate
+with its observed value against its threshold, and the tenure limitation stated
+before anyone asks for it.
+
+The corridor answer is a real and uncomfortable one: 3 of 6 sites clear every
+gate, giving 2,467 people of effective capacity against 2,519 residents assessed
+- 52 short - and the marginal table shows exactly which single intervention
+closes the gap.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. Every capacity figure is `supply / norm` or `supply x norm` against a cited Sphere / PMAY-G constant. The one ML component refines land cover and nothing else. |
+| 2 | Can every number on screen be traced in one hop? | Yes. Each service row carries its supply, its norm, the norm's unit, provenance and citation. Effective capacity is the smallest of them; the panel names which. |
+| 3 | Is anything displayed that is not backed by a real value? | No. The marginal headline sentence is assembled from `capacity_before`, `capacity_after`, `capacity_gain` and `next_bottleneck` returned by the API - it is a rendering of computed numbers, not prose about them. The hover projection uses the same fields and says explicitly that the bars still show today's assessment. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The water, sanitation, health and site-area norms are cited to Sphere; the gate thresholds, the intervention unit sizes and the measurement radius are `DEMO_CONFIG` and appear in `GET /model/config` as such. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic without blending? | Yes. Usable area is marked `REAL_OPEN` because it is measured on WorldCover and the Copernicus DEM; the service supplies are `SYNTHETIC_CALIBRATED` and carry that on each row. |
+| 6 | Are the same figures identical across screens? | Yes. Population assessed on this screen is the same sum the Priority screen ranks, both from the same fixtures through the same API. |
+| 7 | Does the opening avoid looking like a generic dashboard? | The Sites screen is a diagnostic, not a KPI wall: four figures, then the bottleneck bars. The cold open itself is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes, and this screen carries the sharpest limitation in the product: ASTRA does not verify land ownership, tenure or encumbrance. It is stated in the header, not buried in a tooltip. |
+| 9 | Does it run with the network off? | Yes. The Sentinel-2 composite, the WorldCover clip and the trained refinement raster are all vendored; nothing is fetched at request time. |
+| 10 | Can the optimiser breach capacity? | Not yet applicable, but this slice sets the constraint it will be held to: a site failing any gate is excluded from the district total and is marked "not available for allocation", and a test asserts the total excludes it. |
+| 11 | Any feature that looks impressive but changes no decision? | The hover projection was one, and was fixed rather than kept - see below. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. Panduri Terrace: 5.24 ha of buildable footprint / 45 m2 per person = 1,164 land capacity; water supply / 15 L/person/day = 812; 812 is the smallest, so effective capacity is 812 and water binds. One borewell at 15,000 L/day raises it to 1,164, at which point land binds. |
+
+### Red-team finding
+
+**The weakest point was the intervention hover, and it was a fabricated-feature
+problem hiding inside honest data.** Hovering an intervention row re-coloured the
+capacity bars to highlight `next_bottleneck` in the same red used for the current
+bottleneck - while the bar lengths, being the present per-service capacities, did
+not move. The screen was therefore asserting "this service binds capacity" about
+a service that does not, using values that describe a different scenario. Every
+number was real; the composition of them was not. Fixed by giving the projected
+constraint its own visual language (amber, dashed outline, distinct from red) and
+adding a caption that states the projection in full and ends with "Bars show the
+assessment as it stands today". This is exactly the class of failure section 2.3
+forbids, and it survived one review before being caught.
+
+Two further findings from the same pass:
+
+**The site list was ordered by effective capacity alone, which put a site failing
+a hard gate at the top with the largest number on the screen.** A gate failure is
+binary - the site is not available at any capacity - so ranking it above the
+sites that are available inverted the decision the screen exists to support.
+Sites now sort availability-first, gate-failed rows are dimmed and state which
+gate they fail, and the detail panel opens with "Not available for allocation".
+
+**The API declared none of the dependencies it actually imports.**
+`pyproject.toml` listed FastAPI, Pydantic and uvicorn while the analytical core
+has imported numpy, scipy, rasterio, shapely and pyproj since Slice 2. Every
+local run worked because the development environment had them; a clean CI
+checkout or a Docker build would not have. They are now declared as runtime
+dependencies, with the fetch-and-build tooling (`requests`, `pillow`,
+`scikit-learn`) in a separate `data` extra, since none of it runs at request
+time.
+
+**Standing limitation, recorded rather than hidden:** access capacity is a route
+throughput question and the route engine is Slice 6. Rather than assume access is
+unconstrained, every site reports it as a pending constraint with the reason, and
+a test asserts no `ACCESS` service capacity is ever scored before that engine
+exists.
+
+### Verification
+
+- 222 backend tests pass, 33 of them new: per-service arithmetic against hand
+  calculation, the norm and citation on every row, argmin selection including a
+  deliberate tie, theoretical-vs-effective separation, intervention gain for a
+  binding and a non-binding service, intervention ranking, the marginal sentence
+  assembled from computed fields, all five gates passing and failing at their
+  thresholds, the three-condition usable-area intersection, contiguous-patch
+  selection including an unusable centre, no-coverage reported as no coverage
+  rather than zero area, refinement agreement driving confidence, and against the
+  real corridor: effective never exceeding theoretical, the binding service being
+  the lowest, availability-first ordering, district totals excluding gate
+  failures, access declared pending, and determinism across two runs.
+- `ruff` clean, fixture gate PASS (18 records, 11 datasets), OpenAPI exported and
+  TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint clean,
+  `next build` succeeds, and the Sites screen was driven in a real browser -
+  selection, hover projection and gate-failure states - with zero console errors.

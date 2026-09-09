@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from astra.data.connectors.base import Connector, ConnectorError, FetchResult
+from astra.data.connectors.imagery import SentinelCompositeConnector
 from astra.data.connectors.raster_sources import (
     CopernicusDemConnector,
     WorldCoverConnector,
@@ -24,6 +25,7 @@ CONNECTOR_TYPES: tuple[type[Connector], ...] = (
     OverpassConnector,
     LandslideInventoryConnector,
     RainfallConnector,
+    SentinelCompositeConnector,
 )
 
 
@@ -40,6 +42,7 @@ __all__ = [
     "LandslideInventoryConnector",
     "OverpassConnector",
     "RainfallConnector",
+    "SentinelCompositeConnector",
     "WorldCoverConnector",
     "WorldPopConnector",
     "build_connectors",

@@ -275,6 +275,17 @@
       "max": 335.0,
       "mean": 335.0,
       "note": "thresholded composite, cleaned to the minimum mapping unit, grown by the configured buffer, exclusive between classes"
+    },
+    "landcover_ml_buildable": {
+      "file": "landcover_ml_buildable.tif",
+      "dtype": "uint8",
+      "stored_scale": 1.0,
+      "unit": "boolean",
+      "bytes": 265723,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.4721521653929061,
+      "note": "Random Forest over Sentinel-2 spectral indices: a second opinion on buildable ground. ESA WorldCover remains the primary path."
     }
   },
   "hazard": {
@@ -313,5 +324,144 @@
     },
     "model_config_version": "1.5.0",
     "engine_version": "0.2.0"
+  },
+  "landcover_refinement": {
+    "model": "landcover-refinement-rf",
+    "model_version": "2.0.0",
+    "algorithm": "RandomForestClassifier, 250 trees, max depth 10, balanced class weights, CPU only, trained in about a second",
+    "features": [
+      "ndvi",
+      "ndbi",
+      "ndwi",
+      "brightness"
+    ],
+    "feature_importance": {
+      "ndvi": 0.2204,
+      "ndbi": 0.2589,
+      "ndwi": 0.281,
+      "brightness": 0.2398
+    },
+    "classes": [
+      "built",
+      "cropland",
+      "grass",
+      "gravel",
+      "snow",
+      "vegetation",
+      "water"
+    ],
+    "buildable_classes": [
+      "built",
+      "cropland",
+      "grass",
+      "gravel"
+    ],
+    "training_samples": 3881,
+    "samples_per_class": {
+      "water": 520,
+      "gravel": 361,
+      "snow": 600,
+      "grass": 600,
+      "vegetation": 600,
+      "built": 600,
+      "cropland": 600
+    },
+    "class_signatures": {
+      "water": {
+        "available_cells": 520,
+        "median_ndvi": 0.0327,
+        "median_ndbi": 0.0431,
+        "median_ndwi": -0.0283,
+        "median_brightness": 0.264
+      },
+      "gravel": {
+        "available_cells": 361,
+        "median_ndvi": 0.0787,
+        "median_ndbi": 0.0052,
+        "median_ndwi": -0.1029,
+        "median_brightness": 0.2896
+      },
+      "snow": {
+        "available_cells": 151690,
+        "median_ndvi": -0.0215,
+        "median_ndbi": -0.6404,
+        "median_ndwi": 0.0222,
+        "median_brightness": 0.9046
+      },
+      "grass": {
+        "available_cells": 45498,
+        "median_ndvi": 0.3869,
+        "median_ndbi": -0.0818,
+        "median_ndwi": -0.4907,
+        "median_brightness": 0.165
+      },
+      "vegetation": {
+        "available_cells": 313356,
+        "median_ndvi": 0.741,
+        "median_ndbi": -0.1387,
+        "median_ndwi": -0.6875,
+        "median_brightness": 0.0679
+      },
+      "built": {
+        "available_cells": 2790,
+        "median_ndvi": 0.4189,
+        "median_ndbi": -0.009,
+        "median_ndwi": -0.4691,
+        "median_brightness": 0.178
+      },
+      "cropland": {
+        "available_cells": 12980,
+        "median_ndvi": 0.3981,
+        "median_ndbi": 0.0306,
+        "median_ndwi": -0.4671,
+        "median_brightness": 0.175
+      }
+    },
+    "labelling_rules": [
+      {
+        "label": "water",
+        "buildable": false,
+        "reasoning": "Cells on the DEM-derived channel network carrying more than 250 km2 of upstream area on near-flat ground: the Alaknanda and its major tributaries, which are permanently wet."
+      },
+      {
+        "label": "gravel",
+        "buildable": true,
+        "reasoning": "Flat ground beside smaller channels, 120 to 250 km2 of upstream area: riverbed gravel and braided bar, bare by definition."
+      },
+      {
+        "label": "snow",
+        "buildable": false,
+        "reasoning": "Steep ground above 4400 m. In a post-monsoon composite this is snow and ice, and its shortwave signature confirms it."
+      },
+      {
+        "label": "grass",
+        "buildable": true,
+        "reasoning": "Gentle ground between 3200 and 3800 m: above the treeline, below permanent snow, the alpine grazing belt."
+      },
+      {
+        "label": "vegetation",
+        "buildable": false,
+        "reasoning": "Steep slopes between 1900 and 2900 m more than 1.2 km from any mapped road: the closed-canopy forest belt, too far from access to be cleared."
+      },
+      {
+        "label": "built",
+        "buildable": true,
+        "reasoning": "Gentle ground within 60 m of a mapped road where the WorldPop surface exceeds 300 people per square kilometre: settlement and roadside."
+      },
+      {
+        "label": "cropland",
+        "buildable": true,
+        "reasoning": "Gentle valley-floor ground between 1000 and 1900 m within 300 m of a road: the terraced cultivation belt."
+      }
+    ],
+    "class_accuracy": 0.5965,
+    "buildable_accuracy": 0.765,
+    "agreement_with_worldcover": 0.6774,
+    "caveats": [
+      "Labels come from rules over the DEM, the D8 hydrology, the road network and the WorldPop surface - never from the WorldCover product this model is compared against, which would only prove it can copy.",
+      "The rules are approximations. Some labelled cells will be wrong, and the accuracy figures are therefore about the rules as much as the model.",
+      "Grass, cropland and built-up are not reliably separable at 30 m. That does not affect the decision this model feeds: all three are buildable, and buildable-or-not is the only question it is asked.",
+      "The model refines usable area. It scores no hazard and ranks nothing."
+    ]
   }
 }

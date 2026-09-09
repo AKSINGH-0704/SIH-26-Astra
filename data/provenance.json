@@ -130,6 +130,20 @@
       "notes": "Reanalysis smooths the extreme short-duration rainfall that actually triggers cloudbursts in this terrain, so intensity is a conservative proxy rather than a gauge measurement."
     },
     {
+      "id": "sentinel2-composite",
+      "name": "Sentinel-2 L2A post-monsoon composite (study corridor, 30 m)",
+      "source": "ESA Copernicus Sentinel-2, via the Earth Search STAC catalogue",
+      "source_url": "https://earth-search.aws.element84.com/v1/search",
+      "provenance": "REAL_OPEN",
+      "acquired": "2026-09-09",
+      "processing": "Least-cloudy scenes between 2023-10-15 and 2023-12-15 under 8% cloud, bands blue, green, red, nir, swir16 resampled by averaging to a ~30 m geographic grid over the study bounding box and mosaicked across MGRS tiles.",
+      "resolution": "~30 m, resampled from 10 m and 20 m native bands",
+      "temporal_coverage": "2023-10-15 to 2023-12-15",
+      "confidence": "HIGH",
+      "licence": "Copernicus Sentinel data, free and open",
+      "notes": "Used only by the land-cover refinement model, which is a second opinion on usable area. The published ESA WorldCover product remains the primary path."
+    },
+    {
       "id": "worldpop-1km-2020",
       "name": "WorldPop India 1 km population, UN-adjusted 2020 (study corridor clip)",
       "source": "WorldPop, University of Southampton",

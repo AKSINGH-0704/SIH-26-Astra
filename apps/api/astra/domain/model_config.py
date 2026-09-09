@@ -22,10 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.7.0"
+MODEL_CONFIG_VERSION = "1.8.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
-ENGINE_VERSION = "0.3.0"
+ENGINE_VERSION = "0.4.0"
 """Bumped whenever engine logic (not just constants) changes."""
 
 # Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
@@ -868,6 +868,61 @@ class CapacityConfig(BaseModel):
         1000.0,
         "Distance to the nearest usable road beyond which a site is not accessible.",
         unit="m",
+    )
+    gate_min_hand_m: Constant = demo(
+        "gate.min_hand_m",
+        20.0,
+        "Height above nearest drainage a candidate site must stand at to pass the "
+        "flood gate. ASTRA does not run a hydraulic model, so HAND is used as the "
+        "return-period stand-in and is labelled as one: it says how far above its "
+        "channel a site sits, not what a 100-year discharge would do.",
+        unit="m",
+    )
+    site_measure_radius_m: Constant = demo(
+        "capacity.site_measure_radius_m",
+        650.0,
+        "Radius around a candidate site centre within which usable area is measured "
+        "on the real land-cover, slope and drainage surfaces.",
+        unit="m",
+    )
+    intervention_water_litres_day: Constant = demo(
+        "intervention.water_litres_per_day",
+        15000.0,
+        "Water supply added by one intervention unit: a borewell with storage, sized "
+        "at roughly one thousand people at the Sphere minimum.",
+        unit="L/day",
+    )
+    intervention_sanitation_units: Constant = demo(
+        "intervention.sanitation_units",
+        20.0,
+        "Latrine units added by one sanitation intervention block.",
+        unit="latrines",
+    )
+    intervention_shelter_units: Constant = demo(
+        "intervention.shelter_units",
+        40.0,
+        "Shelter units added by one construction intervention.",
+        unit="units",
+    )
+    intervention_healthcare_units: Constant = demo(
+        "intervention.healthcare_units",
+        0.25,
+        "Health facility capacity added by one intervention: a sub-centre serving a "
+        "quarter of the population one full facility unit covers.",
+        unit="facility units",
+    )
+    intervention_power_kva: Constant = demo(
+        "intervention.power_kva",
+        150.0,
+        "Connected load added by one power intervention: a distribution transformer.",
+        unit="kVA",
+    )
+    intervention_land_m2: Constant = demo(
+        "intervention.land_m2",
+        10000.0,
+        "Usable land added by one land intervention: one hectare of terracing or "
+        "acquisition adjacent to the site.",
+        unit="m2",
     )
     landcover_agreement_high_confidence: Constant = demo(
         "capacity.landcover_agreement_high",

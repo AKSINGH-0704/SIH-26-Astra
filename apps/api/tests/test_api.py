@@ -354,3 +354,95 @@ def test_habitation_detail_returns_the_full_reasoning(client: TestClient) -> Non
 
 def test_unknown_habitation_detail_is_a_404(client: TestClient) -> None:
     assert client.get("/priority/habitations/H-99").status_code == 404
+
+
+def test_capacity_sites_report_effective_capacity_and_the_binding_service(
+    client: TestClient,
+) -> None:
+    payload = client.get("/capacity/sites").json()
+    assert len(payload["sites"]) == 6
+    assert payload["suitable_sites"] <= len(payload["sites"])
+    assert "ownership" in payload["limitation"]
+    for site in payload["sites"]:
+        capacities = {s["service"]: s["capacity_persons"] for s in site["services"]}
+        assert site["effective_capacity"] == pytest.approx(min(capacities.values()), abs=0.1)
+        assert capacities[site["bottleneck"]] == pytest.approx(
+            site["effective_capacity"], abs=0.1
+        )
+        assert site["effective_capacity"] <= site["theoretical_capacity"] + 1e-6
+
+
+def test_capacity_totals_only_count_sites_that_pass_every_gate(client: TestClient) -> None:
+    payload = client.get("/capacity/sites").json()
+    expected = sum(
+        site["effective_capacity"] for site in payload["sites"] if site["suitable"]
+    )
+    assert payload["total_effective_capacity"] == pytest.approx(expected, abs=0.2)
+    assert payload["unmet_demand"] == pytest.approx(
+        max(payload["population_needing_relocation"] - expected, 0.0), abs=0.2
+    )
+
+
+def test_every_gate_failure_names_the_gate_and_its_threshold(client: TestClient) -> None:
+    for site in client.get("/capacity/sites").json()["sites"]:
+        for gate in site["gates"]:
+            assert gate["detail"]
+            assert gate["threshold"] is not None
+            assert gate["observed"] is not None
+        if not site["suitable"]:
+            assert site["failed_gates"]
+
+
+def test_marginal_intervention_is_computed_not_narrated(client: TestClient) -> None:
+    for site in client.get("/capacity/sites").json()["sites"]:
+        interventions = site["interventions"]
+        assert interventions
+        gains = [i["capacity_gain"] for i in interventions]
+        assert gains == sorted(gains, reverse=True)
+        for intervention in interventions:
+            assert intervention["capacity_after"] - intervention["capacity_before"] == (
+                pytest.approx(intervention["capacity_gain"], abs=0.2)
+            )
+            assert intervention["capacity_before"] == pytest.approx(
+                site["effective_capacity"], abs=0.2
+            )
+        best = interventions[0]
+        if best["unlocks"]:
+            assert site["marginal_headline"]
+            # The headline rounds; the test must round the same way rather than
+            # truncate, or it fails on the engine being correct.
+            assert str(round(best["capacity_after"])) in site[
+                "marginal_headline"
+            ].replace(",", "")
+
+
+def test_capacity_norms_are_served_with_their_citations(client: TestClient) -> None:
+    for norm in client.get("/capacity/sites").json()["norms"]:
+        assert norm["description"]
+        if norm["provenance"] != "DEMO_CONFIG":
+            assert norm["citation"]
+
+
+def test_access_capacity_is_pending_not_assumed(client: TestClient) -> None:
+    for site in client.get("/capacity/sites").json()["sites"]:
+        assert site["pending_constraints"]
+        assert all(s["service"] != "ACCESS" for s in site["services"])
+
+
+def test_unknown_site_capacity_is_a_404(client: TestClient) -> None:
+    assert client.get("/capacity/sites/S-99").status_code == 404
+
+
+def test_landcover_refinement_reports_its_own_limits(client: TestClient) -> None:
+    refinement = client.get("/study-area/data").json().get("landcover_refinement")
+    assert refinement, "the scoped ML component should be built"
+    assert refinement["model"] == "landcover-refinement-rf"
+    assert "RandomForest" in refinement["algorithm"]
+    assert 0.0 <= refinement["buildable_accuracy"] <= 1.0
+    assert 0.0 <= refinement["agreement_with_worldcover"] <= 1.0
+    assert refinement["labelling_rules"], "the labelling rules must be published"
+    for rule in refinement["labelling_rules"]:
+        assert rule["reasoning"]
+    caveats = " ".join(refinement["caveats"]).lower()
+    assert "never from the worldcover product" in caveats
+    assert "scores no hazard" in caveats

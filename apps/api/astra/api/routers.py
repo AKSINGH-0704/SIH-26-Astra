@@ -209,6 +209,7 @@ def study_area_data() -> StudyAreaDataResponse:
         generation=generation,
         terrain_preview_url="/study-area/terrain.jpg",
         terrain_preview_bbox=area.bbox.as_list(),
+        landcover_refinement=manifest.get("landcover_refinement"),
     )
 
 

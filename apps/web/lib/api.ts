@@ -18,6 +18,7 @@ import type {
   RiskCellResponse,
   RiskSummaryResponse,
   ScenarioListResponse,
+  SiteCapacityListResponse,
   SitesResponse,
   StudyAreaDataResponse,
   ValidationCheckResponse,
@@ -66,6 +67,7 @@ export const api = {
   riskSummary: () => get<RiskSummaryResponse>("/risk/summary"),
   riskZones: () => get<ZonesResponse>("/risk/zones"),
   riskHabitations: () => get<HabitationHazardResponse>("/risk/habitations"),
+  capacitySites: () => get<SiteCapacityListResponse>("/capacity/sites"),
   priorityHabitations: () => get<HabitationPriorityResponse>("/priority/habitations"),
   priorityHabitation: (id: string) =>
     get<HabitationDetailResponse>(`/priority/habitations/${encodeURIComponent(id)}`),

@@ -1,7 +1,7 @@
 {
   "study_area": "chamoli-alaknanda",
   "seed": 26191,
-  "model_config_version": "1.1.0",
+  "model_config_version": "1.8.0",
   "provenance": "SYNTHETIC_CALIBRATED",
   "measured_from_real_data": [
     "placement: Copernicus DEM slope, elevation band, height above nearest drainage, ESA WorldCover buildable classes, distance to the OSM road network",
@@ -20,7 +20,7 @@
     "population": 2519,
     "households": 504,
     "sites": 6,
-    "site_gross_area_m2": 748986.9
+    "site_gross_area_m2": 397004.2
   },
   "names": {
     "note": "All habitation and site names are fictional and were chosen not to match any settlement in the corridor.",

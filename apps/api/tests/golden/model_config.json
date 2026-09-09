@@ -40,6 +40,62 @@
       "unit": "degrees",
       "value": 18.0
     },
+    "gate_min_hand_m": {
+      "citation": null,
+      "description": "Height above nearest drainage a candidate site must stand at to pass the flood gate. ASTRA does not run a hydraulic model, so HAND is used as the return-period stand-in and is labelled as one: it says how far above its channel a site sits, not what a 100-year discharge would do.",
+      "key": "gate.min_hand_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 20.0
+    },
+    "intervention_healthcare_units": {
+      "citation": null,
+      "description": "Health facility capacity added by one intervention: a sub-centre serving a quarter of the population one full facility unit covers.",
+      "key": "intervention.healthcare_units",
+      "provenance": "DEMO_CONFIG",
+      "unit": "facility units",
+      "value": 0.25
+    },
+    "intervention_land_m2": {
+      "citation": null,
+      "description": "Usable land added by one land intervention: one hectare of terracing or acquisition adjacent to the site.",
+      "key": "intervention.land_m2",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m2",
+      "value": 10000.0
+    },
+    "intervention_power_kva": {
+      "citation": null,
+      "description": "Connected load added by one power intervention: a distribution transformer.",
+      "key": "intervention.power_kva",
+      "provenance": "DEMO_CONFIG",
+      "unit": "kVA",
+      "value": 150.0
+    },
+    "intervention_sanitation_units": {
+      "citation": null,
+      "description": "Latrine units added by one sanitation intervention block.",
+      "key": "intervention.sanitation_units",
+      "provenance": "DEMO_CONFIG",
+      "unit": "latrines",
+      "value": 20.0
+    },
+    "intervention_shelter_units": {
+      "citation": null,
+      "description": "Shelter units added by one construction intervention.",
+      "key": "intervention.shelter_units",
+      "provenance": "DEMO_CONFIG",
+      "unit": "units",
+      "value": 40.0
+    },
+    "intervention_water_litres_day": {
+      "citation": null,
+      "description": "Water supply added by one intervention unit: a borewell with storage, sized at roughly one thousand people at the Sphere minimum.",
+      "key": "intervention.water_litres_per_day",
+      "provenance": "DEMO_CONFIG",
+      "unit": "L/day",
+      "value": 15000.0
+    },
     "landcover_agreement_high_confidence": {
       "citation": null,
       "description": "Agreement between the WorldCover reclassification and the Random Forest refinement above which usable-area confidence is reported as High.",
@@ -104,6 +160,14 @@
       "unit": "m2/person",
       "value": 45.0
     },
+    "site_measure_radius_m": {
+      "citation": null,
+      "description": "Radius around a candidate site centre within which usable area is measured on the real land-cover, slope and drainage surfaces.",
+      "key": "capacity.site_measure_radius_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 650.0
+    },
     "water_litres_per_person_day": {
       "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
       "description": "Minimum water supply per person per day.",
@@ -164,7 +228,7 @@
     }
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
-  "engine_version": "0.3.0",
+  "engine_version": "0.4.0",
   "evidence": {
     "incident_fatality_bonus": {
       "citation": null,
@@ -1349,5 +1413,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.7.0"
+  "version": "1.8.0"
 }

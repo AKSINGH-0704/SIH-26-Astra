@@ -479,11 +479,15 @@ def generate_sites(stack: SurfaceStack, area: StudyArea) -> list[CandidateSite]:
         gross_area_m2 = _contiguous_buildable_area(stack, point)
         identifier = f"S-{index + 1:02d}"
         existing_units = int(rng.integers(0, 26))
-        constructable = int(
-            gross_area_m2
-            * 0.35
-            / MODEL_CONFIG.capacity.pmay_g_plot_area_m2.value
+        # A dwelling needs a plot, not just a footprint: the Sphere site-area norm
+        # times household size is the land one household actually occupies once
+        # access, services and setback are included. Dividing by the dwelling
+        # footprint alone would claim thousands of units on a few hectares.
+        land_per_household_m2 = (
+            MODEL_CONFIG.capacity.site_area_m2_per_person.value
+            * MODEL_CONFIG.capacity.persons_per_household.value
         )
+        constructable = int(gross_area_m2 * 0.35 / land_per_household_m2)
         sites.append(
             CandidateSite(
                 id=identifier,
@@ -509,19 +513,47 @@ def generate_sites(stack: SurfaceStack, area: StudyArea) -> list[CandidateSite]:
     return sites
 
 
-def _contiguous_buildable_area(
-    stack: SurfaceStack, point: PlacedPoint, radius_cells: int = 22
-) -> float:
-    """Measure buildable, gentle ground around a point on the real surfaces."""
+def _contiguous_buildable_area(stack: SurfaceStack, point: PlacedPoint) -> float:
+    """Measure the buildable patch a site actually occupies.
+
+    Only the connected patch containing the site centre counts, measured with the
+    capacity engine's own window and thresholds. Summing every scrap of gentle
+    ground within half a kilometre would inflate the site, and the engine would
+    then find far less land than the site claims to have.
+    """
+    from scipy import ndimage
+
+    capacity = MODEL_CONFIG.capacity
     cell = stack.elevation.cell_size
     rows, cols = stack.shape
-    r0, r1 = max(0, point.row - radius_cells), min(rows, point.row + radius_cells + 1)
-    c0, c1 = max(0, point.col - radius_cells), min(cols, point.col + radius_cells + 1)
+    # The same window, the same thresholds and the same connectivity rule the
+    # capacity engine uses, so a site has exactly one measured area rather than
+    # one number in the fixture and a different one on the capacity screen.
+    radius_cells_y = max(1, int(round(capacity.site_measure_radius_m.value / cell.y_m)))
+    radius_cells_x = max(1, int(round(capacity.site_measure_radius_m.value / cell.x_m)))
+    r0, r1 = max(0, point.row - radius_cells_y), min(rows, point.row + radius_cells_y + 1)
+    c0, c1 = max(0, point.col - radius_cells_x), min(cols, point.col + radius_cells_x + 1)
     slope_window = stack.slope.data[r0:r1, c0:c1]
     buildable_window = stack.buildable.data[r0:r1, c0:c1] > 0.5
     hand_window = stack.hand.data[r0:r1, c0:c1]
-    usable = (slope_window <= 15.0) & buildable_window & (hand_window >= 20.0)
-    return float(usable.sum() * cell.area_m2)
+    usable = (
+        (slope_window <= capacity.gate_max_slope_deg.value)
+        & buildable_window
+        & (hand_window >= capacity.gate_min_hand_m.value)
+    )
+    if not usable.any():
+        return 0.0
+
+    labelled, count = ndimage.label(usable, structure=np.ones((3, 3), dtype=int))
+    if count == 0:
+        return 0.0
+    centre = (point.row - r0, point.col - c0)
+    label = int(labelled[centre])
+    if label == 0:
+        sizes = np.bincount(labelled.ravel())
+        sizes[0] = 0
+        label = int(sizes.argmax())
+    return float((labelled == label).sum() * cell.area_m2)
 
 
 def generation_manifest(

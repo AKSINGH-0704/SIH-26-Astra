@@ -78,13 +78,15 @@ def main() -> int:
         )
         records.append(json.loads(connector.dataset_record(acquired).model_dump_json()))
 
-    # Keep the ASTRA-authored records that are not produced by a connector.
+    # Keep every record this run did not regenerate: the ASTRA-authored ones, and
+    # any connector not selected by --only. Rewriting the registry from a partial
+    # run would silently delete datasets that are still on disk.
     existing = json.loads(settings.provenance_path.read_text(encoding="utf-8"))
-    connector_ids = {c.dataset_id for c in build_connectors(settings.raw_dir, area.bbox)}
+    regenerated_ids = {record["id"] for record in records}
     preserved = [
         record
         for record in existing.get("datasets", [])
-        if record["id"] not in connector_ids
+        if record["id"] not in regenerated_ids
     ]
 
     payload = {

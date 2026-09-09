@@ -7,44 +7,44 @@
       "lat": 30.414306
     },
     "boundary": null,
-    "gross_area_m2": 123603.3,
+    "gross_area_m2": 40928.3,
     "mean_slope_deg": 0.5,
     "elevation_m": 1457.0,
     "distance_to_road_m": 27.0,
     "existing_shelter_units": 5,
-    "constructable_units": 1730,
+    "constructable_units": 63,
     "services": [
       {
         "service": "WATER",
-        "supply": 45048.24,
+        "supply": 14916.64,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 71.0,
+        "supply": 23.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.39,
+        "supply": 0.13,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 658.78,
+        "supply": 218.14,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 363.0,
+        "supply": 120.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
@@ -63,44 +63,44 @@
       "lat": 30.465417
     },
     "boundary": null,
-    "gross_area_m2": 25375.5,
+    "gross_area_m2": 26194.1,
     "mean_slope_deg": 1.0,
     "elevation_m": 1518.0,
     "distance_to_road_m": 41.0,
     "existing_shelter_units": 11,
-    "constructable_units": 355,
+    "constructable_units": 40,
     "services": [
       {
         "service": "WATER",
-        "supply": 6856.23,
+        "supply": 7077.4,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 32.0,
+        "supply": 33.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.06,
+        "supply": 0.07,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 166.08,
+        "supply": 171.44,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 55.0,
+        "supply": 57.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
@@ -119,44 +119,44 @@
       "lat": 30.391806
     },
     "boundary": null,
-    "gross_area_m2": 98227.8,
+    "gross_area_m2": 71215.2,
     "mean_slope_deg": 1.5,
     "elevation_m": 1059.0,
     "distance_to_road_m": 31.0,
     "existing_shelter_units": 10,
-    "constructable_units": 1375,
+    "constructable_units": 110,
     "services": [
       {
         "service": "WATER",
-        "supply": 34791.62,
+        "supply": 25223.93,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 86.0,
+        "supply": 62.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.23,
+        "supply": 0.17,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 616.5,
+        "supply": 446.96,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 271.0,
+        "supply": 197.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
@@ -175,44 +175,44 @@
       "lat": 30.372083
     },
     "boundary": null,
-    "gross_area_m2": 125240.4,
+    "gross_area_m2": 131789.0,
     "mean_slope_deg": 0.5,
     "elevation_m": 1569.0,
     "distance_to_road_m": 186.0,
     "existing_shelter_units": 13,
-    "constructable_units": 1753,
+    "constructable_units": 205,
     "services": [
       {
         "service": "WATER",
-        "supply": 24315.46,
+        "supply": 25586.86,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 141.0,
+        "supply": 148.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.26,
+        "supply": 0.27,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 615.8,
+        "supply": 648.0,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 420.0,
+        "supply": 442.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
@@ -231,44 +231,44 @@
       "lat": 30.511528
     },
     "boundary": null,
-    "gross_area_m2": 182540.0,
+    "gross_area_m2": 52388.2,
     "mean_slope_deg": 0.5,
     "elevation_m": 2092.0,
     "distance_to_road_m": 246.0,
     "existing_shelter_units": 0,
-    "constructable_units": 2555,
+    "constructable_units": 81,
     "services": [
       {
         "service": "WATER",
-        "supply": 42458.72,
+        "supply": 12185.46,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 204.0,
+        "supply": 59.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.48,
+        "supply": 0.14,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 1014.16,
+        "supply": 291.06,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 599.0,
+        "supply": 172.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
@@ -287,44 +287,44 @@
       "lat": 30.519306
     },
     "boundary": null,
-    "gross_area_m2": 193999.9,
+    "gross_area_m2": 74489.4,
     "mean_slope_deg": 0.5,
     "elevation_m": 2259.0,
     "distance_to_road_m": 262.0,
     "existing_shelter_units": 10,
-    "constructable_units": 2715,
+    "constructable_units": 115,
     "services": [
       {
         "service": "WATER",
-        "supply": 68380.82,
+        "supply": 26255.93,
         "unit": "L/day",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SANITATION",
-        "supply": 179.0,
+        "supply": 69.0,
         "unit": "latrine units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "HEALTHCARE",
-        "supply": 0.32,
+        "supply": 0.12,
         "unit": "facility units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "POWER",
-        "supply": 1113.7,
+        "supply": 427.62,
         "unit": "kVA",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."
       },
       {
         "service": "SHELTER",
-        "supply": 587.0,
+        "supply": 225.0,
         "unit": "shelter units",
         "provenance": "SYNTHETIC_CALIBRATED",
         "source_note": "Assumed existing provision at this candidate site. Would be replaced by an SDMA field survey."

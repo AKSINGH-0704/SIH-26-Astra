@@ -4,6 +4,66 @@
  */
 
 export interface paths {
+    "/capacity/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capacity Sites
+         * @description Carrying capacity for every candidate site, with the binding constraint named.
+         */
+        get: operations["capacity_sites_capacity_sites_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/capacity/sites/{site_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capacity Site
+         * @description One site's full capacity assessment.
+         */
+        get: operations["capacity_site_capacity_sites__site_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/capacity/sites/{site_id}/interventions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capacity Interventions
+         * @description What one unit of each intervention would unlock at this site, ranked.
+         */
+        get: operations["capacity_interventions_capacity_sites__site_id__interventions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/habitations": {
         parameters: {
             query?: never;
@@ -425,6 +485,55 @@ export interface components {
              *         "unit": "degrees",
              *         "value": 18
              *       },
+             *       "gate_min_hand_m": {
+             *         "description": "Height above nearest drainage a candidate site must stand at to pass the flood gate. ASTRA does not run a hydraulic model, so HAND is used as the return-period stand-in and is labelled as one: it says how far above its channel a site sits, not what a 100-year discharge would do.",
+             *         "key": "gate.min_hand_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 20
+             *       },
+             *       "intervention_healthcare_units": {
+             *         "description": "Health facility capacity added by one intervention: a sub-centre serving a quarter of the population one full facility unit covers.",
+             *         "key": "intervention.healthcare_units",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "facility units",
+             *         "value": 0.25
+             *       },
+             *       "intervention_land_m2": {
+             *         "description": "Usable land added by one land intervention: one hectare of terracing or acquisition adjacent to the site.",
+             *         "key": "intervention.land_m2",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m2",
+             *         "value": 10000
+             *       },
+             *       "intervention_power_kva": {
+             *         "description": "Connected load added by one power intervention: a distribution transformer.",
+             *         "key": "intervention.power_kva",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "kVA",
+             *         "value": 150
+             *       },
+             *       "intervention_sanitation_units": {
+             *         "description": "Latrine units added by one sanitation intervention block.",
+             *         "key": "intervention.sanitation_units",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "latrines",
+             *         "value": 20
+             *       },
+             *       "intervention_shelter_units": {
+             *         "description": "Shelter units added by one construction intervention.",
+             *         "key": "intervention.shelter_units",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "units",
+             *         "value": 40
+             *       },
+             *       "intervention_water_litres_day": {
+             *         "description": "Water supply added by one intervention unit: a borewell with storage, sized at roughly one thousand people at the Sphere minimum.",
+             *         "key": "intervention.water_litres_per_day",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "L/day",
+             *         "value": 15000
+             *       },
              *       "landcover_agreement_high_confidence": {
              *         "description": "Agreement between the WorldCover reclassification and the Random Forest refinement above which usable-area confidence is reported as High.",
              *         "key": "capacity.landcover_agreement_high",
@@ -485,6 +594,13 @@ export interface components {
              *         "unit": "m2/person",
              *         "value": 45
              *       },
+             *       "site_measure_radius_m": {
+             *         "description": "Radius around a candidate site centre within which usable area is measured on the real land-cover, slope and drainage surfaces.",
+             *         "key": "capacity.site_measure_radius_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 650
+             *       },
              *       "water_litres_per_person_day": {
              *         "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
              *         "description": "Minimum water supply per person per day.",
@@ -544,7 +660,7 @@ export interface components {
             disclaimer: string;
             /**
              * Engine Version
-             * @default 0.3.0
+             * @default 0.4.0
              */
             engine_version: string;
             /**
@@ -1526,7 +1642,7 @@ export interface components {
             validation: components["schemas"]["ValidationConfig"];
             /**
              * Version
-             * @default 1.7.0
+             * @default 1.8.0
              */
             version: string;
         };
@@ -1642,6 +1758,76 @@ export interface components {
             gate_max_slope_deg: components["schemas"]["Constant"];
             /**
              * @default {
+             *       "description": "Height above nearest drainage a candidate site must stand at to pass the flood gate. ASTRA does not run a hydraulic model, so HAND is used as the return-period stand-in and is labelled as one: it says how far above its channel a site sits, not what a 100-year discharge would do.",
+             *       "key": "gate.min_hand_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 20
+             *     }
+             */
+            gate_min_hand_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Health facility capacity added by one intervention: a sub-centre serving a quarter of the population one full facility unit covers.",
+             *       "key": "intervention.healthcare_units",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "facility units",
+             *       "value": 0.25
+             *     }
+             */
+            intervention_healthcare_units: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Usable land added by one land intervention: one hectare of terracing or acquisition adjacent to the site.",
+             *       "key": "intervention.land_m2",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m2",
+             *       "value": 10000
+             *     }
+             */
+            intervention_land_m2: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Connected load added by one power intervention: a distribution transformer.",
+             *       "key": "intervention.power_kva",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "kVA",
+             *       "value": 150
+             *     }
+             */
+            intervention_power_kva: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Latrine units added by one sanitation intervention block.",
+             *       "key": "intervention.sanitation_units",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "latrines",
+             *       "value": 20
+             *     }
+             */
+            intervention_sanitation_units: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Shelter units added by one construction intervention.",
+             *       "key": "intervention.shelter_units",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "units",
+             *       "value": 40
+             *     }
+             */
+            intervention_shelter_units: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Water supply added by one intervention unit: a borewell with storage, sized at roughly one thousand people at the Sphere minimum.",
+             *       "key": "intervention.water_litres_per_day",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "L/day",
+             *       "value": 15000
+             *     }
+             */
+            intervention_water_litres_day: components["schemas"]["Constant"];
+            /**
+             * @default {
              *       "description": "Agreement between the WorldCover reclassification and the Random Forest refinement above which usable-area confidence is reported as High.",
              *       "key": "capacity.landcover_agreement_high",
              *       "provenance": "DEMO_CONFIG",
@@ -1724,6 +1910,16 @@ export interface components {
              *     }
              */
             site_area_m2_per_person: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Radius around a candidate site centre within which usable area is measured on the real land-cover, slope and drainage surfaces.",
+             *       "key": "capacity.site_measure_radius_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 650
+             *     }
+             */
+            site_measure_radius_m: components["schemas"]["Constant"];
             /**
              * @default {
              *       "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
@@ -2167,6 +2363,23 @@ export interface components {
              * @description Bumped when the expression itself changes.
              */
             version: string;
+        };
+        /**
+         * GateResult
+         * @description Outcome of one hard suitability gate. A failure is named, never scored away.
+         */
+        GateResult: {
+            /** Detail */
+            detail: string;
+            gate: components["schemas"]["SuitabilityGate"];
+            /** Observed */
+            observed?: number | null;
+            /** Passed */
+            passed: boolean;
+            /** Threshold */
+            threshold?: number | null;
+            /** Unit */
+            unit?: string | null;
         };
         /**
          * GenerationConfig
@@ -2858,6 +3071,30 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "degraded";
+        };
+        /**
+         * InterventionResponse
+         * @description One unit of investment and the capacity it actually unlocks.
+         */
+        InterventionResponse: {
+            /** Capacity After */
+            capacity_after: number;
+            /** Capacity Before */
+            capacity_before: number;
+            /** Capacity Gain */
+            capacity_gain: number;
+            /** Description */
+            description: string;
+            next_bottleneck: components["schemas"]["ServiceType"] | null;
+            /** Next Bottleneck Capacity */
+            next_bottleneck_capacity: number | null;
+            service: components["schemas"]["ServiceType"];
+            /** Unit */
+            unit: string;
+            /** Unit Size */
+            unit_size: number;
+            /** Unlocks */
+            unlocks: boolean;
         };
         /**
          * LayerDescriptor
@@ -3999,6 +4236,26 @@ export interface components {
             study_area: components["schemas"]["StudyArea"];
         };
         /**
+         * ServiceCapacity
+         * @description Capacity of a site as limited by one service.
+         */
+        ServiceCapacity: {
+            /** Capacity Persons */
+            capacity_persons: number;
+            /** Norm Citation */
+            norm_citation?: string | null;
+            norm_provenance: components["schemas"]["ProvenanceClass"];
+            /** Norm Unit */
+            norm_unit: string;
+            /** Norm Value */
+            norm_value: number;
+            service: components["schemas"]["ServiceType"];
+            /** Supply */
+            supply: number;
+            /** Supply Unit */
+            supply_unit: string;
+        };
+        /**
          * ServiceSupply
          * @description Measured or assumed supply of one service at a candidate site.
          */
@@ -4021,6 +4278,77 @@ export interface components {
          * @enum {string}
          */
         ServiceType: "LAND" | "SHELTER" | "WATER" | "SANITATION" | "HEALTHCARE" | "POWER" | "ACCESS";
+        /**
+         * SiteCapacityListResponse
+         * @description Every candidate site, with the district totals a planner needs first.
+         */
+        SiteCapacityListResponse: {
+            /** Bottleneck Counts */
+            bottleneck_counts: {
+                [key: string]: number;
+            };
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Limitation */
+            limitation: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Norms */
+            norms: components["schemas"]["Constant"][];
+            /** Population Needing Relocation */
+            population_needing_relocation: number;
+            /** Sites */
+            sites: components["schemas"]["SiteCapacityResponse"][];
+            /** Suitable Sites */
+            suitable_sites: number;
+            /** Total Effective Capacity */
+            total_effective_capacity: number;
+            /** Total Theoretical Capacity */
+            total_theoretical_capacity: number;
+            /** Unmet Demand */
+            unmet_demand: number;
+        };
+        /**
+         * SiteCapacityResponse
+         * @description A candidate site's suitability, capacity, bottleneck and interventions.
+         */
+        SiteCapacityResponse: {
+            bottleneck: components["schemas"]["ServiceType"] | null;
+            centroid: components["schemas"]["GeoPoint"];
+            /** Distance To Road M */
+            distance_to_road_m: number;
+            /** Effective Capacity */
+            effective_capacity: number;
+            /** Elevation M */
+            elevation_m: number;
+            /** Failed Gates */
+            failed_gates: string[];
+            /** Gates */
+            gates: components["schemas"]["GateResult"][];
+            /** Interventions */
+            interventions: components["schemas"]["InterventionResponse"][];
+            /** Limitation */
+            limitation: string;
+            /** Marginal Headline */
+            marginal_headline: string | null;
+            /** Name */
+            name: string;
+            /** Pending Constraints */
+            pending_constraints: string[];
+            /** Recorded Parcel Area M2 */
+            recorded_parcel_area_m2: number;
+            /** Services */
+            services: components["schemas"]["ServiceCapacity"][];
+            /** Site Id */
+            site_id: string;
+            /** Suitable */
+            suitable: boolean;
+            /** Theoretical Capacity */
+            theoretical_capacity: number;
+            usable_area: components["schemas"]["UsableAreaResponse"];
+        };
         /**
          * SitesResponse
          * @description The candidate-site layer. Capacity analysis lands with the capacity engine.
@@ -4080,6 +4408,13 @@ export interface components {
             grid: {
                 [key: string]: number;
             };
+            /**
+             * Landcover Refinement
+             * @description The scoped machine-learning component: its labelling rules, what each rule found, its measured accuracy, its agreement with the published land-cover product, and its caveats. Null until the model has been built.
+             */
+            landcover_refinement?: {
+                [key: string]: unknown;
+            } | null;
             /** Layers */
             layers: components["schemas"]["DerivedLayerSummary"][];
             /** Methods */
@@ -4091,6 +4426,45 @@ export interface components {
             terrain_preview_bbox: number[];
             /** Terrain Preview Url */
             terrain_preview_url: string;
+        };
+        /**
+         * SuitabilityGate
+         * @description Hard binary gates a candidate site must pass (§5.4 step 1).
+         *
+         *     A gate failure is reported as a named gate, never folded into a low score.
+         * @enum {string}
+         */
+        SuitabilityGate: "OUTSIDE_HAZARD_ZONES" | "SLOPE_BUILDABLE" | "LANDCOVER_PERMITTED" | "ABOVE_FLOOD_LEVEL" | "ROAD_ACCESSIBLE";
+        /**
+         * UsableAreaResponse
+         * @description Buildable ground at a site, and exactly how it was measured.
+         */
+        UsableAreaResponse: {
+            /** Buildable Fraction */
+            buildable_fraction: number;
+            confidence: components["schemas"]["ConfidenceBand"];
+            /** Flood Pass Fraction */
+            flood_pass_fraction: number;
+            /** Footprint Mean Hand M */
+            footprint_mean_hand_m: number;
+            /** Footprint Mean Slope Deg */
+            footprint_mean_slope_deg: number;
+            /** Measured M2 */
+            measured_m2: number;
+            /** Method */
+            method: string;
+            /** Radius M */
+            radius_m: number;
+            /** Refinement Agreement */
+            refinement_agreement?: number | null;
+            /** Refinement Note */
+            refinement_note?: string | null;
+            /** Slope Pass Fraction */
+            slope_pass_fraction: number;
+            /** Usable Ha */
+            usable_ha: number;
+            /** Usable M2 */
+            usable_m2: number;
         };
         /**
          * ValidationCheckResponse
@@ -4311,6 +4685,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    capacity_sites_capacity_sites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteCapacityListResponse"];
+                };
+            };
+        };
+    };
+    capacity_site_capacity_sites__site_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteCapacityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capacity_interventions_capacity_sites__site_id__interventions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterventionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     habitations_habitations_get: {
         parameters: {
             query?: never;

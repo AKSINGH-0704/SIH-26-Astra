@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from astra.domain.enums import HazardType, PhaseTier, ZoneClass
+from astra.domain.enums import ConfidenceBand, HazardType, PhaseTier, ServiceType, ZoneClass
 from astra.domain.model_config import AstraModelConfig, Constant
 from astra.domain.models import (
     CandidateSite,
@@ -21,11 +21,13 @@ from astra.domain.models import (
     ConfidenceReport,
     DatasetRecord,
     FactorContribution,
+    GateResult,
     Geometry,
     GeoPoint,
     Habitation,
     LayerDescriptor,
     Scenario,
+    ServiceCapacity,
     StudyArea,
     ValueExplanation,
 )
@@ -155,6 +157,12 @@ class StudyAreaDataResponse(BaseModel):
     generation: dict[str, Any]
     terrain_preview_url: str
     terrain_preview_bbox: list[float]
+    landcover_refinement: dict[str, Any] | None = Field(
+        default=None,
+        description="The scoped machine-learning component: its labelling rules, what "
+        "each rule found, its measured accuracy, its agreement with the published "
+        "land-cover product, and its caveats. Null until the model has been built.",
+    )
 
 
 class ZoneFeatureProperties(BaseModel):
@@ -392,3 +400,87 @@ class HabitationDetailResponse(BaseModel):
         description="Habitations ranked immediately above this one, for context."
     )
     peers_below: list[str]
+
+
+class UsableAreaResponse(BaseModel):
+    """Buildable ground at a site, and exactly how it was measured."""
+
+    model_config = ConfigDict(frozen=True)
+
+    usable_m2: float
+    usable_ha: float
+    measured_m2: float
+    radius_m: float
+    buildable_fraction: float
+    slope_pass_fraction: float
+    flood_pass_fraction: float
+    footprint_mean_slope_deg: float
+    footprint_mean_hand_m: float
+    method: str
+    confidence: ConfidenceBand
+    refinement_agreement: float | None = None
+    refinement_note: str | None = None
+
+
+class InterventionResponse(BaseModel):
+    """One unit of investment and the capacity it actually unlocks."""
+
+    model_config = ConfigDict(frozen=True)
+
+    service: ServiceType
+    description: str
+    unit_size: float
+    unit: str
+    capacity_before: float
+    capacity_after: float
+    capacity_gain: float
+    next_bottleneck: ServiceType | None
+    next_bottleneck_capacity: float | None
+    unlocks: bool
+
+
+class SiteCapacityResponse(BaseModel):
+    """A candidate site's suitability, capacity, bottleneck and interventions."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    name: str
+    centroid: GeoPoint
+    elevation_m: float
+    distance_to_road_m: float
+    recorded_parcel_area_m2: float
+
+    suitable: bool
+    gates: list[GateResult]
+    failed_gates: list[str]
+
+    usable_area: UsableAreaResponse
+    services: list[ServiceCapacity]
+    theoretical_capacity: float
+    effective_capacity: float
+    bottleneck: ServiceType | None
+    interventions: list[InterventionResponse]
+    marginal_headline: str | None
+
+    pending_constraints: list[str]
+    limitation: str
+
+
+class SiteCapacityListResponse(BaseModel):
+    """Every candidate site, with the district totals a planner needs first."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sites: list[SiteCapacityResponse]
+    suitable_sites: int
+    total_effective_capacity: float
+    total_theoretical_capacity: float
+    population_needing_relocation: int
+    unmet_demand: float
+    bottleneck_counts: dict[str, int]
+    norms: list[Constant]
+    decision_authority: str
+    limitation: str
+    model_config_version: str
+    engine_version: str

@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
+from astra.api.capacity_router import router as capacity_router
 from astra.api.priority_router import router as priority_router
 from astra.api.risk_router import router as risk_router
 from astra.api.routers import router
@@ -64,7 +65,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             run.computed_ms,
         )
         from astra.api.priority_router import baseline_priority
+        from astra.engines.capacity_service import baseline_capacity
 
+        sites = baseline_capacity()
+        logger.info(
+            "capacity engine warm: %d of %d candidate sites pass every gate",
+            sum(1 for entry in sites if entry.suitable),
+            len(sites),
+        )
         ranking = baseline_priority()
         logger.info(
             "priority engine warm: %d habitations ranked, top %s at %.1f",
@@ -100,6 +108,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(risk_router)
     app.include_router(priority_router)
+    app.include_router(capacity_router)
     return app
 
 

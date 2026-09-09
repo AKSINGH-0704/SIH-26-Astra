@@ -75,6 +75,19 @@ class RasterLayer:
             return float("nan")
         return float(np.nanmean(self.data[r0:r1, c0:c1]))
 
+    def window_array(self, lon: float, lat: float, radius_m: float) -> np.ndarray:
+        """The block of cells within a square window around a coordinate."""
+        cell = self.cell_size
+        half_rows = max(1, int(round(radius_m / cell.y_m)))
+        half_cols = max(1, int(round(radius_m / cell.x_m)))
+        col, row = ~self.transform * (lon, lat)
+        row_i, col_i = int(row), int(col)
+        r0, r1 = max(0, row_i - half_rows), min(self.data.shape[0], row_i + half_rows + 1)
+        c0, c1 = max(0, col_i - half_cols), min(self.data.shape[1], col_i + half_cols + 1)
+        if r0 >= r1 or c0 >= c1:
+            return np.empty((0, 0))
+        return self.data[r0:r1, c0:c1]
+
     def window_max(self, lon: float, lat: float, radius_m: float) -> float:
         cell = self.cell_size
         half_rows = max(1, int(round(radius_m / cell.y_m)))
