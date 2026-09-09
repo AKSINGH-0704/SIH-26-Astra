@@ -604,3 +604,170 @@ def test_route_constants_are_served_with_their_provenance(client: TestClient) ->
     for constant in constants:
         assert constant["provenance"] == "DEMO_CONFIG"
         assert constant["description"]
+
+
+# ---------------------------------------------------------------------------
+# Engine 6 - the plan
+# ---------------------------------------------------------------------------
+
+
+def test_the_plan_comes_from_the_solver_and_says_so(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    assert payload["status"] in ("OPTIMAL", "FEASIBLE")
+    assert payload["solver"] == "OR-Tools CP-SAT"
+    assert payload["solve_ms"] >= 0
+    assert payload["assignments"]
+    assert payload["options_offered"] > 0
+
+
+def test_plan_totals_account_for_every_resident(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    totals = payload["totals"]
+    assert (
+        totals["population_assigned"] + totals["population_unmet"]
+        == totals["population_assessed"]
+    )
+    assert sum(a["people"] for a in payload["assignments"]) == totals[
+        "population_assigned"
+    ]
+    assert sum(u["people"] for u in payload["unmet"]) == totals["population_unmet"]
+
+
+def test_no_assignment_breaches_a_site_s_effective_capacity(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    assigned: dict[str, int] = {}
+    for assignment in payload["assignments"]:
+        assigned[assignment["site_id"]] = (
+            assigned.get(assignment["site_id"], 0) + assignment["people"]
+        )
+    for site in payload["site_load"]:
+        assert site["assigned"] == assigned.get(site["site_id"], 0)
+        assert site["assigned"] <= site["effective_capacity"]
+        assert site["assigned"] + site["remaining"] == site["effective_capacity"]
+
+
+def test_every_assignment_uses_a_route_above_the_reliability_threshold(
+    client: TestClient,
+) -> None:
+    threshold = client.get("/routes").json()["reliability_threshold"]
+    for assignment in client.get("/plan").json()["assignments"]:
+        assert assignment["route_reliability"] >= threshold
+        assert assignment["route_geometry"], "an assignment must be drawable"
+
+
+def test_every_assignment_carries_its_livelihood_arithmetic(client: TestClient) -> None:
+    for assignment in client.get("/plan").json()["assignments"]:
+        livelihood = assignment["livelihood"]
+        assert len(livelihood["factors"]) == 4
+        assert livelihood["value"] == pytest.approx(
+            sum(f["contribution"] for f in livelihood["factors"]), abs=1e-3
+        )
+        assert livelihood["value"] == assignment["livelihood_disruption"]
+
+
+def test_unmet_demand_names_its_constraint_rather_than_just_counting(
+    client: TestClient,
+) -> None:
+    payload = client.get("/plan").json()
+    for entry in payload["unmet"]:
+        assert entry["reason"]
+        assert entry["detail"]
+        assert entry["habitation_name"]
+
+
+def test_stranded_capacity_is_reported_against_who_can_reach_it(
+    client: TestClient,
+) -> None:
+    for entry in client.get("/plan").json()["stranded_capacity"]:
+        assert entry["stranded_places"] == (
+            entry["unused"] - entry["reachable_unmet_people"]
+        )
+        assert entry["detail"]
+
+
+def test_phase_totals_match_the_assignments(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    per_phase: dict[str, int] = {}
+    for assignment in payload["assignments"]:
+        per_phase[assignment["phase"]] = (
+            per_phase.get(assignment["phase"], 0) + assignment["people"]
+        )
+    for phase in payload["phases"]:
+        assert phase["people_moved"] == per_phase.get(phase["phase"], 0)
+        assert phase["travel_ceiling_min"] > 0
+    assert sum(p["people_moved"] for p in payload["phases"]) == payload["totals"][
+        "population_assigned"
+    ]
+
+
+def test_no_assignment_exceeds_its_phase_travel_ceiling(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    ceilings = {p["phase"]: p["travel_ceiling_min"] for p in payload["phases"]}
+    for assignment in payload["assignments"]:
+        assert assignment["travel_time_min"] <= ceilings[assignment["phase"]]
+
+
+def test_the_why_not_answer_is_a_real_resolve(client: TestClient) -> None:
+    payload = client.get("/plan").json()
+    chosen = {(a["habitation_id"], a["site_id"]) for a in payload["assignments"]}
+    habitation = payload["assignments"][0]["habitation_id"]
+    other = next(
+        site["site_id"]
+        for site in payload["site_load"]
+        if (habitation, site["site_id"]) not in chosen
+    )
+    answer = client.get(f"/plan/why-not/{habitation}/{other}").json()
+    assert answer["headline"]
+    if answer["feasible"]:
+        assert answer["objective_forced"] is not None
+        assert answer["objective_delta"] == pytest.approx(
+            answer["objective_forced"] - answer["objective_baseline"], abs=0.05
+        )
+    else:
+        assert answer["objective_delta"] is None
+        assert answer["reason"]
+
+
+def test_why_not_for_a_habitation_with_no_demand_is_a_404(client: TestClient) -> None:
+    assert client.get("/plan/why-not/H-99/S-01").status_code == 404
+
+
+def test_the_fallback_is_served_labelled_as_the_fallback(client: TestClient) -> None:
+    payload = client.post("/plan/optimize", json={"use_fallback": True}).json()
+    assert payload["status"] == "FALLBACK"
+    assert payload["solver"] == "deterministic greedy fallback"
+    assert any("greedy fallback" in note for note in payload["notes"])
+
+
+def test_optimising_under_a_closure_changes_the_plan(client: TestClient) -> None:
+    baseline = client.get("/plan").json()
+    row = max(client.get("/routes").json()["rows"], key=lambda r: r["bridges_crossed"])
+    pair = client.get(f"/routes/pair/{row['habitation_id']}/{row['site_id']}").json()
+    bridges = [leg for leg in pair["safest"]["legs"] if leg["is_bridge"]]
+    assert bridges
+    closed = client.post(
+        "/plan/optimize", json={"closed_segments": [bridges[0]["segment_id"]]}
+    ).json()
+    assert closed["status"] in ("OPTIMAL", "FEASIBLE")
+    assert (
+        closed["totals"]["population_assigned"]
+        <= baseline["totals"]["population_assigned"]
+    ), "closing a road cannot place more people"
+    after = client.get("/plan").json()
+    assert after["objective_value"] == baseline["objective_value"], (
+        "optimising under a closure must not mutate the baseline plan"
+    )
+
+
+def test_plan_weights_and_constraints_are_served_with_their_provenance(
+    client: TestClient,
+) -> None:
+    payload = client.get("/plan").json()
+    keys = {c["key"] for c in payload["weights"]} | {
+        c["key"] for c in payload["constraints"]
+    }
+    assert "opt.beta1_unmet_demand" in keys
+    assert "opt.min_assignment_block" in keys
+    assert "route.min_reliability" in keys
+    for constant in payload["weights"] + payload["constraints"]:
+        assert constant["description"]

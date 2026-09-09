@@ -164,6 +164,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Plan
+         * @description The baseline optimised relocation plan.
+         */
+        get: operations["plan_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan/optimize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Optimize
+         * @description Re-solve, optionally under road closures or with the fallback.
+         *
+         *     Closures are an argument, not a state change: the baseline plan is untouched
+         *     and can be compared against this one.
+         */
+        post: operations["optimize_plan_optimize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan/why-not/{habitation_id}/{site_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Why Not
+         * @description Force this assignment, re-solve, and report what actually happened.
+         */
+        get: operations["why_not_plan_why_not__habitation_id___site_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/priority/habitations": {
         parameters: {
             query?: never;
@@ -523,6 +586,42 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AssignmentResponse
+         * @description One movement in the plan, with everything that justifies it.
+         */
+        AssignmentResponse: {
+            destination: components["schemas"]["GeoPoint"];
+            /** Distance Km */
+            distance_km: number;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Habitation Name */
+            habitation_name: string;
+            /** Households Equivalent */
+            households_equivalent: number;
+            livelihood: components["schemas"]["LivelihoodResponse"];
+            /** Livelihood Disruption */
+            livelihood_disruption: number;
+            /** Objective Contribution */
+            objective_contribution: number;
+            origin: components["schemas"]["GeoPoint"];
+            /** People */
+            people: number;
+            phase: components["schemas"]["PhaseTier"];
+            /** Route Geometry */
+            route_geometry: number[][];
+            /** Route Reliability */
+            route_reliability: number;
+            /** Route Risk */
+            route_risk: number;
+            /** Site Id */
+            site_id: string;
+            /** Site Name */
+            site_name: string;
+            /** Travel Time Min */
+            travel_time_min: number;
+        };
+        /**
          * AstraModelConfig
          * @description Root of the versioned config tree, served verbatim by ``GET /model/config``.
          */
@@ -747,7 +846,7 @@ export interface components {
             disclaimer: string;
             /**
              * Engine Version
-             * @default 0.5.0
+             * @default 0.6.0
              */
             engine_version: string;
             /**
@@ -1308,7 +1407,7 @@ export interface components {
             /**
              * @default {
              *       "beta_fragmentation": {
-             *         "description": "Penalty for splitting one habitation across multiple destination sites.",
+             *         "description": "Penalty for splitting one habitation across multiple destination sites. It charges splits between places, not between phases: a village moved to one site over two phases is a phased relocation, not a divided community.",
              *         "key": "opt.beta6_fragmentation",
              *         "provenance": "DEMO_CONFIG",
              *         "value": 150
@@ -1319,6 +1418,12 @@ export interface components {
              *         "provenance": "DEMO_CONFIG",
              *         "value": 300
              *       },
+             *       "beta_phase_delay": {
+             *         "description": "Penalty per person per phase of delay, scaled by that habitation's priority. Without it, moving someone in the medium term and moving them now cost the same, and 'Immediate' would be a label on a ranking rather than a claim about when people leave. It is deliberately small: its job is to order the plan, not to change who is in it. At four times this value the solver began declining late moves altogether and placed a hundred fewer people, which is the wrong trade and is asserted against in the tests.",
+             *         "key": "opt.beta7_phase_delay",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 25
+             *       },
              *       "beta_route_risk": {
              *         "description": "Penalty per unit of person-weighted route risk.",
              *         "key": "opt.beta3_route_risk",
@@ -1326,10 +1431,10 @@ export interface components {
              *         "value": 250
              *       },
              *       "beta_site_overload": {
-             *         "description": "Penalty for pushing a site towards its effective capacity ceiling.",
+             *         "description": "Penalty per person placed above a site's soft capacity share. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser should prefer not to - but only prefer. This value is deliberately well below the per-person cost of leaving someone in a red zone, because a plan that strands people to protect a 15% margin is not a plan an SDMA can defend.",
              *         "key": "opt.beta4_site_overload",
              *         "provenance": "DEMO_CONFIG",
-             *         "value": 400
+             *         "value": 60
              *       },
              *       "beta_travel_time": {
              *         "description": "Penalty per person-minute of travel.",
@@ -1342,6 +1447,20 @@ export interface components {
              *         "key": "opt.beta1_unmet_demand",
              *         "provenance": "DEMO_CONFIG",
              *         "value": 1000
+             *       },
+             *       "livelihood_commute_ceiling_min": {
+             *         "description": "Routed travel time from a destination site back to the origin livelihood centre at which commute disruption is scored at maximum.",
+             *         "key": "livelihood.commute_ceiling_min",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "min",
+             *         "value": 90
+             *       },
+             *       "livelihood_market_ceiling_min": {
+             *         "description": "Routed travel time from a site to the nearest trunk road at which market and service access is scored at maximum disruption. Trunk roads are the measurable proxy ASTRA has for where a district's markets, banks and offices are; it is not a survey of them.",
+             *         "key": "livelihood.market_ceiling_min",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "min",
+             *         "value": 60
              *       },
              *       "livelihood_w_connectivity": {
              *         "description": "Share from the connectivity class of the destination road link.",
@@ -1394,6 +1513,30 @@ export interface components {
              *         "provenance": "DEMO_CONFIG",
              *         "unit": "persons",
              *         "value": 25
+             *       },
+             *       "phase_capacity_share_immediate": {
+             *         "description": "Share of a site's effective capacity that can be occupied in the Immediate phase. Sites are not built out on day one: water, sanitation and shelter arrive over weeks, and the ramp says how much of the site is standing when the first movement happens.",
+             *         "key": "opt.phase_capacity_share.IMMEDIATE",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 0.45
+             *       },
+             *       "phase_capacity_share_medium_term": {
+             *         "description": "Cumulative share by the end of the Medium-term phase: the whole assessed effective capacity.",
+             *         "key": "opt.phase_capacity_share.MEDIUM_TERM",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 1
+             *       },
+             *       "phase_capacity_share_short_term": {
+             *         "description": "Cumulative share of a site's effective capacity occupied by the end of the Short-term phase.",
+             *         "key": "opt.phase_capacity_share.SHORT_TERM",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 0.75
+             *       },
+             *       "site_soft_capacity_share": {
+             *         "description": "Share of a site's effective capacity beyond which each further person incurs the overload penalty. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser has to be given a reason to accept that - not forbidden from it.",
+             *         "key": "opt.site_soft_capacity_share",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 0.85
              *       },
              *       "solver_seed": {
              *         "description": "Fixed solver seed so every demo run is reproducible.",
@@ -1755,7 +1898,7 @@ export interface components {
             validation: components["schemas"]["ValidationConfig"];
             /**
              * Version
-             * @default 1.9.0
+             * @default 1.10.0
              */
             version: string;
         };
@@ -2232,6 +2375,36 @@ export interface components {
              * @description The number the engines actually use.
              */
             value: number;
+        };
+        /**
+         * CounterfactualResponse
+         * @description Why not that site: the answer from an actual re-solve, not from prose.
+         */
+        CounterfactualResponse: {
+            /** Assigned Elsewhere After */
+            assigned_elsewhere_after: number;
+            /** Assigned Elsewhere Before */
+            assigned_elsewhere_before: number;
+            /** Displaced */
+            displaced: string[][];
+            /** Feasible */
+            feasible: boolean;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Headline */
+            headline: string;
+            /** Objective Baseline */
+            objective_baseline: number;
+            /** Objective Delta */
+            objective_delta: number | null;
+            /** Objective Forced */
+            objective_forced: number | null;
+            /** People */
+            people: number;
+            /** Reason */
+            reason: string;
+            /** Site Id */
+            site_id: string;
         };
         /**
          * CriticalFacility
@@ -3299,6 +3472,27 @@ export interface components {
             layers: components["schemas"]["LayerDescriptor"][];
         };
         /**
+         * LivelihoodResponse
+         * @description Livelihood disruption for one pairing, with its four measured components.
+         */
+        LivelihoodResponse: {
+            /** Commute Min */
+            commute_min: number;
+            /** Commute Reliability */
+            commute_reliability: number;
+            /** Factors */
+            factors: components["schemas"]["FactorContribution"][];
+            /** Market Access Min */
+            market_access_min: number;
+            /** Percent */
+            percent: number;
+            /** Reachable */
+            reachable: boolean;
+            /** Value */
+            value: number;
+            worst_road_class: components["schemas"]["RoadClass"];
+        };
+        /**
          * ModelConfigResponse
          * @description The full transparency payload behind the Model and Provenance screen.
          */
@@ -3666,11 +3860,28 @@ export interface components {
              */
             site_tenure_limitation: string;
         };
+        /**
+         * OptimiseRequest
+         * @description Ask for a plan, optionally under road closures.
+         */
+        OptimiseRequest: {
+            /**
+             * Closed Segments
+             * @description Road segments to treat as closed while planning.
+             */
+            closed_segments?: string[];
+            /**
+             * Use Fallback
+             * @description Run the deterministic greedy fallback instead of the solver. For demonstrating the difference between the two, not for planning.
+             * @default false
+             */
+            use_fallback: boolean;
+        };
         /** OptimiserConfig */
         OptimiserConfig: {
             /**
              * @default {
-             *       "description": "Penalty for splitting one habitation across multiple destination sites.",
+             *       "description": "Penalty for splitting one habitation across multiple destination sites. It charges splits between places, not between phases: a village moved to one site over two phases is a phased relocation, not a divided community.",
              *       "key": "opt.beta6_fragmentation",
              *       "provenance": "DEMO_CONFIG",
              *       "value": 150
@@ -3688,6 +3899,15 @@ export interface components {
             beta_livelihood_disruption: components["schemas"]["Constant"];
             /**
              * @default {
+             *       "description": "Penalty per person per phase of delay, scaled by that habitation's priority. Without it, moving someone in the medium term and moving them now cost the same, and 'Immediate' would be a label on a ranking rather than a claim about when people leave. It is deliberately small: its job is to order the plan, not to change who is in it. At four times this value the solver began declining late moves altogether and placed a hundred fewer people, which is the wrong trade and is asserted against in the tests.",
+             *       "key": "opt.beta7_phase_delay",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 25
+             *     }
+             */
+            beta_phase_delay: components["schemas"]["Constant"];
+            /**
+             * @default {
              *       "description": "Penalty per unit of person-weighted route risk.",
              *       "key": "opt.beta3_route_risk",
              *       "provenance": "DEMO_CONFIG",
@@ -3697,10 +3917,10 @@ export interface components {
             beta_route_risk: components["schemas"]["Constant"];
             /**
              * @default {
-             *       "description": "Penalty for pushing a site towards its effective capacity ceiling.",
+             *       "description": "Penalty per person placed above a site's soft capacity share. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser should prefer not to - but only prefer. This value is deliberately well below the per-person cost of leaving someone in a red zone, because a plan that strands people to protect a 15% margin is not a plan an SDMA can defend.",
              *       "key": "opt.beta4_site_overload",
              *       "provenance": "DEMO_CONFIG",
-             *       "value": 400
+             *       "value": 60
              *     }
              */
             beta_site_overload: components["schemas"]["Constant"];
@@ -3722,6 +3942,26 @@ export interface components {
              *     }
              */
             beta_unmet_demand: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Routed travel time from a destination site back to the origin livelihood centre at which commute disruption is scored at maximum.",
+             *       "key": "livelihood.commute_ceiling_min",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "min",
+             *       "value": 90
+             *     }
+             */
+            livelihood_commute_ceiling_min: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Routed travel time from a site to the nearest trunk road at which market and service access is scored at maximum disruption. Trunk roads are the measurable proxy ASTRA has for where a district's markets, banks and offices are; it is not a survey of them.",
+             *       "key": "livelihood.market_ceiling_min",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "min",
+             *       "value": 60
+             *     }
+             */
+            livelihood_market_ceiling_min: components["schemas"]["Constant"];
             /**
              * @default {
              *       "description": "Share from the connectivity class of the destination road link.",
@@ -3800,6 +4040,42 @@ export interface components {
             min_assignment_block: components["schemas"]["Constant"];
             /**
              * @default {
+             *       "description": "Share of a site's effective capacity that can be occupied in the Immediate phase. Sites are not built out on day one: water, sanitation and shelter arrive over weeks, and the ramp says how much of the site is standing when the first movement happens.",
+             *       "key": "opt.phase_capacity_share.IMMEDIATE",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 0.45
+             *     }
+             */
+            phase_capacity_share_immediate: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Cumulative share by the end of the Medium-term phase: the whole assessed effective capacity.",
+             *       "key": "opt.phase_capacity_share.MEDIUM_TERM",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 1
+             *     }
+             */
+            phase_capacity_share_medium_term: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Cumulative share of a site's effective capacity occupied by the end of the Short-term phase.",
+             *       "key": "opt.phase_capacity_share.SHORT_TERM",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 0.75
+             *     }
+             */
+            phase_capacity_share_short_term: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Share of a site's effective capacity beyond which each further person incurs the overload penalty. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser has to be given a reason to accept that - not forbidden from it.",
+             *       "key": "opt.site_soft_capacity_share",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 0.85
+             *     }
+             */
+            site_soft_capacity_share: components["schemas"]["Constant"];
+            /**
+             * @default {
              *       "description": "Fixed solver seed so every demo run is reproducible.",
              *       "key": "opt.random_seed",
              *       "provenance": "DEMO_CONFIG",
@@ -3838,6 +4114,27 @@ export interface components {
             rules_applied?: string[];
         };
         /**
+         * PhasePlanTotals
+         * @description One phase of the plan, as an SDMA would read it.
+         */
+        PhasePlanTotals: {
+            /** Capacity Share */
+            capacity_share: number;
+            /** Habitations */
+            habitations: number;
+            /** Mean Route Reliability */
+            mean_route_reliability: number;
+            /** Mean Travel Time Min */
+            mean_travel_time_min: number;
+            /** People Moved */
+            people_moved: number;
+            phase: components["schemas"]["PhaseTier"];
+            /** Sites Used */
+            sites_used: number;
+            /** Travel Ceiling Min */
+            travel_ceiling_min: number;
+        };
+        /**
          * PhaseTier
          * @description Relocation phasing tiers — the PS's exact three-tier language (§5.3).
          * @enum {string}
@@ -3851,6 +4148,75 @@ export interface components {
             households: number;
             /** Population */
             population: number;
+        };
+        /**
+         * PlanResponse
+         * @description The optimised relocation plan, with everything that justifies it.
+         */
+        PlanResponse: {
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentResponse"][];
+            /** Capacity Blocked */
+            capacity_blocked: string[];
+            /** Constraints */
+            constraints: components["schemas"]["Constant"][];
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Headline */
+            headline: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Notes */
+            notes: string[];
+            /** Objective Terms */
+            objective_terms: {
+                [key: string]: number;
+            };
+            /** Objective Value */
+            objective_value: number;
+            /** Options Offered */
+            options_offered: number;
+            /** Phases */
+            phases: components["schemas"]["PhasePlanTotals"][];
+            /** Rejected */
+            rejected: components["schemas"]["RejectedOptionResponse"][];
+            /** Site Load */
+            site_load: components["schemas"]["SiteLoadResponse"][];
+            /** Solve Ms */
+            solve_ms: number;
+            /** Solver */
+            solver: string;
+            status: components["schemas"]["SolverStatus"];
+            /** Stranded Capacity */
+            stranded_capacity: components["schemas"]["StrandedCapacityResponse"][];
+            totals: components["schemas"]["PlanTotalsResponse"];
+            /** Unmet */
+            unmet: components["schemas"]["UnmetReasonResponse"][];
+            /** Weights */
+            weights: components["schemas"]["Constant"][];
+        };
+        /** PlanTotalsResponse */
+        PlanTotalsResponse: {
+            /** Habitations Split */
+            habitations_split: number;
+            /** Mean Livelihood Disruption */
+            mean_livelihood_disruption: number;
+            /** Mean Route Reliability */
+            mean_route_reliability: number;
+            /** Mean Travel Time Min */
+            mean_travel_time_min: number;
+            /** Person Minutes */
+            person_minutes: number;
+            /** Population Assessed */
+            population_assessed: number;
+            /** Population Assigned */
+            population_assigned: number;
+            /** Population Unmet */
+            population_unmet: number;
+            /** Sites Used */
+            sites_used: number;
         };
         /**
          * PointOfFailureResponse
@@ -4209,6 +4575,20 @@ export interface components {
             note: string;
             /** Registry Version */
             registry_version: string;
+        };
+        /**
+         * RejectedOptionResponse
+         * @description A pairing the solver was never offered, and the constraint that removed it.
+         */
+        RejectedOptionResponse: {
+            /** Detail */
+            detail: string;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Reason */
+            reason: string;
+            /** Site Id */
+            site_id: string;
         };
         /**
          * RiskCellResponse
@@ -4823,6 +5203,32 @@ export interface components {
             usable_area: components["schemas"]["UsableAreaResponse"];
         };
         /**
+         * SiteLoadResponse
+         * @description What the plan does to one site's capacity.
+         */
+        SiteLoadResponse: {
+            /** Assigned */
+            assigned: number;
+            /** Effective Capacity */
+            effective_capacity: number;
+            /** Over Soft Capacity */
+            over_soft_capacity: number;
+            /** Phase Ceilings */
+            phase_ceilings: {
+                [key: string]: number;
+            };
+            /** Remaining */
+            remaining: number;
+            /** Site Id */
+            site_id: string;
+            /** Site Name */
+            site_name: string;
+            /** Soft Capacity */
+            soft_capacity: number;
+            /** Utilisation */
+            utilisation: number;
+        };
+        /**
          * SitesResponse
          * @description The candidate-site layer. Capacity analysis lands with the capacity engine.
          */
@@ -4836,6 +5242,32 @@ export interface components {
             sites: components["schemas"]["CandidateSite"][];
             /** Total Gross Area M2 */
             total_gross_area_m2: number;
+        };
+        /**
+         * SolverStatus
+         * @description Outcome of the relocation optimiser (§5.6).
+         * @enum {string}
+         */
+        SolverStatus: "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "FALLBACK";
+        /**
+         * StrandedCapacityResponse
+         * @description Assessed capacity the people who still need it cannot reach.
+         */
+        StrandedCapacityResponse: {
+            /** Capacity */
+            capacity: number;
+            /** Detail */
+            detail: string;
+            /** Reachable Unmet People */
+            reachable_unmet_people: number;
+            /** Site Id */
+            site_id: string;
+            /** Site Name */
+            site_name: string;
+            /** Stranded Places */
+            stranded_places: number;
+            /** Unused */
+            unused: number;
         };
         /**
          * StructureType
@@ -4908,6 +5340,22 @@ export interface components {
          * @enum {string}
          */
         SuitabilityGate: "OUTSIDE_HAZARD_ZONES" | "SLOPE_BUILDABLE" | "LANDCOVER_PERMITTED" | "ABOVE_FLOOD_LEVEL" | "ROAD_ACCESSIBLE";
+        /**
+         * UnmetReasonResponse
+         * @description Why these residents were not moved.
+         */
+        UnmetReasonResponse: {
+            /** Detail */
+            detail: string;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Habitation Name */
+            habitation_name: string;
+            /** People */
+            people: number;
+            /** Reason */
+            reason: string;
+        };
         /**
          * UsableAreaResponse
          * @description Buildable ground at a site, and exactly how it was measured.
@@ -5338,6 +5786,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelConfigResponse"];
+                };
+            };
+        };
+    };
+    plan_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponse"];
+                };
+            };
+        };
+    };
+    optimize_plan_optimize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimiseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    why_not_plan_why_not__habitation_id___site_id__get: {
+        parameters: {
+            query?: {
+                people?: number | null;
+            };
+            header?: never;
+            path: {
+                habitation_id: string;
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterfactualResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

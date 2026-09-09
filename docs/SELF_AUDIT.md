@@ -503,3 +503,122 @@ claim so it cannot quietly stop being true.
   Risk, Priority, Sites and Routes screens were all driven in a real browser -
   including selecting a habitation, routing it, closing a point of failure and
   evaluating the impact - with zero console errors.
+
+---
+
+## Slice 7 - constrained relocation optimisation with counterfactual explanations
+
+**Date:** 2026-09-10
+**Commit:** `feat(optimizer): constrained relocation optimisation with counterfactual explanations`
+
+### What actually works end to end
+
+Every earlier engine now feeds one decision. OR-Tools CP-SAT assigns people from
+habitations to sites, in phases, subject to site effective capacity, a phase
+capacity ramp, per-phase travel ceilings, route reliability above the threshold,
+suitability gates and a household-integrity floor - all of them hard, none of
+them penalties. It minimises a weighted sum of unmet demand scaled by priority,
+travel burden, route risk, site overload, livelihood disruption, community
+fragmentation and phase delay, and every term is served on the response with the
+constant that produced it.
+
+Livelihood disruption is computed, not a kilometre rule: routed commute back to
+the habitation's own livelihood centre, the weakest road class on that link, that
+link's reliability, and routed travel time from the site to the nearest trunk
+road. The four components and their arithmetic are on the assignment panel.
+
+"Why not that site" re-solves with the assignment forced and reports what
+happened - either the named hard constraint that removes it, or the objective
+delta and who loses their place. Forcing Panduri Sera's 258 residents onto
+Sarauli Bench returns "feasible but worse by 8,299 on the objective", with the
+before and after objective values, from an actual second solve.
+
+The corridor's plan places 1,144 of 2,519 residents across two sites, and the
+reason for the rest is on screen with the constraint named for each habitation.
+The headline finding is the one an SDMA can act on: **1,188 assessed places at
+Sarauli Bench are unused and only twelve of the 1,375 people still waiting can
+reach them.** The binding constraint on this district's relocation plan is the
+road, not the site.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. The plan is a CP-SAT solution; the explanations are re-solves and constraint records. The one narrative sentence on the screen is assembled from the plan's own totals. |
+| 2 | Can every number on screen be traced in one hop? | Yes. Each assignment carries its route, its reliability, its objective contribution and the four-row livelihood table whose contributions sum to the figure above them. The objective is broken out term by term. |
+| 3 | Is anything displayed that is not backed by a real value? | No. Assignment lines on the map are the route geometry the solver planned against, not straight lines between centroids. The solver status, wall-clock time and objective are the solver's own. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. All seven objective weights, the capacity ramp shares, the travel ceilings and the household floor are `DEMO_CONFIG` and served on the plan response. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic? | Yes. Livelihood factors are `DERIVED`; the routes they are measured on are derived from `REAL_OPEN` OSM geometry; the populations moved are `SYNTHETIC_CALIBRATED`. |
+| 6 | Are the same figures identical across screens? | Yes. Site effective capacity on the plan matches the Sites screen; route reliability matches the Routes screen; both come from the same engines through the same API. |
+| 7 | Does the opening avoid looking like a generic dashboard? | The plan screen is map-dominant with a movement list and a reasoning panel. The cold open is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes; the decision-authority line closes the panel, and approval and override are Slice 11. |
+| 9 | Does it run with the network off? | Yes. CP-SAT is a local library and every input is vendored. |
+| 10 | **Can the optimiser output an assignment that breaches capacity, an unusable route or an unsuitable site?** | **No, and it is proved rather than asserted.** `validate()` runs after every solve including the fallback and raises on a capacity breach, a phase-ceiling breach, an assignment that was never an allowed option, one below the household floor, or people who do not add up. Three tests forge each of those plans and assert the exception; a fourth re-checks the real corridor plan against the capacity engine and the route engine directly. |
+| 11 | Any feature that looks impressive but changes no decision? | The greedy fallback changes no decision by design - it is demo insurance. It is labelled `FALLBACK` in the response, in the status chip and in a note, and a test asserts it is never better than the solver. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. Panduri Sera to Panduri Terrace, 258 residents: 12.2 km routed over 33 min at 89% reliability; livelihood disruption 0.710 = 0.40x(100.9/90 capped at 1.0) + 0.20x0.70 + 0.20x(1-0.49) + 0.20x(20.5/60). It is in the short-term phase because that is where the phasing engine put Panduri Sera, and it goes to S-05 rather than S-06 because forcing S-06 costs 8,299 more on the objective. |
+
+### Red-team finding
+
+**The map was being destroyed and rebuilt on every render, and it took a
+disappearing camera to notice.** `RiskMap` created its MapLibre instance in an
+effect whose dependency list included the `onSelectPoint` callback - and every
+caller passes an inline arrow, so the dependency changed on every render, the
+cleanup ran `map.remove()`, and a fresh map was built. It was invisible until the
+counterfactual panel appeared and the camera silently jumped back to the whole
+corridor. The callback is now read through a ref and the creation effect depends
+only on the things that genuinely define the map. This was costing a full WebGL
+teardown per keystroke of state on three screens.
+
+Three modelling findings, all caught by looking at what the plan actually said:
+
+**The site overload penalty was acting as a hard cap.** At the inherited value of
+400 per person, overloading a site cost more than the priority-weighted penalty
+for leaving someone unmoved, so the solver preferred to strand residents in a red
+zone rather than use the last 15% of a site. That is not a plan an SDMA could
+defend. Reduced to 60 with the reasoning written into the constant, and a test
+asserts that a site's last places are used rather than people being left behind.
+
+**Habitations were locked to a single phase, which made 'Immediate' a label
+rather than a plan.** Engine 3 assigns a habitation its phase; the first version
+of this engine treated that as its only phase, so a village of 487 people had to
+move entirely within the immediate ramp or not at all, and a site 63 minutes away
+was rejected outright rather than becoming a short-term destination. A phase is
+now the *earliest* phase, and a village may move in stages - which is what a
+phased relocation is. Fragmentation still charges splits between places, not
+between phases, because a village moved to one site over two phases is not a
+divided community.
+
+**Then the opposite problem: nothing made the solver prefer moving people
+sooner.** With phases open, the cost of moving a habitation now and in the medium
+term were identical, and the solver picked whichever the search reached first.
+Adding a delay penalty fixed the ordering - and at the first value tried, 120 per
+person per phase, it also cut coverage by a hundred people, because a late move
+stopped being worth making at all. That is the wrong trade: delay should
+discipline *when* people move, never *whether*. Set to 25, with a test that
+asserts the number of people placed is identical with the delay penalty at zero.
+
+**Standing limitation, recorded:** the market-access component of livelihood
+disruption uses routed travel time to the nearest trunk road as a proxy for where
+a district's markets, banks and offices are. That is a real measurement of a real
+thing, but it is a proxy, and the constant says so.
+
+### Verification
+
+- 324 backend tests pass, 50 of them new: capacity, phase-ramp and travel-ceiling
+  constraints; priority winning contested capacity; cheaper routes and less
+  disruptive destinations preferred; the household floor; staged moves to one
+  site counting as one destination; splits happening when they place more people;
+  reproducibility across runs; the delay penalty ordering without shrinking the
+  plan; three forged plans rejected by post-solve validation; the fallback
+  labelling itself and never beating the solver; livelihood disruption as a
+  weighted sum, at zero for a perfect destination, worse on a worse road class at
+  the same travel time, at maximum for an unreachable livelihood centre, and
+  demonstrably not a distance rule; and on the real corridor: every resident
+  accounted for, every rejected pairing naming its constraint, unmet demand
+  explained rather than counted, stranded capacity measured against who can reach
+  it, blocked habitations flagged, and counterfactuals for both a blocked and an
+  allowed site.
+- `ruff` clean, fixture gate PASS, OpenAPI exported and TypeScript contracts
+  regenerated, `tsc --noEmit` clean, ESLint clean, `next build` succeeds, and the
+  Plan screen was driven in a real browser - selecting a movement, watching the
+  camera hold, and running a counterfactual re-solve - with zero console errors.

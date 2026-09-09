@@ -149,6 +149,13 @@ export function RiskMap({
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  // The map is created once. Its click handler is read through a ref so that a
+  // caller passing an inline arrow - which every caller does - cannot land in
+  // the creation effect's dependencies and tear the whole MapLibre instance
+  // down and rebuild it on every render. That bug is invisible until you notice
+  // the camera resetting itself, and expensive long before you do.
+  const onSelectPointRef = useRef(onSelectPoint);
+  onSelectPointRef.current = onSelectPoint;
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
   const [roads, setRoads] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -211,7 +218,7 @@ export function RiskMap({
     map.addControl(overlay);
     map.on("load", () => setReady(true));
     map.on("click", (event) => {
-      onSelectPoint(event.lngLat.lng, event.lngLat.lat);
+      onSelectPointRef.current(event.lngLat.lng, event.lngLat.lat);
     });
     mapRef.current = map;
     overlayRef.current = overlay;
@@ -220,7 +227,7 @@ export function RiskMap({
       mapRef.current = null;
       overlayRef.current = null;
     };
-  }, [bounds, studyArea, terrainUrl, onSelectPoint]);
+  }, [bounds, studyArea, terrainUrl]);
 
   const focusKey = focusBounds ? focusBounds.flat().join(",") : "";
   useEffect(() => {

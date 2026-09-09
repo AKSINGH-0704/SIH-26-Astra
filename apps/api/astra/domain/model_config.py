@@ -22,10 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.9.0"
+MODEL_CONFIG_VERSION = "1.10.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
-ENGINE_VERSION = "0.5.0"
+ENGINE_VERSION = "0.6.0"
 """Bumped whenever engine logic (not just constants) changes."""
 
 # Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
@@ -1093,8 +1093,13 @@ class OptimiserConfig(BaseModel):
     )
     beta_site_overload: Constant = demo(
         "opt.beta4_site_overload",
-        400.0,
-        "Penalty for pushing a site towards its effective capacity ceiling.",
+        60.0,
+        "Penalty per person placed above a site's soft capacity share. A site run "
+        "to its ceiling has no margin for the household that arrives late or the "
+        "service that underperforms, so the optimiser should prefer not to - but "
+        "only prefer. This value is deliberately well below the per-person cost of "
+        "leaving someone in a red zone, because a plan that strands people to "
+        "protect a 15% margin is not a plan an SDMA can defend.",
     )
     beta_livelihood_disruption: Constant = demo(
         "opt.beta5_livelihood_disruption",
@@ -1104,7 +1109,20 @@ class OptimiserConfig(BaseModel):
     beta_fragmentation: Constant = demo(
         "opt.beta6_fragmentation",
         150.0,
-        "Penalty for splitting one habitation across multiple destination sites.",
+        "Penalty for splitting one habitation across multiple destination sites. It "
+        "charges splits between places, not between phases: a village moved to one "
+        "site over two phases is a phased relocation, not a divided community.",
+    )
+    beta_phase_delay: Constant = demo(
+        "opt.beta7_phase_delay",
+        25.0,
+        "Penalty per person per phase of delay, scaled by that habitation's priority. "
+        "Without it, moving someone in the medium term and moving them now cost the "
+        "same, and 'Immediate' would be a label on a ranking rather than a claim "
+        "about when people leave. It is deliberately small: its job is to order the "
+        "plan, not to change who is in it. At four times this value the solver began "
+        "declining late moves altogether and placed a hundred fewer people, which is "
+        "the wrong trade and is asserted against in the tests.",
     )
     solver_time_limit_s: Constant = demo(
         "opt.time_limit_s",
@@ -1141,6 +1159,50 @@ class OptimiserConfig(BaseModel):
         "opt.max_travel_minutes.MEDIUM_TERM",
         180.0,
         "Travel-time ceiling for a Medium-term-phase assignment.",
+        unit="min",
+    )
+    site_soft_capacity_share: Constant = demo(
+        "opt.site_soft_capacity_share",
+        0.85,
+        "Share of a site's effective capacity beyond which each further person "
+        "incurs the overload penalty. A site run to its ceiling has no margin for "
+        "the household that arrives late or the service that underperforms, so the "
+        "optimiser has to be given a reason to accept that - not forbidden from it.",
+    )
+    phase_capacity_share_immediate: Constant = demo(
+        "opt.phase_capacity_share.IMMEDIATE",
+        0.45,
+        "Share of a site's effective capacity that can be occupied in the Immediate "
+        "phase. Sites are not built out on day one: water, sanitation and shelter "
+        "arrive over weeks, and the ramp says how much of the site is standing when "
+        "the first movement happens.",
+    )
+    phase_capacity_share_short_term: Constant = demo(
+        "opt.phase_capacity_share.SHORT_TERM",
+        0.75,
+        "Cumulative share of a site's effective capacity occupied by the end of the "
+        "Short-term phase.",
+    )
+    phase_capacity_share_medium_term: Constant = demo(
+        "opt.phase_capacity_share.MEDIUM_TERM",
+        1.0,
+        "Cumulative share by the end of the Medium-term phase: the whole assessed "
+        "effective capacity.",
+    )
+    livelihood_commute_ceiling_min: Constant = demo(
+        "livelihood.commute_ceiling_min",
+        90.0,
+        "Routed travel time from a destination site back to the origin livelihood "
+        "centre at which commute disruption is scored at maximum.",
+        unit="min",
+    )
+    livelihood_market_ceiling_min: Constant = demo(
+        "livelihood.market_ceiling_min",
+        60.0,
+        "Routed travel time from a site to the nearest trunk road at which market "
+        "and service access is scored at maximum disruption. Trunk roads are the "
+        "measurable proxy ASTRA has for where a district's markets, banks and "
+        "offices are; it is not a survey of them.",
         unit="min",
     )
     livelihood_w_travel_time: Constant = demo(

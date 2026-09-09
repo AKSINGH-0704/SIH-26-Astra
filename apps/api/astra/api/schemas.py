@@ -21,6 +21,7 @@ from astra.domain.enums import (
     RoadClass,
     RouteProfile,
     ServiceType,
+    SolverStatus,
     ZoneClass,
 )
 from astra.domain.model_config import AstraModelConfig, Constant
@@ -700,4 +701,192 @@ class ClosureImpactResponse(BaseModel):
     newly_infeasible: int
     newly_unreachable: int
     population_losing_a_reachable_site: int
+    headline: str
+
+# ---------------------------------------------------------------------------
+# Engine 6 - constrained relocation optimisation
+# ---------------------------------------------------------------------------
+
+
+class LivelihoodResponse(BaseModel):
+    """Livelihood disruption for one pairing, with its four measured components."""
+
+    model_config = ConfigDict(frozen=True)
+
+    value: float
+    percent: float
+    commute_min: float
+    commute_reliability: float
+    worst_road_class: RoadClass
+    market_access_min: float
+    reachable: bool
+    factors: list[FactorContribution]
+
+
+class AssignmentResponse(BaseModel):
+    """One movement in the plan, with everything that justifies it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    habitation_name: str
+    site_id: str
+    site_name: str
+    phase: PhaseTier
+    people: int
+    households_equivalent: int
+    travel_time_min: float
+    distance_km: float
+    route_reliability: float
+    route_risk: float
+    livelihood_disruption: float
+    livelihood: LivelihoodResponse
+    objective_contribution: float
+    origin: GeoPoint
+    destination: GeoPoint
+    route_geometry: list[list[float]]
+
+
+class RejectedOptionResponse(BaseModel):
+    """A pairing the solver was never offered, and the constraint that removed it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    site_id: str
+    reason: str
+    detail: str
+
+
+class UnmetReasonResponse(BaseModel):
+    """Why these residents were not moved."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    habitation_name: str
+    people: int
+    reason: str
+    detail: str
+
+
+class StrandedCapacityResponse(BaseModel):
+    """Assessed capacity the people who still need it cannot reach."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    site_name: str
+    capacity: int
+    unused: int
+    reachable_unmet_people: int
+    stranded_places: int
+    detail: str
+
+
+class SiteLoadResponse(BaseModel):
+    """What the plan does to one site's capacity."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    site_name: str
+    effective_capacity: int
+    soft_capacity: int
+    assigned: int
+    remaining: int
+    utilisation: float
+    over_soft_capacity: int
+    phase_ceilings: dict[str, int]
+
+
+class PhasePlanTotals(BaseModel):
+    """One phase of the plan, as an SDMA would read it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    phase: PhaseTier
+    people_moved: int
+    habitations: int
+    sites_used: int
+    mean_travel_time_min: float
+    mean_route_reliability: float
+    travel_ceiling_min: float
+    capacity_share: float
+
+
+class PlanTotalsResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    population_assessed: int
+    population_assigned: int
+    population_unmet: int
+    person_minutes: float
+    mean_travel_time_min: float
+    mean_route_reliability: float
+    mean_livelihood_disruption: float
+    sites_used: int
+    habitations_split: int
+
+
+class PlanResponse(BaseModel):
+    """The optimised relocation plan, with everything that justifies it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: SolverStatus
+    solver: str
+    solve_ms: float
+    objective_value: float
+    objective_terms: dict[str, float]
+    assignments: list[AssignmentResponse]
+    phases: list[PhasePlanTotals]
+    site_load: list[SiteLoadResponse]
+    totals: PlanTotalsResponse
+    unmet: list[UnmetReasonResponse]
+    stranded_capacity: list[StrandedCapacityResponse]
+    capacity_blocked: list[str]
+    rejected: list[RejectedOptionResponse]
+    options_offered: int
+    notes: list[str]
+    weights: list[Constant]
+    constraints: list[Constant]
+    headline: str
+    decision_authority: str
+    model_config_version: str
+    engine_version: str
+
+
+class OptimiseRequest(BaseModel):
+    """Ask for a plan, optionally under road closures."""
+
+    model_config = ConfigDict(frozen=True)
+
+    closed_segments: list[str] = Field(
+        default_factory=list,
+        description="Road segments to treat as closed while planning.",
+    )
+    use_fallback: bool = Field(
+        default=False,
+        description="Run the deterministic greedy fallback instead of the solver. "
+        "For demonstrating the difference between the two, not for planning.",
+    )
+
+
+class CounterfactualResponse(BaseModel):
+    """Why not that site: the answer from an actual re-solve, not from prose."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    site_id: str
+    people: int
+    feasible: bool
+    reason: str
+    objective_baseline: float
+    objective_forced: float | None
+    objective_delta: float | None
+    assigned_elsewhere_before: int
+    assigned_elsewhere_after: int
+    displaced: list[list[str]]
     headline: str

@@ -8,6 +8,7 @@
 
 import type {
   ClosureImpactResponse,
+  CounterfactualResponse,
   HabitationDetailResponse,
   HabitationHazardResponse,
   HabitationPriorityResponse,
@@ -15,6 +16,7 @@ import type {
   HealthStatus,
   LayersResponse,
   ModelConfigResponse,
+  PlanResponse,
   ProvenanceResponse,
   RiskCellResponse,
   RiskSummaryResponse,
@@ -77,6 +79,11 @@ export const api = {
   riskCell: (lon: number, lat: number) =>
     get<RiskCellResponse>(`/risk/cell?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}`),
   routes: () => get<RouteAssessmentResponse>("/routes"),
+  plan: () => get<PlanResponse>("/plan"),
+  whyNot: (habitationId: string, siteId: string) =>
+    get<CounterfactualResponse>(
+      `/plan/why-not/${encodeURIComponent(habitationId)}/${encodeURIComponent(siteId)}`,
+    ),
   routePair: (habitationId: string, siteId: string) =>
     get<RoutePairResponse>(
       `/routes/pair/${encodeURIComponent(habitationId)}/${encodeURIComponent(siteId)}`,
@@ -88,24 +95,42 @@ export const api = {
  * The only mutating call in the interface, and it mutates nothing on the server:
  * the closure is an argument, not a state change.
  */
+/**
+ * Re-solve the plan, optionally under closures or with the greedy fallback.
+ * Like the closure evaluator, this changes nothing on the server: the baseline
+ * plan stays where it is so the two can be compared.
+ */
+export async function optimisePlan(body: {
+  closed_segments?: string[];
+  use_fallback?: boolean;
+}): Promise<PlanResponse> {
+  return post<PlanResponse>("/plan/optimize", body);
+}
+
 export async function evaluateClosure(
   closedSegments: string[],
 ): Promise<ClosureImpactResponse> {
+  return post<ClosureImpactResponse>("/routes/evaluate", {
+    closed_segments: closedSegments,
+  });
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}/routes/evaluate`, {
+    response = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       cache: "no-store",
       headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ closed_segments: closedSegments }),
+      body: JSON.stringify(body),
     });
   } catch (error) {
-    throw new ApiUnavailableError("/routes/evaluate", error);
+    throw new ApiUnavailableError(path, error);
   }
   if (!response.ok) {
-    throw new ApiUnavailableError("/routes/evaluate", `HTTP ${response.status}`);
+    throw new ApiUnavailableError(path, `HTTP ${response.status}`);
   }
-  return (await response.json()) as ClosureImpactResponse;
+  return (await response.json()) as T;
 }
 
 /** Served by the API so the map works with the network unplugged. */

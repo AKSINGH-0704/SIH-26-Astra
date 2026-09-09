@@ -236,7 +236,7 @@
     }
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
-  "engine_version": "0.5.0",
+  "engine_version": "0.6.0",
   "evidence": {
     "incident_fatality_bonus": {
       "citation": null,
@@ -904,7 +904,7 @@
   "optimiser": {
     "beta_fragmentation": {
       "citation": null,
-      "description": "Penalty for splitting one habitation across multiple destination sites.",
+      "description": "Penalty for splitting one habitation across multiple destination sites. It charges splits between places, not between phases: a village moved to one site over two phases is a phased relocation, not a divided community.",
       "key": "opt.beta6_fragmentation",
       "provenance": "DEMO_CONFIG",
       "unit": null,
@@ -918,6 +918,14 @@
       "unit": null,
       "value": 300.0
     },
+    "beta_phase_delay": {
+      "citation": null,
+      "description": "Penalty per person per phase of delay, scaled by that habitation's priority. Without it, moving someone in the medium term and moving them now cost the same, and 'Immediate' would be a label on a ranking rather than a claim about when people leave. It is deliberately small: its job is to order the plan, not to change who is in it. At four times this value the solver began declining late moves altogether and placed a hundred fewer people, which is the wrong trade and is asserted against in the tests.",
+      "key": "opt.beta7_phase_delay",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 25.0
+    },
     "beta_route_risk": {
       "citation": null,
       "description": "Penalty per unit of person-weighted route risk.",
@@ -928,11 +936,11 @@
     },
     "beta_site_overload": {
       "citation": null,
-      "description": "Penalty for pushing a site towards its effective capacity ceiling.",
+      "description": "Penalty per person placed above a site's soft capacity share. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser should prefer not to - but only prefer. This value is deliberately well below the per-person cost of leaving someone in a red zone, because a plan that strands people to protect a 15% margin is not a plan an SDMA can defend.",
       "key": "opt.beta4_site_overload",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 400.0
+      "value": 60.0
     },
     "beta_travel_time": {
       "citation": null,
@@ -949,6 +957,22 @@
       "provenance": "DEMO_CONFIG",
       "unit": null,
       "value": 1000.0
+    },
+    "livelihood_commute_ceiling_min": {
+      "citation": null,
+      "description": "Routed travel time from a destination site back to the origin livelihood centre at which commute disruption is scored at maximum.",
+      "key": "livelihood.commute_ceiling_min",
+      "provenance": "DEMO_CONFIG",
+      "unit": "min",
+      "value": 90.0
+    },
+    "livelihood_market_ceiling_min": {
+      "citation": null,
+      "description": "Routed travel time from a site to the nearest trunk road at which market and service access is scored at maximum disruption. Trunk roads are the measurable proxy ASTRA has for where a district's markets, banks and offices are; it is not a survey of them.",
+      "key": "livelihood.market_ceiling_min",
+      "provenance": "DEMO_CONFIG",
+      "unit": "min",
+      "value": 60.0
     },
     "livelihood_w_connectivity": {
       "citation": null,
@@ -1013,6 +1037,38 @@
       "provenance": "DEMO_CONFIG",
       "unit": "persons",
       "value": 25.0
+    },
+    "phase_capacity_share_immediate": {
+      "citation": null,
+      "description": "Share of a site's effective capacity that can be occupied in the Immediate phase. Sites are not built out on day one: water, sanitation and shelter arrive over weeks, and the ramp says how much of the site is standing when the first movement happens.",
+      "key": "opt.phase_capacity_share.IMMEDIATE",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.45
+    },
+    "phase_capacity_share_medium_term": {
+      "citation": null,
+      "description": "Cumulative share by the end of the Medium-term phase: the whole assessed effective capacity.",
+      "key": "opt.phase_capacity_share.MEDIUM_TERM",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 1.0
+    },
+    "phase_capacity_share_short_term": {
+      "citation": null,
+      "description": "Cumulative share of a site's effective capacity occupied by the end of the Short-term phase.",
+      "key": "opt.phase_capacity_share.SHORT_TERM",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.75
+    },
+    "site_soft_capacity_share": {
+      "citation": null,
+      "description": "Share of a site's effective capacity beyond which each further person incurs the overload penalty. A site run to its ceiling has no margin for the household that arrives late or the service that underperforms, so the optimiser has to be given a reason to accept that - not forbidden from it.",
+      "key": "opt.site_soft_capacity_share",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.85
     },
     "solver_seed": {
       "citation": null,
@@ -1453,5 +1509,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.9.0"
+  "version": "1.10.0"
 }

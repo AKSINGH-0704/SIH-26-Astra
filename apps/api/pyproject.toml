@@ -18,6 +18,8 @@ dependencies = [
     "shapely>=2.0",
     "pyproj>=3.6",
     "networkx>=3.2",
+    # The relocation optimiser. CP-SAT is CPU-only and ships as a wheel.
+    "ortools>=9.9",
 ]
 
 [project.optional-dependencies]

@@ -30,10 +30,10 @@ const NAV = [
   { href: "/priority", label: "Habitation Priority", available: true },
   { href: "/sites", label: "Relocation Sites", available: true },
   { href: "/routes", label: "Access & Routes", available: true },
+  { href: "/plan", label: "Optimised Plan", available: true },
   { href: "/study-area", label: "Study Area & Data", available: true },
   { href: "/model", label: "Model & Provenance", available: true },
   { href: "/command", label: "Command Centre", available: false },
-  { href: "/plan", label: "Optimised Plan", available: false },
   { href: "/simulate", label: "What-If Simulation", available: false },
 ];
 
