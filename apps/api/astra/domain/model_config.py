@@ -1,0 +1,870 @@
+"""The single versioned source of every weight, threshold and norm in ASTRA.
+
+CLAUDE.md section 5: "All weights, thresholds and norms live in one versioned
+config module, exposed at GET /model/config, and rendered in the UI's
+transparency panel. There are no magic numbers inside engine logic."
+
+Two rules govern this file:
+
+1. Every constant carries a :class:`ProvenanceClass`. A constant ASTRA chose is
+   ``DEMO_CONFIG`` and the UI renders a DEMO_CONFIG chip next to it. A constant
+   traceable to a published standard is ``REAL_OPEN`` and carries its citation.
+   An ASTRA constant is never presented as if it were law (section 4.2).
+2. Every constant carries a human-readable ``description``. If a number cannot
+   explain itself, it does not ship.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
+
+MODEL_CONFIG_VERSION = "1.0.0"
+"""Bumped whenever any value below changes. Recorded on every audit record."""
+
+ENGINE_VERSION = "0.1.0"
+"""Bumped whenever engine logic (not just constants) changes."""
+
+# Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
+CITE_SPHERE = (
+    "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and "
+    "Minimum Standards in Humanitarian Response, 4th edition."
+)
+CITE_PMAY_G = (
+    "Ministry of Rural Development, Pradhan Mantri Awaas Yojana - Gramin (PMAY-G) "
+    "Framework for Implementation, dwelling and plot sizing norms."
+)
+CITE_GSI_BIS = (
+    "Geological Survey of India / BIS IS 14496 (Part 2): Preparation of landslide "
+    "hazard zonation maps - weighted factor overlay methodology."
+)
+CITE_NDMA_SHELTER = (
+    "NDMA, Guidelines on Minimum Standards of Relief (relief camp and shelter "
+    "provisioning)."
+)
+
+
+class Constant(BaseModel):
+    """One inspectable number. Serialised verbatim to ``GET /model/config``."""
+
+    model_config = ConfigDict(frozen=True)
+
+    key: str = Field(description="Stable identifier, referenced by formula specs.")
+    value: float = Field(description="The number the engines actually use.")
+    unit: str | None = Field(default=None, description="Physical unit, if any.")
+    provenance: ProvenanceClass = Field(
+        description="DEMO_CONFIG for an ASTRA choice; REAL_OPEN when standard-derived."
+    )
+    description: str = Field(description="What this number means, in plain language.")
+    citation: str | None = Field(
+        default=None, description="Published source, when the value is not ASTRA's own."
+    )
+
+    def __float__(self) -> float:
+        return float(self.value)
+
+    @model_validator(mode="after")
+    def _cited_when_not_demo(self) -> Constant:
+        if self.provenance is not ProvenanceClass.DEMO_CONFIG and not self.citation:
+            raise ValueError(
+                f"constant '{self.key}' claims provenance {self.provenance.value} "
+                "but carries no citation; either cite it or mark it DEMO_CONFIG"
+            )
+        return self
+
+
+def demo(key: str, value: float, description: str, unit: str | None = None) -> Constant:
+    """An ASTRA-chosen constant. Rendered with a DEMO_CONFIG chip in the UI."""
+    return Constant(
+        key=key,
+        value=value,
+        unit=unit,
+        provenance=ProvenanceClass.DEMO_CONFIG,
+        description=description,
+    )
+
+
+def cited(
+    key: str, value: float, description: str, citation: str, unit: str | None = None
+) -> Constant:
+    """A constant traceable to a published standard. Rendered with its citation."""
+    return Constant(
+        key=key,
+        value=value,
+        unit=unit,
+        provenance=ProvenanceClass.REAL_OPEN,
+        description=description,
+        citation=citation,
+    )
+
+
+class WeightSet(BaseModel):
+    """Factor weights for one hazard. Must sum to 1.0 (section 5.1)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    hazard: HazardType
+    method_citation: str = CITE_GSI_BIS
+    weights: dict[str, Constant]
+
+    @model_validator(mode="after")
+    def _sums_to_one(self) -> WeightSet:
+        total = sum(c.value for c in self.weights.values())
+        if abs(total - 1.0) > 1e-9:
+            raise ValueError(
+                f"{self.hazard.value} factor weights sum to {total:.6f}, must be 1.0"
+            )
+        return self
+
+    def w(self, factor: str) -> float:
+        return self.weights[factor].value
+
+
+# ---------------------------------------------------------------------------
+# Engine 1 - multi-hazard susceptibility (section 5.1)
+# ---------------------------------------------------------------------------
+
+
+class HazardConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    grid_resolution_m: Constant = demo(
+        "hazard.grid_resolution_m",
+        100.0,
+        "Cell size of the susceptibility grid over the study bounding box.",
+        unit="m",
+    )
+    composite_lambda: Constant = demo(
+        "hazard.composite_lambda",
+        0.25,
+        "Weight on the second-highest hazard in the composite. Preserves dominance "
+        "instead of averaging multi-hazard exposure away.",
+    )
+    zone_threshold_critical: Constant = demo(
+        "hazard.zone_threshold.CRITICAL",
+        70.0,
+        "Composite score at or above which a cell is classified Critical.",
+    )
+    zone_threshold_elevated: Constant = demo(
+        "hazard.zone_threshold.ELEVATED",
+        55.0,
+        "Composite score at or above which a cell is classified Elevated.",
+    )
+    zone_threshold_watch: Constant = demo(
+        "hazard.zone_threshold.WATCH",
+        40.0,
+        "Composite score at or above which a cell is classified Watch.",
+    )
+    min_mapping_unit_ha: Constant = demo(
+        "hazard.min_mapping_unit_ha",
+        1.0,
+        "Polygons smaller than this are removed as slivers during morphological "
+        "cleaning of the thresholded surface.",
+        unit="ha",
+    )
+    zone_buffer_m: Constant = demo(
+        "hazard.zone_buffer_m",
+        50.0,
+        "Outward buffer applied to cleaned zone polygons before exposure intersection.",
+        unit="m",
+    )
+    history_kernel_radius_m: Constant = demo(
+        "hazard.history_kernel_radius_m",
+        1500.0,
+        "Bandwidth of the kernel density estimate over historical incident points.",
+        unit="m",
+    )
+
+    landslide_weights: WeightSet = WeightSet(
+        hazard=HazardType.LANDSLIDE,
+        weights={
+            "slope": demo("w.landslide.slope", 0.28, "Normalised slope angle."),
+            "ruggedness": demo(
+                "w.landslide.ruggedness", 0.12, "Terrain ruggedness index from the DEM."
+            ),
+            "incident_density": demo(
+                "w.landslide.incident_density",
+                0.20,
+                "Kernel density of historical landslide incidents.",
+            ),
+            "rainfall_intensity": demo(
+                "w.landslide.rainfall_intensity",
+                0.18,
+                "Antecedent rainfall and return-period intensity.",
+            ),
+            "landcover": demo(
+                "w.landslide.landcover",
+                0.10,
+                "Land-cover and vegetation stability proxy.",
+            ),
+            "drainage_density": demo(
+                "w.landslide.drainage_density",
+                0.07,
+                "Drainage density as a saturation and undercutting proxy.",
+            ),
+            "lineament_distance": demo(
+                "w.landslide.lineament_distance",
+                0.05,
+                "Proximity to mapped faults and lineaments where obtainable.",
+            ),
+        },
+    )
+    flood_weights: WeightSet = WeightSet(
+        hazard=HazardType.FLOOD,
+        weights={
+            "hand": demo(
+                "w.flood.hand", 0.34, "Height above nearest drainage, inverted."
+            ),
+            "drainage_distance": demo(
+                "w.flood.drainage_distance", 0.22, "Distance to the drainage network."
+            ),
+            "historical_inundation": demo(
+                "w.flood.historical_inundation",
+                0.18,
+                "Overlap with recorded inundation extents.",
+            ),
+            "rainfall_intensity": demo(
+                "w.flood.rainfall_intensity",
+                0.16,
+                "Rainfall intensity and return period.",
+            ),
+            "infiltration": demo(
+                "w.flood.infiltration",
+                0.10,
+                "Infiltration proxy derived from land cover.",
+            ),
+        },
+    )
+    cloudburst_weights: WeightSet = WeightSet(
+        hazard=HazardType.CLOUDBURST,
+        weights={
+            "extreme_rainfall_frequency": demo(
+                "w.cloudburst.extreme_rainfall_frequency",
+                0.30,
+                "Frequency of extreme short-duration rainfall events.",
+            ),
+            "catchment_steepness": demo(
+                "w.cloudburst.catchment_steepness",
+                0.26,
+                "Mean steepness of the contributing catchment.",
+            ),
+            "confluence_density": demo(
+                "w.cloudburst.confluence_density",
+                0.20,
+                "Density of drainage confluences, where flash flow concentrates.",
+            ),
+            "upstream_area": demo(
+                "w.cloudburst.upstream_area",
+                0.24,
+                "Upstream contributing area feeding the cell.",
+            ),
+        },
+    )
+    coastal_weights: WeightSet = WeightSet(
+        hazard=HazardType.COASTAL_EROSION,
+        weights={
+            "shoreline_retreat_rate": demo(
+                "w.coastal.shoreline_retreat_rate",
+                0.35,
+                "Observed shoreline retreat rate.",
+            ),
+            "elevation": demo(
+                "w.coastal.elevation",
+                0.25,
+                "Elevation above mean sea level, inverted.",
+            ),
+            "coastline_distance": demo(
+                "w.coastal.coastline_distance", 0.22, "Distance to the coastline."
+            ),
+            "surge_exposure": demo(
+                "w.coastal.surge_exposure", 0.18, "Storm-surge exposure proxy."
+            ),
+        },
+    )
+
+    def weights_for(self, hazard: HazardType) -> WeightSet:
+        return {
+            HazardType.LANDSLIDE: self.landslide_weights,
+            HazardType.FLOOD: self.flood_weights,
+            HazardType.CLOUDBURST: self.cloudburst_weights,
+            HazardType.COASTAL_EROSION: self.coastal_weights,
+        }[hazard]
+
+    def zone_class_for(self, composite: float) -> ZoneClass:
+        """Composite score to zone class. One hop, no hidden logic."""
+        if composite >= self.zone_threshold_critical.value:
+            return ZoneClass.CRITICAL
+        if composite >= self.zone_threshold_elevated.value:
+            return ZoneClass.ELEVATED
+        if composite >= self.zone_threshold_watch.value:
+            return ZoneClass.WATCH
+        return ZoneClass.LOW
+
+
+# ---------------------------------------------------------------------------
+# Engines 2 and 3 - exposure, vulnerability, priority, phasing
+# ---------------------------------------------------------------------------
+
+
+class PriorityConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    w_hazard: Constant = demo(
+        "priority.w_hazard",
+        0.35,
+        "Weight on composite hazard sampled over the habitation footprint.",
+    )
+    w_exposure: Constant = demo(
+        "priority.w_exposure",
+        0.25,
+        "Weight on population and critical-facility exposure.",
+    )
+    w_vulnerability: Constant = demo(
+        "priority.w_vulnerability",
+        0.25,
+        "Weight on the demographic vulnerability index.",
+    )
+    w_history: Constant = demo(
+        "priority.w_history", 0.15, "Weight on recency-weighted incident history."
+    )
+
+    exposure_w_population: Constant = demo(
+        "exposure.w_population",
+        0.55,
+        "Share of exposure driven by resident population.",
+    )
+    exposure_w_households: Constant = demo(
+        "exposure.w_households",
+        0.20,
+        "Share of exposure driven by household count.",
+    )
+    exposure_w_facilities: Constant = demo(
+        "exposure.w_facilities",
+        0.25,
+        "Share of exposure driven by critical facilities (school, clinic, anganwadi).",
+    )
+
+    vuln_w_elderly: Constant = demo(
+        "vulnerability.w_elderly", 0.20, "Share of residents aged 60 and above."
+    )
+    vuln_w_children_u5: Constant = demo(
+        "vulnerability.w_children_u5", 0.18, "Share of children under five."
+    )
+    vuln_w_disability: Constant = demo(
+        "vulnerability.w_disability", 0.18, "Share of persons with disabilities."
+    )
+    vuln_w_medical_dependency: Constant = demo(
+        "vulnerability.w_medical_dependency",
+        0.14,
+        "Share of medically dependent residents.",
+    )
+    vuln_w_low_income: Constant = demo(
+        "vulnerability.w_low_income",
+        0.15,
+        "Share of single-earner or low-income households.",
+    )
+    vuln_w_kutcha_share: Constant = demo(
+        "vulnerability.w_kutcha_share",
+        0.15,
+        "Structural typology proxy: kutcha and semi-pucca dwelling share.",
+    )
+
+    history_tau_days: Constant = demo(
+        "history.tau_days",
+        1825.0,
+        "Exponential decay constant for incident recency (five years).",
+        unit="days",
+    )
+    history_radius_m: Constant = demo(
+        "history.radius_m",
+        3000.0,
+        "Radius around a habitation within which historical incidents are counted.",
+        unit="m",
+    )
+
+    tier_immediate_min_priority: Constant = demo(
+        "tier.immediate.min_priority",
+        75.0,
+        "Priority score at or above which a habitation is considered for Immediate.",
+    )
+    tier_short_term_min_priority: Constant = demo(
+        "tier.short_term.min_priority",
+        55.0,
+        "Priority score at or above which a habitation is considered for Short-term.",
+    )
+    tier_medium_term_min_priority: Constant = demo(
+        "tier.medium_term.min_priority",
+        35.0,
+        "Priority score at or above which a habitation enters Medium-term planning.",
+    )
+    override_critical_vulnerability: Constant = demo(
+        "tier.override.critical_zone_vulnerability",
+        0.55,
+        "Vulnerability index at or above which a habitation inside a Critical zone is "
+        "escalated to Immediate regardless of its composite priority score.",
+    )
+
+    @model_validator(mode="after")
+    def _weights_sum_to_one(self) -> PriorityConfig:
+        groups = (
+            (
+                "priority",
+                (self.w_hazard, self.w_exposure, self.w_vulnerability, self.w_history),
+            ),
+            (
+                "exposure",
+                (
+                    self.exposure_w_population,
+                    self.exposure_w_households,
+                    self.exposure_w_facilities,
+                ),
+            ),
+            (
+                "vulnerability",
+                (
+                    self.vuln_w_elderly,
+                    self.vuln_w_children_u5,
+                    self.vuln_w_disability,
+                    self.vuln_w_medical_dependency,
+                    self.vuln_w_low_income,
+                    self.vuln_w_kutcha_share,
+                ),
+            ),
+        )
+        for label, parts in groups:
+            total = sum(c.value for c in parts)
+            if abs(total - 1.0) > 1e-9:
+                raise ValueError(f"{label} weights sum to {total:.6f}, must be 1.0")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Engine 4 - suitability gates and carrying capacity
+# ---------------------------------------------------------------------------
+
+
+class CapacityConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    # --- Published standards. Real, cited, rendered with their source. ---
+    water_litres_per_person_day: Constant = cited(
+        "capacity.water_lpcd",
+        15.0,
+        "Minimum water supply per person per day.",
+        CITE_SPHERE,
+        unit="L/person/day",
+    )
+    persons_per_latrine: Constant = cited(
+        "capacity.persons_per_latrine",
+        20.0,
+        "Maximum number of persons sharing one latrine.",
+        CITE_SPHERE,
+        unit="persons/latrine",
+    )
+    covered_area_m2_per_person: Constant = cited(
+        "capacity.covered_area_m2_per_person",
+        3.5,
+        "Minimum covered living area per person.",
+        CITE_SPHERE,
+        unit="m2/person",
+    )
+    site_area_m2_per_person: Constant = cited(
+        "capacity.site_area_m2_per_person",
+        45.0,
+        "Minimum total site area per person including services and circulation.",
+        CITE_SPHERE,
+        unit="m2/person",
+    )
+    persons_per_health_facility: Constant = cited(
+        "capacity.persons_per_health_facility",
+        10000.0,
+        "Population served by one health facility unit at minimum standard.",
+        CITE_SPHERE,
+        unit="persons/facility",
+    )
+    pmay_g_plot_area_m2: Constant = cited(
+        "capacity.pmay_g_plot_area_m2",
+        25.0,
+        "Minimum dwelling unit area for permanent rural resettlement.",
+        CITE_PMAY_G,
+        unit="m2/dwelling",
+    )
+    shelter_occupancy_persons_per_unit: Constant = cited(
+        "capacity.shelter_occupancy",
+        5.0,
+        "Design occupancy of one shelter unit, matched to average rural household size.",
+        CITE_NDMA_SHELTER,
+        unit="persons/unit",
+    )
+
+    # --- ASTRA choices. Marked DEMO_CONFIG, never presented as a rule. ---
+    power_kva_per_household: Constant = demo(
+        "capacity.power_kva_per_household",
+        1.0,
+        "Assumed connected load per household for the power capacity constraint.",
+        unit="kVA/household",
+    )
+    persons_per_household: Constant = demo(
+        "capacity.persons_per_household",
+        5.0,
+        "Household size used to convert person counts to household counts.",
+        unit="persons/household",
+    )
+    gate_max_slope_deg: Constant = demo(
+        "gate.max_slope_deg",
+        18.0,
+        "Slope above which a candidate site fails the build-safe gate.",
+        unit="degrees",
+    )
+    gate_hazard_buffer_m: Constant = demo(
+        "gate.hazard_buffer_m",
+        250.0,
+        "Safety buffer around Critical and Elevated zones a site must sit outside of.",
+        unit="m",
+    )
+    gate_flood_return_period_years: Constant = demo(
+        "gate.flood_return_period_years",
+        100.0,
+        "Return-period flood level a candidate site must sit above.",
+        unit="years",
+    )
+    gate_max_road_distance_m: Constant = demo(
+        "gate.max_road_distance_m",
+        1000.0,
+        "Distance to the nearest usable road beyond which a site is not accessible.",
+        unit="m",
+    )
+    landcover_agreement_high_confidence: Constant = demo(
+        "capacity.landcover_agreement_high",
+        0.85,
+        "Agreement between the WorldCover reclassification and the Random Forest "
+        "refinement above which usable-area confidence is reported as High.",
+    )
+
+    def norm_for(self, service: ServiceType) -> Constant | None:
+        """Per-service demand norm. ``None`` where capacity is supplied directly."""
+        return {
+            ServiceType.LAND: self.site_area_m2_per_person,
+            ServiceType.SHELTER: self.shelter_occupancy_persons_per_unit,
+            ServiceType.WATER: self.water_litres_per_person_day,
+            ServiceType.SANITATION: self.persons_per_latrine,
+            ServiceType.HEALTHCARE: self.persons_per_health_facility,
+            ServiceType.POWER: self.power_kva_per_household,
+            ServiceType.ACCESS: None,
+        }[service]
+
+
+# ---------------------------------------------------------------------------
+# Engine 5 - route reliability and survivability
+# ---------------------------------------------------------------------------
+
+
+class RouteConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    speed_national_highway_kmh: Constant = demo(
+        "route.speed.national_highway_kmh",
+        50.0,
+        "Free-flow speed assumed on a national highway segment.",
+        unit="km/h",
+    )
+    speed_state_highway_kmh: Constant = demo(
+        "route.speed.state_highway_kmh",
+        40.0,
+        "Free-flow speed assumed on a state highway segment.",
+        unit="km/h",
+    )
+    speed_district_road_kmh: Constant = demo(
+        "route.speed.district_road_kmh",
+        30.0,
+        "Free-flow speed assumed on a district road segment.",
+        unit="km/h",
+    )
+    speed_village_road_kmh: Constant = demo(
+        "route.speed.village_road_kmh",
+        20.0,
+        "Free-flow speed assumed on a village road segment.",
+        unit="km/h",
+    )
+    speed_track_kmh: Constant = demo(
+        "route.speed.track_kmh",
+        10.0,
+        "Free-flow speed assumed on an unsurfaced track.",
+        unit="km/h",
+    )
+
+    p_fail_hazard_coefficient: Constant = demo(
+        "route.p_fail.hazard_coefficient",
+        0.45,
+        "Maximum per-segment failure probability contributed by hazard exposure, "
+        "scaled by the segment's normalised composite hazard.",
+    )
+    p_fail_bridge_dependency: Constant = demo(
+        "route.p_fail.bridge_dependency",
+        0.12,
+        "Additional failure probability for a segment dependent on a bridge or culvert.",
+    )
+    safest_risk_alpha: Constant = demo(
+        "route.safest_alpha",
+        2.0,
+        "Risk aversion in the SAFEST objective: minimise time x (1 + alpha x risk).",
+    )
+    min_reliability_threshold: Constant = demo(
+        "route.min_reliability",
+        0.60,
+        "Route reliability below which a site is treated as infeasible for a "
+        "habitation in the optimiser, not merely penalised.",
+    )
+    throughput_persons_per_hour: Constant = demo(
+        "route.throughput_persons_per_hour",
+        400.0,
+        "Movement throughput ceiling of a single usable route, feeding the ACCESS "
+        "capacity constraint.",
+        unit="persons/hour",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Engine 6 - constrained relocation optimisation
+# ---------------------------------------------------------------------------
+
+
+class OptimiserConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    beta_unmet_demand: Constant = demo(
+        "opt.beta1_unmet_demand",
+        1000.0,
+        "Penalty per unrelocated person, scaled by that habitation's priority.",
+    )
+    beta_travel_time: Constant = demo(
+        "opt.beta2_travel_time", 1.0, "Penalty per person-minute of travel."
+    )
+    beta_route_risk: Constant = demo(
+        "opt.beta3_route_risk",
+        250.0,
+        "Penalty per unit of person-weighted route risk.",
+    )
+    beta_site_overload: Constant = demo(
+        "opt.beta4_site_overload",
+        400.0,
+        "Penalty for pushing a site towards its effective capacity ceiling.",
+    )
+    beta_livelihood_disruption: Constant = demo(
+        "opt.beta5_livelihood_disruption",
+        300.0,
+        "Penalty per unit of computed livelihood disruption.",
+    )
+    beta_fragmentation: Constant = demo(
+        "opt.beta6_fragmentation",
+        150.0,
+        "Penalty for splitting one habitation across multiple destination sites.",
+    )
+    solver_time_limit_s: Constant = demo(
+        "opt.time_limit_s",
+        10.0,
+        "CP-SAT wall-clock limit. On expiry the deterministic greedy fallback runs "
+        "and the response is labelled FALLBACK.",
+        unit="s",
+    )
+    solver_seed: Constant = demo(
+        "opt.random_seed",
+        20260191.0,
+        "Fixed solver seed so every demo run is reproducible.",
+    )
+    min_assignment_block: Constant = demo(
+        "opt.min_assignment_block",
+        25.0,
+        "Household-integrity floor: no assignment smaller than this many people, to "
+        "avoid absurd fragmentation of a settlement.",
+        unit="persons",
+    )
+    max_travel_minutes_immediate: Constant = demo(
+        "opt.max_travel_minutes.IMMEDIATE",
+        60.0,
+        "Travel-time ceiling for an Immediate-phase assignment.",
+        unit="min",
+    )
+    max_travel_minutes_short_term: Constant = demo(
+        "opt.max_travel_minutes.SHORT_TERM",
+        120.0,
+        "Travel-time ceiling for a Short-term-phase assignment.",
+        unit="min",
+    )
+    max_travel_minutes_medium_term: Constant = demo(
+        "opt.max_travel_minutes.MEDIUM_TERM",
+        180.0,
+        "Travel-time ceiling for a Medium-term-phase assignment.",
+        unit="min",
+    )
+    livelihood_w_travel_time: Constant = demo(
+        "livelihood.w_travel_time",
+        0.40,
+        "Share of livelihood disruption from travel time back to the origin "
+        "livelihood centre. Livelihood disruption is computed, never a fixed km rule.",
+    )
+    livelihood_w_connectivity: Constant = demo(
+        "livelihood.w_connectivity",
+        0.20,
+        "Share from the connectivity class of the destination road link.",
+    )
+    livelihood_w_road_reliability: Constant = demo(
+        "livelihood.w_road_reliability",
+        0.20,
+        "Share from year-round reliability of that link.",
+    )
+    livelihood_w_market_access: Constant = demo(
+        "livelihood.w_market_access",
+        0.20,
+        "Share from market and service access at the destination.",
+    )
+
+    @model_validator(mode="after")
+    def _livelihood_weights_sum_to_one(self) -> OptimiserConfig:
+        total = sum(
+            c.value
+            for c in (
+                self.livelihood_w_travel_time,
+                self.livelihood_w_connectivity,
+                self.livelihood_w_road_reliability,
+                self.livelihood_w_market_access,
+            )
+        )
+        if abs(total - 1.0) > 1e-9:
+            raise ValueError(f"livelihood weights sum to {total:.6f}, must be 1.0")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Confidence and validation
+# ---------------------------------------------------------------------------
+
+
+class ConfidenceConfig(BaseModel):
+    """Confidence is computed separately and never multiplied into priority."""
+
+    model_config = ConfigDict(frozen=True)
+
+    w_data_completeness: Constant = demo(
+        "confidence.w_data_completeness",
+        0.30,
+        "Share of confidence from how many required inputs were present.",
+    )
+    w_provenance_mix: Constant = demo(
+        "confidence.w_provenance_mix",
+        0.30,
+        "Share from the provenance mix of the inputs: real observed data raises "
+        "confidence, synthetic and demo constants lower it.",
+    )
+    w_evidence_recency: Constant = demo(
+        "confidence.w_evidence_recency",
+        0.25,
+        "Share from how recent the supporting evidence is.",
+    )
+    w_spatial_resolution: Constant = demo(
+        "confidence.w_spatial_resolution",
+        0.15,
+        "Share from the spatial resolution of the coarsest contributing layer.",
+    )
+    band_high_min: Constant = demo(
+        "confidence.band.HIGH_min",
+        0.70,
+        "Confidence at or above which the reported band is High.",
+    )
+    band_medium_min: Constant = demo(
+        "confidence.band.MEDIUM_min",
+        0.45,
+        "Confidence at or above which the reported band is Medium.",
+    )
+
+    @model_validator(mode="after")
+    def _weights_sum_to_one(self) -> ConfidenceConfig:
+        total = (
+            self.w_data_completeness.value
+            + self.w_provenance_mix.value
+            + self.w_evidence_recency.value
+            + self.w_spatial_resolution.value
+        )
+        if abs(total - 1.0) > 1e-9:
+            raise ValueError(f"confidence weights sum to {total:.6f}, must be 1.0")
+        return self
+
+
+class ValidationConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    sensitivity_runs: Constant = demo(
+        "validation.sensitivity_runs",
+        1000.0,
+        "Monte Carlo runs used for weight-sensitivity and rank-stability analysis.",
+    )
+    sensitivity_perturbation: Constant = demo(
+        "validation.sensitivity_perturbation",
+        0.20,
+        "Fractional perturbation applied to every weight in each Monte Carlo run.",
+    )
+    backtest_background_points: Constant = demo(
+        "validation.backtest_background_points",
+        2000.0,
+        "Sampled non-incident background points used as negatives in the ROC-AUC "
+        "back-test of the composite susceptibility surface.",
+    )
+    rank_stability_top_k: Constant = demo(
+        "validation.rank_stability_top_k",
+        5.0,
+        "Size of the top-k set whose stability under perturbation is reported.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Root
+# ---------------------------------------------------------------------------
+
+
+class AstraModelConfig(BaseModel):
+    """Root of the versioned config tree, served verbatim by ``GET /model/config``."""
+
+    model_config = ConfigDict(frozen=True)
+
+    version: str = MODEL_CONFIG_VERSION
+    engine_version: str = ENGINE_VERSION
+    disclaimer: str = (
+        "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government "
+        "rules or statutory thresholds. Values marked REAL_OPEN carry the published "
+        "standard they are drawn from."
+    )
+    hazard: HazardConfig = HazardConfig()
+    priority: PriorityConfig = PriorityConfig()
+    capacity: CapacityConfig = CapacityConfig()
+    route: RouteConfig = RouteConfig()
+    optimiser: OptimiserConfig = OptimiserConfig()
+    confidence: ConfidenceConfig = ConfidenceConfig()
+    validation: ValidationConfig = ValidationConfig()
+
+    def constants(self) -> list[Constant]:
+        """Flatten every constant in the tree for the UI transparency table."""
+        return sorted(_walk_constants(self), key=lambda c: c.key)
+
+
+def _walk_constants(node: object) -> Iterator[Constant]:
+    if isinstance(node, Constant):
+        yield node
+        return
+    if isinstance(node, BaseModel):
+        for value in dict(node).values():
+            yield from _walk_constants(value)
+        return
+    if isinstance(node, dict):
+        for value in node.values():
+            yield from _walk_constants(value)
+        return
+    if isinstance(node, (list, tuple)):
+        for value in node:
+            yield from _walk_constants(value)
+
+
+MODEL_CONFIG = AstraModelConfig()
+"""Process-wide singleton. Engines import this; they never hardcode a number."""

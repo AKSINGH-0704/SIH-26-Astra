@@ -1,0 +1,35 @@
+{
+  "registry_version": "1.0.0",
+  "study_area": "chamoli-alaknanda",
+  "note": "Every dataset ASTRA has actually loaded is registered here. Datasets that a later build slice will vendor are not listed until they exist on disk, so this file never claims data the system does not hold.",
+  "datasets": [
+    {
+      "id": "astra-model-config",
+      "name": "ASTRA model configuration",
+      "source": "ASTRA (this repository)",
+      "source_url": null,
+      "provenance": "DEMO_CONFIG",
+      "acquired": "2026-09-09",
+      "processing": "Weights, thresholds and phase policy constants authored for this prototype; published humanitarian norms within it carry their own citation.",
+      "resolution": "not spatial",
+      "temporal_coverage": "prototype build, 2026",
+      "confidence": "HIGH",
+      "licence": "Repository licence",
+      "notes": "Values marked DEMO_CONFIG are ASTRA's analytical choices, not government rules or statutory thresholds."
+    },
+    {
+      "id": "astra-study-area",
+      "name": "Alaknanda valley study area definition",
+      "source": "ASTRA (this repository)",
+      "source_url": null,
+      "provenance": "DEMO_CONFIG",
+      "acquired": "2026-09-09",
+      "processing": "Bounding box chosen over the Alaknanda corridor between Karnaprayag and Joshimath, Chamoli district, to frame all layers and fixtures.",
+      "resolution": "0.45 x 0.35 degrees",
+      "temporal_coverage": "static",
+      "confidence": "HIGH",
+      "licence": "Repository licence",
+      "notes": "The corridor is real geography. No settlement inside it is classified by ASTRA using its real name or real population."
+    }
+  ]
+}
