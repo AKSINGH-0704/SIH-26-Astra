@@ -1,0 +1,181 @@
+{
+  "study_area": "chamoli-alaknanda",
+  "bbox": [
+    79.3,
+    30.3,
+    79.75,
+    30.65
+  ],
+  "source_dem": "copernicus_dem_30m_alaknanda.tif",
+  "grid": {
+    "rows": 1260,
+    "cols": 1620,
+    "cell_x_m": 26.65,
+    "cell_y_m": 30.715,
+    "cell_area_m2": 818.57
+  },
+  "channel_threshold_km2": 0.5,
+  "methods": {
+    "slope": "Horn (1981) third-order finite difference",
+    "ruggedness": "Riley, DeGloria and Elliot (1999) terrain ruggedness index",
+    "depression_filling": "Priority-Flood (Barnes, Lehman and Mulla, 2014)",
+    "flow_routing": "D8 steepest descent (O'Callaghan and Mark, 1984)",
+    "hand": "Renno et al. (2008), Nobre et al. (2011)"
+  },
+  "layers": {
+    "slope_deg": {
+      "file": "slope_deg.tif",
+      "dtype": "uint8",
+      "stored_scale": 2.0,
+      "unit": "degrees",
+      "bytes": 1417013,
+      "min": 0.0,
+      "max": 78.68420292506948,
+      "mean": 33.29517899668345,
+      "note": "stored at 0.5 degree precision"
+    },
+    "ruggedness": {
+      "file": "ruggedness.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "m",
+      "bytes": 2310427,
+      "min": 0.0,
+      "max": 123.9248764372997,
+      "mean": 18.146941173767356,
+      "note": "RMS elevation difference to neighbours"
+    },
+    "upstream_area_km2": {
+      "file": "upstream_area_km2.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "km2",
+      "bytes": 253874,
+      "min": 0.0008185650004722772,
+      "max": 1383.1202770830016,
+      "mean": 0.9769404314255432,
+      "note": "contributing area draining through each cell"
+    },
+    "drainage": {
+      "file": "drainage.tif",
+      "dtype": "uint8",
+      "stored_scale": 1.0,
+      "unit": "boolean",
+      "bytes": 57423,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.02120713305898491,
+      "note": "cells with at least 0.5 km2 upstream area"
+    },
+    "hand_m": {
+      "file": "hand_m.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "m",
+      "bytes": 2031327,
+      "min": 0.0,
+      "max": 2083.0,
+      "mean": 310.8681814618852,
+      "note": "Renno/Nobre HAND"
+    },
+    "drainage_distance_m": {
+      "file": "drainage_distance_m.tif",
+      "dtype": "uint16",
+      "stored_scale": 1.0,
+      "unit": "m",
+      "bytes": 657556,
+      "min": 0.0,
+      "max": 1676.5127735122574,
+      "mean": 395.1276438276099,
+      "note": "Euclidean distance to the nearest channel cell"
+    },
+    "drainage_density": {
+      "file": "drainage_density.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "km/km2",
+      "bytes": 301381,
+      "min": 0.0,
+      "max": 14.827983899179966,
+      "mean": 0.7473103233063151,
+      "note": "channel length per unit area over a 1 km moving window"
+    },
+    "catchment_slope_deg": {
+      "file": "catchment_slope_deg.tif",
+      "dtype": "uint8",
+      "stored_scale": 2.0,
+      "unit": "degrees",
+      "bytes": 1429797,
+      "min": 0.0,
+      "max": 76.97183696556652,
+      "mean": 33.15864692477222,
+      "note": "mean slope of the area draining through each cell"
+    },
+    "hillshade": {
+      "file": "hillshade.tif",
+      "dtype": "uint8",
+      "stored_scale": 1.0,
+      "unit": "0-255",
+      "bytes": 1631403,
+      "min": 0.0,
+      "max": 254.99610984931311,
+      "mean": 147.84194604752793,
+      "note": "azimuth 315, altitude 45"
+    },
+    "landcover_buildable": {
+      "file": "landcover_buildable.tif",
+      "dtype": "uint8",
+      "stored_scale": 1.0,
+      "unit": "boolean",
+      "bytes": 1034749,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.49687301587301586,
+      "note": "ESA WorldCover classes [30, 40, 50, 60, 100] treated as buildable; [10, 70, 80, 90, 95] excluded"
+    },
+    "landcover_instability": {
+      "file": "landcover_instability.tif",
+      "dtype": "uint8",
+      "stored_scale": 100.0,
+      "unit": "index 0-1",
+      "bytes": 1660420,
+      "min": 0.1,
+      "max": 0.95,
+      "mean": 0.3775639991181658,
+      "note": "vegetation stability proxy per land cover class"
+    },
+    "road_distance_m": {
+      "file": "road_distance_m.tif",
+      "dtype": "uint16",
+      "stored_scale": 1.0,
+      "unit": "m",
+      "bytes": 521311,
+      "min": 0.0,
+      "max": 18141.231733625646,
+      "mean": 4237.500558101829,
+      "note": "distance to the nearest of 392 OSM road ways"
+    },
+    "waterway_distance_m": {
+      "file": "waterway_distance_m.tif",
+      "dtype": "uint16",
+      "stored_scale": 1.0,
+      "unit": "m",
+      "bytes": 657128,
+      "min": 0.0,
+      "max": 4129.151208939104,
+      "mean": 734.882525244396,
+      "note": "distance to the nearest of 225 OSM waterway ways"
+    },
+    "terrain_preview": {
+      "file": "terrain_preview.jpg",
+      "dtype": "uint8 RGB, JPEG",
+      "stored_scale": 1.0,
+      "unit": "image",
+      "bytes": 486984,
+      "min": 826.0,
+      "max": 6284.0,
+      "mean": 3063.0035043111893,
+      "note": "Hillshade shaded by elevation, downsampled for the study-area preview. Georeferenced by the study bounding box."
+    }
+  }
+}

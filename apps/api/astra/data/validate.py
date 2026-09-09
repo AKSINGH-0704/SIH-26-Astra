@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from astra.data.fixtures import FixtureBundle, FixtureError, load_fixtures
-from astra.data.layers import LAYER_CATALOGUE
+from astra.data.layers import layer_catalogue
 from astra.data.provenance import ProvenanceError, ProvenanceRegistry, load_registry
 from astra.data.study_area import get_study_area
 from astra.domain.models import BBox, GeoPoint, StudyArea
@@ -92,7 +92,7 @@ def _validate_provenance(report: ValidationReport) -> ProvenanceRegistry | None:
 def _validate_layers(report: ValidationReport, registry: ProvenanceRegistry) -> None:
     report.check("available layers resolve their datasets")
     seen: set[str] = set()
-    for layer in LAYER_CATALOGUE:
+    for layer in layer_catalogue():
         if layer.id in seen:
             report.fail(f"layer '{layer.id}' is declared more than once")
         seen.add(layer.id)

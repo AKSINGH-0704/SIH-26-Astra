@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
+  { href: "/study-area", label: "Study Area & Data", available: true },
   { href: "/model", label: "Model & Provenance", available: true },
   { href: "/command", label: "Command Centre", available: false },
   { href: "/risk", label: "Risk Explorer", available: false },

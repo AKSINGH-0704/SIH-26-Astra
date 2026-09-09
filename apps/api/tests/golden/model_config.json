@@ -165,6 +165,152 @@
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
   "engine_version": "0.1.0",
+  "generation": {
+    "demographic_jitter": {
+      "citation": null,
+      "description": "Fractional spread applied to each assumed share across habitations, so the dataset is not twelve identical villages.",
+      "key": "generation.demographic_jitter",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.25
+    },
+    "habitation_count": {
+      "citation": null,
+      "description": "Number of synthetic habitations generated.",
+      "key": "generation.habitation_count",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 12.0
+    },
+    "kutcha_share_connected": {
+      "citation": null,
+      "description": "Assumed kutcha dwelling share for the best-connected habitations.",
+      "key": "generation.kutcha_share_connected",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.16
+    },
+    "kutcha_share_remote": {
+      "citation": null,
+      "description": "Assumed kutcha dwelling share for the least road-accessible habitations.",
+      "key": "generation.kutcha_share_remote",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.42
+    },
+    "min_separation_m": {
+      "citation": null,
+      "description": "Minimum spacing between generated settlements, so they read as distinct habitations rather than one cluster.",
+      "key": "generation.min_separation_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 1500.0
+    },
+    "population_max": {
+      "citation": null,
+      "description": "Ceiling on generated habitation population.",
+      "key": "generation.population_max",
+      "provenance": "DEMO_CONFIG",
+      "unit": "persons",
+      "value": 1450.0
+    },
+    "population_min": {
+      "citation": null,
+      "description": "Floor on generated habitation population.",
+      "key": "generation.population_min",
+      "provenance": "DEMO_CONFIG",
+      "unit": "persons",
+      "value": 140.0
+    },
+    "seed": {
+      "citation": null,
+      "description": "Random seed for the synthetic dataset, so the demonstration scenario is identical on every machine and every run.",
+      "key": "generation.seed",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 26191.0
+    },
+    "settlement_catchment_km2": {
+      "citation": null,
+      "description": "Area over which the WorldPop population surface is integrated to size a settlement.",
+      "key": "generation.settlement_catchment_km2",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km2",
+      "value": 0.65
+    },
+    "settlement_max_elevation_m": {
+      "citation": null,
+      "description": "Upper elevation bound for plausible year-round habitation in this corridor.",
+      "key": "generation.settlement_max_elevation_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 2600.0
+    },
+    "settlement_max_road_distance_m": {
+      "citation": null,
+      "description": "Habitations are placed within this distance of a mapped road, matching the observed pattern of road-linked hill settlement.",
+      "key": "generation.settlement_max_road_distance_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 900.0
+    },
+    "settlement_min_elevation_m": {
+      "citation": null,
+      "description": "Lower elevation bound for plausible year-round habitation in this corridor.",
+      "key": "generation.settlement_min_elevation_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 900.0
+    },
+    "share_children_u5": {
+      "citation": null,
+      "description": "Assumed share of children under five.",
+      "key": "generation.share_children_u5",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.082
+    },
+    "share_disability": {
+      "citation": null,
+      "description": "Assumed share of persons with disabilities.",
+      "key": "generation.share_disability",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.028
+    },
+    "share_elderly": {
+      "citation": null,
+      "description": "Assumed share of residents aged 60 and above. Set above a national rural average to reflect working-age out-migration from hill districts.",
+      "key": "generation.share_elderly",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.135
+    },
+    "share_low_income_households": {
+      "citation": null,
+      "description": "Assumed share of households that are single-earner or low-income.",
+      "key": "generation.share_low_income_households",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.38
+    },
+    "share_medical_dependency": {
+      "citation": null,
+      "description": "Assumed share of residents dependent on regular medical support.",
+      "key": "generation.share_medical_dependency",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.021
+    },
+    "site_count": {
+      "citation": null,
+      "description": "Number of synthetic candidate relocation sites.",
+      "key": "generation.site_count",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 6.0
+    }
+  },
   "hazard": {
     "cloudburst_weights": {
       "hazard": "CLOUDBURST",
@@ -815,5 +961,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

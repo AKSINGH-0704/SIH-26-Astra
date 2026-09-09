@@ -12,18 +12,25 @@ import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from astra import __version__
 from astra.api.schemas import (
+    DerivedLayerSummary,
+    HabitationsResponse,
     LayersResponse,
     ModelConfigResponse,
     ProvenanceResponse,
     ScenarioListResponse,
     ScenarioResponse,
+    SitesResponse,
+    StudyAreaDataResponse,
     ValidationCheckResponse,
 )
-from astra.data.layers import LAYER_CATALOGUE
+from astra.data.fixtures import load_fixtures
+from astra.data.layers import layer_catalogue
 from astra.data.provenance import get_registry
+from astra.data.rasters import read_manifest
 from astra.data.scenarios import get_scenario, list_scenarios
 from astra.data.study_area import STUDY_AREAS, get_study_area
 from astra.data.validate import validate_all
@@ -89,10 +96,11 @@ def provenance() -> ProvenanceResponse:
 @router.get("/layers", response_model=LayersResponse, tags=["transparency"])
 def layers() -> LayersResponse:
     """The layer catalogue. Layers not yet produced are declared but unavailable."""
+    catalogue = layer_catalogue()
     return LayersResponse(
-        layers=LAYER_CATALOGUE,
-        available_count=sum(1 for layer in LAYER_CATALOGUE if layer.available),
-        declared_count=len(LAYER_CATALOGUE),
+        layers=catalogue,
+        available_count=sum(1 for layer in catalogue if layer.available),
+        declared_count=len(catalogue),
     )
 
 
@@ -128,3 +136,88 @@ def scenario_detail(scenario_id: str) -> ScenarioResponse:
         scenario=scenario,
         study_area=get_study_area(scenario.study_area_id),
     )
+
+
+@router.get("/habitations", response_model=HabitationsResponse, tags=["exposure"])
+def habitations() -> HabitationsResponse:
+    """The habitation layer. Synthetic, fictional, terrain-calibrated records."""
+    bundle = load_fixtures()
+    if not bundle.habitations:
+        raise HTTPException(
+            status_code=503,
+            detail="habitation fixtures are not seeded; run scripts/seed_fixtures.py",
+        )
+    return HabitationsResponse(
+        habitations=bundle.habitations,
+        total_population=sum(h.population for h in bundle.habitations),
+        total_households=sum(h.households for h in bundle.habitations),
+        disclaimer=NOTICES.scenario_disclaimer,
+    )
+
+
+@router.get("/sites", response_model=SitesResponse, tags=["capacity"])
+def sites() -> SitesResponse:
+    """Candidate relocation sites. Capacity analysis arrives with its engine."""
+    bundle = load_fixtures()
+    if not bundle.sites:
+        raise HTTPException(
+            status_code=503,
+            detail="site fixtures are not seeded; run scripts/seed_fixtures.py",
+        )
+    return SitesResponse(
+        sites=bundle.sites,
+        total_gross_area_m2=round(sum(s.gross_area_m2 for s in bundle.sites), 1),
+        limitation=NOTICES.site_tenure_limitation,
+    )
+
+
+@router.get("/study-area/data", response_model=StudyAreaDataResponse, tags=["transparency"])
+def study_area_data() -> StudyAreaDataResponse:
+    """The derived-surface build state: what was computed, by which method, and its range."""
+    settings = get_settings()
+    manifest_path = settings.derived_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail="derived layers are not built; run scripts/build_derived.py",
+        )
+    manifest = read_manifest(manifest_path)
+    generation_path = settings.fixtures_dir / "generation_manifest.json"
+    generation = read_manifest(generation_path) if generation_path.exists() else {}
+    area = get_study_area(manifest.get("study_area"))
+    layers_payload = [
+        DerivedLayerSummary(
+            name=name,
+            file=entry["file"],
+            unit=entry["unit"],
+            dtype=entry["dtype"],
+            bytes=entry["bytes"],
+            min=entry["min"],
+            max=entry["max"],
+            mean=entry["mean"],
+            note=entry["note"],
+        )
+        for name, entry in manifest.get("layers", {}).items()
+    ]
+    return StudyAreaDataResponse(
+        study_area=area,
+        grid=manifest.get("grid", {}),
+        methods=manifest.get("methods", {}),
+        channel_threshold_km2=manifest.get("channel_threshold_km2", 0.0),
+        layers=layers_payload,
+        generation=generation,
+        terrain_preview_url="/study-area/terrain.jpg",
+        terrain_preview_bbox=area.bbox.as_list(),
+    )
+
+
+@router.get("/study-area/terrain.jpg", tags=["transparency"], response_class=FileResponse)
+def terrain_preview() -> FileResponse:
+    """Shaded relief rendered from the vendored DEM, georeferenced by the study bbox."""
+    path = get_settings().derived_dir / "terrain_preview.jpg"
+    if not path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail="terrain preview is not built; run scripts/build_derived.py",
+        )
+    return FileResponse(path, media_type="image/jpeg")

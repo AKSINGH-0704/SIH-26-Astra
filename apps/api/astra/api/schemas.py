@@ -8,10 +8,19 @@ recomputes a number (CLAUDE.md section 2.4).
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from astra.domain.model_config import AstraModelConfig, Constant
-from astra.domain.models import DatasetRecord, LayerDescriptor, Scenario, StudyArea
+from astra.domain.models import (
+    CandidateSite,
+    DatasetRecord,
+    Habitation,
+    LayerDescriptor,
+    Scenario,
+    StudyArea,
+)
 from astra.domain.notices import Notices
 from astra.domain.registry import FormulaSpec
 
@@ -82,3 +91,59 @@ class ScenarioListResponse(BaseModel):
 
     scenarios: list[Scenario]
     study_areas: list[StudyArea]
+
+
+class HabitationsResponse(BaseModel):
+    """The habitation layer, with the totals a planner reads first."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitations: list[Habitation]
+    total_population: int
+    total_households: int
+    disclaimer: str = Field(
+        description="Standing reminder that these records are synthetic and fictional."
+    )
+
+
+class SitesResponse(BaseModel):
+    """The candidate-site layer. Capacity analysis lands with the capacity engine."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sites: list[CandidateSite]
+    total_gross_area_m2: float
+    limitation: str = Field(
+        description="The tenure limitation ASTRA states before it is asked."
+    )
+
+
+class DerivedLayerSummary(BaseModel):
+    """One computed surface, with the range it actually spans."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    file: str
+    unit: str
+    dtype: str
+    bytes: int
+    min: float
+    max: float
+    mean: float
+    note: str
+
+
+class StudyAreaDataResponse(BaseModel):
+    """What ASTRA has actually built for the study area, and how."""
+
+    model_config = ConfigDict(frozen=True)
+
+    study_area: StudyArea
+    grid: dict[str, float]
+    methods: dict[str, str]
+    channel_threshold_km2: float
+    layers: list[DerivedLayerSummary]
+    generation: dict[str, Any]
+    terrain_preview_url: str
+    terrain_preview_bbox: list[float]

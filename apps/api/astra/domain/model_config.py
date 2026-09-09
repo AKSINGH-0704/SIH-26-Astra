@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.0.0"
+MODEL_CONFIG_VERSION = "1.1.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
 ENGINE_VERSION = "0.1.0"
@@ -793,6 +793,116 @@ class ConfidenceConfig(BaseModel):
         return self
 
 
+class GenerationConfig(BaseModel):
+    """Assumptions behind the synthetic habitation and site records.
+
+    These are ASTRA demonstration assumptions for a Himalayan hill district, not
+    measured statistics. They are exposed here, with a DEMO_CONFIG chip on every
+    value, precisely so that "where did your 12 percent elderly come from?" has a
+    visible answer rather than a defensive one. Habitation placement and size are
+    calibrated to real terrain, land cover, road access and the WorldPop
+    population surface; the demographic composition below is assumed.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    seed: Constant = demo(
+        "generation.seed",
+        26191.0,
+        "Random seed for the synthetic dataset, so the demonstration scenario is "
+        "identical on every machine and every run.",
+    )
+    habitation_count: Constant = demo(
+        "generation.habitation_count", 12.0, "Number of synthetic habitations generated."
+    )
+    site_count: Constant = demo(
+        "generation.site_count", 6.0, "Number of synthetic candidate relocation sites."
+    )
+    min_separation_m: Constant = demo(
+        "generation.min_separation_m",
+        1500.0,
+        "Minimum spacing between generated settlements, so they read as distinct "
+        "habitations rather than one cluster.",
+        unit="m",
+    )
+    settlement_catchment_km2: Constant = demo(
+        "generation.settlement_catchment_km2",
+        0.65,
+        "Area over which the WorldPop population surface is integrated to size a "
+        "settlement.",
+        unit="km2",
+    )
+    population_min: Constant = demo(
+        "generation.population_min", 140.0, "Floor on generated habitation population.",
+        unit="persons",
+    )
+    population_max: Constant = demo(
+        "generation.population_max", 1450.0, "Ceiling on generated habitation population.",
+        unit="persons",
+    )
+    settlement_min_elevation_m: Constant = demo(
+        "generation.settlement_min_elevation_m",
+        900.0,
+        "Lower elevation bound for plausible year-round habitation in this corridor.",
+        unit="m",
+    )
+    settlement_max_elevation_m: Constant = demo(
+        "generation.settlement_max_elevation_m",
+        2600.0,
+        "Upper elevation bound for plausible year-round habitation in this corridor.",
+        unit="m",
+    )
+    settlement_max_road_distance_m: Constant = demo(
+        "generation.settlement_max_road_distance_m",
+        900.0,
+        "Habitations are placed within this distance of a mapped road, matching the "
+        "observed pattern of road-linked hill settlement.",
+        unit="m",
+    )
+    share_elderly: Constant = demo(
+        "generation.share_elderly",
+        0.135,
+        "Assumed share of residents aged 60 and above. Set above a national rural "
+        "average to reflect working-age out-migration from hill districts.",
+    )
+    share_children_u5: Constant = demo(
+        "generation.share_children_u5",
+        0.082,
+        "Assumed share of children under five.",
+    )
+    share_disability: Constant = demo(
+        "generation.share_disability",
+        0.028,
+        "Assumed share of persons with disabilities.",
+    )
+    share_medical_dependency: Constant = demo(
+        "generation.share_medical_dependency",
+        0.021,
+        "Assumed share of residents dependent on regular medical support.",
+    )
+    share_low_income_households: Constant = demo(
+        "generation.share_low_income_households",
+        0.38,
+        "Assumed share of households that are single-earner or low-income.",
+    )
+    demographic_jitter: Constant = demo(
+        "generation.demographic_jitter",
+        0.25,
+        "Fractional spread applied to each assumed share across habitations, so the "
+        "dataset is not twelve identical villages.",
+    )
+    kutcha_share_remote: Constant = demo(
+        "generation.kutcha_share_remote",
+        0.42,
+        "Assumed kutcha dwelling share for the least road-accessible habitations.",
+    )
+    kutcha_share_connected: Constant = demo(
+        "generation.kutcha_share_connected",
+        0.16,
+        "Assumed kutcha dwelling share for the best-connected habitations.",
+    )
+
+
 class ValidationConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -842,6 +952,7 @@ class AstraModelConfig(BaseModel):
     route: RouteConfig = RouteConfig()
     optimiser: OptimiserConfig = OptimiserConfig()
     confidence: ConfidenceConfig = ConfidenceConfig()
+    generation: GenerationConfig = GenerationConfig()
     validation: ValidationConfig = ValidationConfig()
 
     def constants(self) -> list[Constant]:

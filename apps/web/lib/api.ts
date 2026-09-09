@@ -7,11 +7,14 @@
  */
 
 import type {
+  HabitationsResponse,
   HealthStatus,
   LayersResponse,
   ModelConfigResponse,
   ProvenanceResponse,
   ScenarioListResponse,
+  SitesResponse,
+  StudyAreaDataResponse,
   ValidationCheckResponse,
 } from "@astra/contracts";
 
@@ -51,7 +54,13 @@ export const api = {
   layers: () => get<LayersResponse>("/layers"),
   scenarios: () => get<ScenarioListResponse>("/scenarios"),
   fixtureValidation: () => get<ValidationCheckResponse>("/validation/fixtures"),
+  habitations: () => get<HabitationsResponse>("/habitations"),
+  sites: () => get<SitesResponse>("/sites"),
+  studyAreaData: () => get<StudyAreaDataResponse>("/study-area/data"),
 };
+
+/** The API serves the terrain render; the browser fetches it straight from there. */
+export const TERRAIN_PREVIEW_URL = `${API_BASE}/study-area/terrain.jpg`;
 
 /**
  * Fetch without letting one dead endpoint blank the whole screen. A failure is

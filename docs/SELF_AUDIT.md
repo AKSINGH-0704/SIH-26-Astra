@@ -58,3 +58,68 @@ Six tests fail the gate on purpose.
 - Fixture integrity gate passes standalone and on API startup.
 - `tsc --noEmit` clean; `next build` succeeds.
 - Page verified rendering live API values in a production build, not dev mode.
+
+---
+
+## Slice 2 - study area, real open data, derived surfaces and the calibrated synthetic layer
+
+**Date:** 2026-09-09
+**Commit:** `feat(data): establish Chamoli study area, provenance registry and validated demo dataset`
+
+### What actually works end to end
+
+Six real open datasets are vendored for the Alaknanda corridor. Fourteen terrain
+and hydrology surfaces are computed from the real DEM by standard published
+methods. Twelve habitations and six candidate sites are generated from those
+surfaces, validated by the blocking integrity gate, served by the API and
+rendered on a shaded-relief plate of the corridor with a panel that states, side
+by side, what was measured and what was assumed.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. There is still no LLM call in the codebase. Every surface is a documented geomorphometric computation; every generated attribute is either read off a real raster or comes from a named DEMO_CONFIG assumption. |
+| 2 | Can every number on screen be traced in one hop? | Yes. Each derived layer carries its method (Horn 1981, Riley 1999, Priority-Flood, D8, Renno/Nobre HAND) and its observed range, served from the build manifest. Habitation attributes trace to either a raster sample or a named constant. |
+| 3 | Is anything displayed that is not backed by a real value? | No. The terrain plate is a render of the vendored DEM; the markers are drawn at the coordinates in the fixtures. Nothing is drawn that the API did not return. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The 18 generation constants are chipped DEMO_CONFIG in the transparency panel, and the study-area screen carries an explicit "what was assumed, not measured" list. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic without blending? | Yes. Ten datasets: six REAL_OPEN with source URLs and licences, two SYNTHETIC_CALIBRATED, two DEMO_CONFIG. Counts are reported per class, never summed. |
+| 6 | Are the same figures identical across screens? | Yes. Totals are computed once in the API and rendered as received. |
+| 7 | Does the opening avoid looking like a generic dashboard? | Improving. The root now opens on the corridor itself - real shaded relief with the settlements on it. The cinematic cold open is still Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes for what exists. The synthetic-scenario disclaimer and the tenure limitation are served by the API and shown at the top of the study-area screen. |
+| 9 | Does it run with the network off? | Yes, and this is now tested. `scripts/ingest.py` is the only code that touches the network; every connector's `load` path reads the vendored artifact and raises if it is absent, and a test asserts a connector without its artifact fails rather than fetching. |
+| 10 | Can the optimiser breach capacity? | Not applicable yet. Slice 7. |
+| 11 | Any feature that looks impressive but changes no decision? | The waterway-distance surface is computed but nothing reads it yet; it is retained because the flood sub-model in Slice 3 consumes it directly. If Slice 3 does not use it, it comes out. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes for terrain and hydrology: the methods are named, cited, unit-tested against analytically known cases, and the surfaces reproduce from the DEM in about 20 seconds. |
+
+### Red-team finding
+
+**The sharpest attack on this slice is the demographic composition.** CLAUDE.md
+asks for proportions calibrated to Census/SECC district figures. The Census
+district tables are not available through any endpoint reachable without
+credentials, and the accessible mirrors are unverifiable third-party copies. Two
+options were available: cite a mirror and hope, or state the truth. ASTRA states
+the truth - the demographic shares are ASTRA assumptions for a Himalayan hill
+district, they appear as DEMO_CONFIG constants with that wording, and the
+study-area screen lists them under "what was assumed, not measured" before anyone
+asks. Everything that *could* be grounded in real data is: placement, elevation
+band, slope, buildable land cover, road access, and settlement size integrated
+from the WorldPop population surface. The weight-sensitivity analysis in Slice 10
+is what turns this from a weakness into an answer.
+
+Secondary finding: the historical inventory holds 251 incidents across the
+Uttarakhand-Himalaya window but only 23 inside the study bbox. That is a thin
+positive set for a ROC-AUC back-test. It is recorded here now so Slice 10 reports
+the sample size alongside the figure rather than quietly presenting an AUC
+computed on 23 points as if it were robust.
+
+### Verification
+
+- 102 backend tests pass, including terrain maths checked against analytically
+  known answers (45-degree plane, pit filling, HAND on a uniform slope).
+- `ruff check apps/api scripts` clean.
+- Integrity gate: PASS, 6 checks, 18 fixture records, 10 datasets.
+- Determinism: regenerating the fixtures from the same surfaces reproduces every
+  record exactly.
+- `tsc --noEmit` and ESLint clean; `next build` succeeds; study-area page verified
+  against a production build serving live API data.

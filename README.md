@@ -26,8 +26,25 @@ file covers what exists and how to run it.
 | Slice | Capability | State |
 |---|---|---|
 | 1 | Monorepo, domain model, versioned config, provenance registry, contracts pipeline, deployment baseline | Done |
-| 2 | Study-area data ingest, derived rasters, calibrated synthetic habitations and sites | Next |
-| 3-13 | Hazard engine and map, priority, capacity, routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+| 2 | Study-area data ingest, derived terrain and hydrology surfaces, calibrated synthetic habitations and sites | Done |
+| 3 | Multi-hazard susceptibility engine, red zones, map surface | Next |
+| 4-13 | Priority, capacity, routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+
+### Data in the corridor
+
+Six real open datasets are vendored under `data/raw` for the Alaknanda valley,
+Chamoli district: Copernicus DEM GLO-30, ESA WorldCover 10 m, the OpenStreetMap
+road and waterway network, the NASA Global Landslide Catalog, ERA5 daily
+precipitation and the WorldPop population surface. Fourteen terrain and hydrology
+surfaces are computed from them offline - slope, ruggedness, filled DEM, D8 flow
+accumulation, channels, height above nearest drainage, drainage density and
+distance, catchment slope, hillshade, land-cover reclassification and road
+distance.
+
+Twelve habitations and six candidate relocation sites are **synthetic and
+fictional**, placed and sized from those real surfaces. Their demographic
+composition is an ASTRA assumption, stated as one on screen and in the model
+configuration - not a census value.
 
 The interface never renders a layer or a screen before the engine behind it
 exists: unbuilt layers are listed and disabled, unbuilt screens are not
@@ -38,6 +55,11 @@ navigable.
 Requires Python 3.11+ and Node 20+.
 
 ```bash
+# One-time data acquisition (the only step that touches the network)
+python scripts/ingest.py
+python scripts/build_derived.py
+python scripts/seed_fixtures.py
+
 # Backend
 python -m venv .venv
 .venv/Scripts/python -m pip install -e "apps/api[dev]"     # Windows

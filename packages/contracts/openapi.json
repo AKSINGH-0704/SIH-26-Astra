@@ -164,6 +164,126 @@
             "title": "Engine Version",
             "type": "string"
           },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationConfig",
+            "default": {
+              "demographic_jitter": {
+                "description": "Fractional spread applied to each assumed share across habitations, so the dataset is not twelve identical villages.",
+                "key": "generation.demographic_jitter",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.25
+              },
+              "habitation_count": {
+                "description": "Number of synthetic habitations generated.",
+                "key": "generation.habitation_count",
+                "provenance": "DEMO_CONFIG",
+                "value": 12.0
+              },
+              "kutcha_share_connected": {
+                "description": "Assumed kutcha dwelling share for the best-connected habitations.",
+                "key": "generation.kutcha_share_connected",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.16
+              },
+              "kutcha_share_remote": {
+                "description": "Assumed kutcha dwelling share for the least road-accessible habitations.",
+                "key": "generation.kutcha_share_remote",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.42
+              },
+              "min_separation_m": {
+                "description": "Minimum spacing between generated settlements, so they read as distinct habitations rather than one cluster.",
+                "key": "generation.min_separation_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 1500.0
+              },
+              "population_max": {
+                "description": "Ceiling on generated habitation population.",
+                "key": "generation.population_max",
+                "provenance": "DEMO_CONFIG",
+                "unit": "persons",
+                "value": 1450.0
+              },
+              "population_min": {
+                "description": "Floor on generated habitation population.",
+                "key": "generation.population_min",
+                "provenance": "DEMO_CONFIG",
+                "unit": "persons",
+                "value": 140.0
+              },
+              "seed": {
+                "description": "Random seed for the synthetic dataset, so the demonstration scenario is identical on every machine and every run.",
+                "key": "generation.seed",
+                "provenance": "DEMO_CONFIG",
+                "value": 26191.0
+              },
+              "settlement_catchment_km2": {
+                "description": "Area over which the WorldPop population surface is integrated to size a settlement.",
+                "key": "generation.settlement_catchment_km2",
+                "provenance": "DEMO_CONFIG",
+                "unit": "km2",
+                "value": 0.65
+              },
+              "settlement_max_elevation_m": {
+                "description": "Upper elevation bound for plausible year-round habitation in this corridor.",
+                "key": "generation.settlement_max_elevation_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 2600.0
+              },
+              "settlement_max_road_distance_m": {
+                "description": "Habitations are placed within this distance of a mapped road, matching the observed pattern of road-linked hill settlement.",
+                "key": "generation.settlement_max_road_distance_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 900.0
+              },
+              "settlement_min_elevation_m": {
+                "description": "Lower elevation bound for plausible year-round habitation in this corridor.",
+                "key": "generation.settlement_min_elevation_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 900.0
+              },
+              "share_children_u5": {
+                "description": "Assumed share of children under five.",
+                "key": "generation.share_children_u5",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.082
+              },
+              "share_disability": {
+                "description": "Assumed share of persons with disabilities.",
+                "key": "generation.share_disability",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.028
+              },
+              "share_elderly": {
+                "description": "Assumed share of residents aged 60 and above. Set above a national rural average to reflect working-age out-migration from hill districts.",
+                "key": "generation.share_elderly",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.135
+              },
+              "share_low_income_households": {
+                "description": "Assumed share of households that are single-earner or low-income.",
+                "key": "generation.share_low_income_households",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.38
+              },
+              "share_medical_dependency": {
+                "description": "Assumed share of residents dependent on regular medical support.",
+                "key": "generation.share_medical_dependency",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.021
+              },
+              "site_count": {
+                "description": "Number of synthetic candidate relocation sites.",
+                "key": "generation.site_count",
+                "provenance": "DEMO_CONFIG",
+                "value": 6.0
+              }
+            }
+          },
           "hazard": {
             "$ref": "#/components/schemas/HazardConfig",
             "default": {
@@ -693,7 +813,7 @@
             }
           },
           "version": {
-            "default": "1.0.0",
+            "default": "1.1.0",
             "title": "Version",
             "type": "string"
           }
@@ -736,6 +856,108 @@
           "max_lat"
         ],
         "title": "BBox",
+        "type": "object"
+      },
+      "CandidateSite": {
+        "description": "A candidate relocation site.\n\nSite records in the demonstration scenario are synthetic and fictional.\nASTRA does not verify land ownership, tenure or encumbrance.",
+        "properties": {
+          "boundary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "centroid": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "constructable_units": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Constructable Units",
+            "type": "integer"
+          },
+          "distance_to_road_m": {
+            "minimum": 0.0,
+            "title": "Distance To Road M",
+            "type": "number"
+          },
+          "district": {
+            "title": "District",
+            "type": "string"
+          },
+          "elevation_m": {
+            "title": "Elevation M",
+            "type": "number"
+          },
+          "existing_shelter_units": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Existing Shelter Units",
+            "type": "integer"
+          },
+          "gross_area_m2": {
+            "exclusiveMinimum": 0.0,
+            "title": "Gross Area M2",
+            "type": "number"
+          },
+          "id": {
+            "pattern": "^S-\\d{2}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "mean_slope_deg": {
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Mean Slope Deg",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass",
+            "default": "SYNTHETIC_CALIBRATED"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceSupply"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "centroid",
+          "gross_area_m2",
+          "mean_slope_deg",
+          "elevation_m",
+          "distance_to_road_m",
+          "district",
+          "state"
+        ],
+        "title": "CandidateSite",
         "type": "object"
       },
       "CapacityConfig": {
@@ -1017,6 +1239,40 @@
         "title": "Constant",
         "type": "object"
       },
+      "CriticalFacility": {
+        "description": "A facility whose loss compounds the consequence of a hazard event.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "SCHOOL",
+              "CLINIC",
+              "ANGANWADI",
+              "COMMUNITY_HALL"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "location"
+        ],
+        "title": "CriticalFacility",
+        "type": "object"
+      },
       "DatasetRecord": {
         "description": "One dataset in the provenance registry. Every field below is mandatory.\n\nThe registry is what lets the UI state honestly, per layer, whether a number\ncame from real open data, from an ASTRA derivation, from a calibrated\nsynthetic generator, or from an ASTRA policy constant.",
         "properties": {
@@ -1106,6 +1362,99 @@
         "title": "DatasetRecord",
         "type": "object"
       },
+      "DemographicProfile": {
+        "description": "Population structure of a habitation.\n\nProportions are calibrated to published Census/SECC district figures; the\nabsolute counts they are applied to are synthetic (section 4.1).",
+        "properties": {
+          "children_under_5": {
+            "minimum": 0.0,
+            "title": "Children Under 5",
+            "type": "integer"
+          },
+          "elderly_60_plus": {
+            "minimum": 0.0,
+            "title": "Elderly 60 Plus",
+            "type": "integer"
+          },
+          "low_income_households": {
+            "minimum": 0.0,
+            "title": "Low Income Households",
+            "type": "integer"
+          },
+          "medically_dependent": {
+            "minimum": 0.0,
+            "title": "Medically Dependent",
+            "type": "integer"
+          },
+          "persons_with_disability": {
+            "minimum": 0.0,
+            "title": "Persons With Disability",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "elderly_60_plus",
+          "children_under_5",
+          "persons_with_disability",
+          "medically_dependent",
+          "low_income_households"
+        ],
+        "title": "DemographicProfile",
+        "type": "object"
+      },
+      "DerivedLayerSummary": {
+        "description": "One computed surface, with the range it actually spans.",
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "dtype": {
+            "title": "Dtype",
+            "type": "string"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          },
+          "mean": {
+            "title": "Mean",
+            "type": "number"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "file",
+          "unit",
+          "dtype",
+          "bytes",
+          "min",
+          "max",
+          "mean",
+          "note"
+        ],
+        "title": "DerivedLayerSummary",
+        "type": "object"
+      },
       "FormulaSpec": {
         "description": "A documented, deterministic computation. Served by ``GET /model/config``.",
         "properties": {
@@ -1186,6 +1535,182 @@
         "title": "FormulaSpec",
         "type": "object"
       },
+      "GenerationConfig": {
+        "description": "Assumptions behind the synthetic habitation and site records.\n\nThese are ASTRA demonstration assumptions for a Himalayan hill district, not\nmeasured statistics. They are exposed here, with a DEMO_CONFIG chip on every\nvalue, precisely so that \"where did your 12 percent elderly come from?\" has a\nvisible answer rather than a defensive one. Habitation placement and size are\ncalibrated to real terrain, land cover, road access and the WorldPop\npopulation surface; the demographic composition below is assumed.",
+        "properties": {
+          "demographic_jitter": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Fractional spread applied to each assumed share across habitations, so the dataset is not twelve identical villages.",
+              "key": "generation.demographic_jitter",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.25
+            }
+          },
+          "habitation_count": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Number of synthetic habitations generated.",
+              "key": "generation.habitation_count",
+              "provenance": "DEMO_CONFIG",
+              "value": 12.0
+            }
+          },
+          "kutcha_share_connected": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed kutcha dwelling share for the best-connected habitations.",
+              "key": "generation.kutcha_share_connected",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.16
+            }
+          },
+          "kutcha_share_remote": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed kutcha dwelling share for the least road-accessible habitations.",
+              "key": "generation.kutcha_share_remote",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.42
+            }
+          },
+          "min_separation_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Minimum spacing between generated settlements, so they read as distinct habitations rather than one cluster.",
+              "key": "generation.min_separation_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 1500.0
+            }
+          },
+          "population_max": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Ceiling on generated habitation population.",
+              "key": "generation.population_max",
+              "provenance": "DEMO_CONFIG",
+              "unit": "persons",
+              "value": 1450.0
+            }
+          },
+          "population_min": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Floor on generated habitation population.",
+              "key": "generation.population_min",
+              "provenance": "DEMO_CONFIG",
+              "unit": "persons",
+              "value": 140.0
+            }
+          },
+          "seed": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Random seed for the synthetic dataset, so the demonstration scenario is identical on every machine and every run.",
+              "key": "generation.seed",
+              "provenance": "DEMO_CONFIG",
+              "value": 26191.0
+            }
+          },
+          "settlement_catchment_km2": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Area over which the WorldPop population surface is integrated to size a settlement.",
+              "key": "generation.settlement_catchment_km2",
+              "provenance": "DEMO_CONFIG",
+              "unit": "km2",
+              "value": 0.65
+            }
+          },
+          "settlement_max_elevation_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Upper elevation bound for plausible year-round habitation in this corridor.",
+              "key": "generation.settlement_max_elevation_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 2600.0
+            }
+          },
+          "settlement_max_road_distance_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Habitations are placed within this distance of a mapped road, matching the observed pattern of road-linked hill settlement.",
+              "key": "generation.settlement_max_road_distance_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 900.0
+            }
+          },
+          "settlement_min_elevation_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Lower elevation bound for plausible year-round habitation in this corridor.",
+              "key": "generation.settlement_min_elevation_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 900.0
+            }
+          },
+          "share_children_u5": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed share of children under five.",
+              "key": "generation.share_children_u5",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.082
+            }
+          },
+          "share_disability": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed share of persons with disabilities.",
+              "key": "generation.share_disability",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.028
+            }
+          },
+          "share_elderly": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed share of residents aged 60 and above. Set above a national rural average to reflect working-age out-migration from hill districts.",
+              "key": "generation.share_elderly",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.135
+            }
+          },
+          "share_low_income_households": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed share of households that are single-earner or low-income.",
+              "key": "generation.share_low_income_households",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.38
+            }
+          },
+          "share_medical_dependency": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Assumed share of residents dependent on regular medical support.",
+              "key": "generation.share_medical_dependency",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.021
+            }
+          },
+          "site_count": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Number of synthetic candidate relocation sites.",
+              "key": "generation.site_count",
+              "provenance": "DEMO_CONFIG",
+              "value": 6.0
+            }
+          }
+        },
+        "title": "GenerationConfig",
+        "type": "object"
+      },
       "GeoPoint": {
         "description": "WGS84 longitude/latitude pair. All ASTRA geometry is EPSG:4326 on the wire.",
         "properties": {
@@ -1209,6 +1734,33 @@
         "title": "GeoPoint",
         "type": "object"
       },
+      "Geometry": {
+        "description": "A GeoJSON geometry, carried through the API untouched.",
+        "properties": {
+          "coordinates": {
+            "description": "GeoJSON coordinate array for the given type.",
+            "title": "Coordinates"
+          },
+          "type": {
+            "enum": [
+              "Point",
+              "LineString",
+              "Polygon",
+              "MultiPoint",
+              "MultiLineString",
+              "MultiPolygon"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "Geometry",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1220,6 +1772,156 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Habitation": {
+        "description": "A settlement under assessment.\n\nHabitation records in the demonstration scenario are synthetic, fictional and\nterrain-calibrated. ASTRA never classifies a real named village.",
+        "properties": {
+          "block": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Administrative block.",
+            "title": "Block"
+          },
+          "centroid": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "critical_facilities": {
+            "items": {
+              "$ref": "#/components/schemas/CriticalFacility"
+            },
+            "title": "Critical Facilities",
+            "type": "array"
+          },
+          "demographics": {
+            "$ref": "#/components/schemas/DemographicProfile"
+          },
+          "district": {
+            "title": "District",
+            "type": "string"
+          },
+          "elevation_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation M"
+          },
+          "footprint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "households": {
+            "exclusiveMinimum": 0.0,
+            "title": "Households",
+            "type": "integer"
+          },
+          "id": {
+            "pattern": "^H-\\d{2}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "livelihood_centre": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeoPoint"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where residents work or trade, used by livelihood disruption."
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "population": {
+            "exclusiveMinimum": 0.0,
+            "title": "Population",
+            "type": "integer"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass",
+            "default": "SYNTHETIC_CALIBRATED"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "structure_mix": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Dwelling typology shares. Must sum to 1.0.",
+            "propertyNames": {
+              "$ref": "#/components/schemas/StructureType"
+            },
+            "title": "Structure Mix",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "centroid",
+          "population",
+          "households",
+          "demographics",
+          "structure_mix",
+          "district",
+          "state"
+        ],
+        "title": "Habitation",
+        "type": "object"
+      },
+      "HabitationsResponse": {
+        "description": "The habitation layer, with the totals a planner reads first.",
+        "properties": {
+          "disclaimer": {
+            "description": "Standing reminder that these records are synthetic and fictional.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "habitations": {
+            "items": {
+              "$ref": "#/components/schemas/Habitation"
+            },
+            "title": "Habitations",
+            "type": "array"
+          },
+          "total_households": {
+            "title": "Total Households",
+            "type": "integer"
+          },
+          "total_population": {
+            "title": "Total Population",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "habitations",
+          "total_population",
+          "total_households",
+          "disclaimer"
+        ],
+        "title": "HabitationsResponse",
         "type": "object"
       },
       "HazardConfig": {
@@ -2292,6 +2994,98 @@
         "title": "ScenarioResponse",
         "type": "object"
       },
+      "ServiceSupply": {
+        "description": "Measured or assumed supply of one service at a candidate site.",
+        "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceType"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "supply": {
+            "description": "Supply in the unit below.",
+            "minimum": 0.0,
+            "title": "Supply",
+            "type": "number"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "supply",
+          "unit",
+          "provenance"
+        ],
+        "title": "ServiceSupply",
+        "type": "object"
+      },
+      "ServiceType": {
+        "description": "Services whose per-service capacity is computed in Engine 4 (\u00a75.4 step 3).",
+        "enum": [
+          "LAND",
+          "SHELTER",
+          "WATER",
+          "SANITATION",
+          "HEALTHCARE",
+          "POWER",
+          "ACCESS"
+        ],
+        "title": "ServiceType",
+        "type": "string"
+      },
+      "SitesResponse": {
+        "description": "The candidate-site layer. Capacity analysis lands with the capacity engine.",
+        "properties": {
+          "limitation": {
+            "description": "The tenure limitation ASTRA states before it is asked.",
+            "title": "Limitation",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateSite"
+            },
+            "title": "Sites",
+            "type": "array"
+          },
+          "total_gross_area_m2": {
+            "title": "Total Gross Area M2",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sites",
+          "total_gross_area_m2",
+          "limitation"
+        ],
+        "title": "SitesResponse",
+        "type": "object"
+      },
+      "StructureType": {
+        "description": "Structural typology proxy used in the vulnerability composite (\u00a75.2).",
+        "enum": [
+          "KUTCHA",
+          "SEMI_PUCCA",
+          "PUCCA"
+        ],
+        "title": "StructureType",
+        "type": "string"
+      },
       "StudyArea": {
         "description": "The geographic frame every layer and fixture must fall inside.",
         "properties": {
@@ -2337,6 +3131,67 @@
           "description"
         ],
         "title": "StudyArea",
+        "type": "object"
+      },
+      "StudyAreaDataResponse": {
+        "description": "What ASTRA has actually built for the study area, and how.",
+        "properties": {
+          "channel_threshold_km2": {
+            "title": "Channel Threshold Km2",
+            "type": "number"
+          },
+          "generation": {
+            "additionalProperties": true,
+            "title": "Generation",
+            "type": "object"
+          },
+          "grid": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Grid",
+            "type": "object"
+          },
+          "layers": {
+            "items": {
+              "$ref": "#/components/schemas/DerivedLayerSummary"
+            },
+            "title": "Layers",
+            "type": "array"
+          },
+          "methods": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Methods",
+            "type": "object"
+          },
+          "study_area": {
+            "$ref": "#/components/schemas/StudyArea"
+          },
+          "terrain_preview_bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Terrain Preview Bbox",
+            "type": "array"
+          },
+          "terrain_preview_url": {
+            "title": "Terrain Preview Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "study_area",
+          "grid",
+          "methods",
+          "channel_threshold_km2",
+          "layers",
+          "generation",
+          "terrain_preview_url",
+          "terrain_preview_bbox"
+        ],
+        "title": "StudyAreaDataResponse",
         "type": "object"
       },
       "ValidationCheckResponse": {
@@ -2502,6 +3357,28 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/habitations": {
+      "get": {
+        "description": "The habitation layer. Synthetic, fictional, terrain-calibrated records.",
+        "operationId": "habitations_habitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitationsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Habitations",
+        "tags": [
+          "exposure"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "description": "Liveness plus the honest system state the UI header renders.",
@@ -2650,6 +3527,65 @@
         "summary": "Scenario Detail",
         "tags": [
           "scenarios"
+        ]
+      }
+    },
+    "/sites": {
+      "get": {
+        "description": "Candidate relocation sites. Capacity analysis arrives with its engine.",
+        "operationId": "sites_sites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sites",
+        "tags": [
+          "capacity"
+        ]
+      }
+    },
+    "/study-area/data": {
+      "get": {
+        "description": "The derived-surface build state: what was computed, by which method, and its range.",
+        "operationId": "study_area_data_study_area_data_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyAreaDataResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Study Area Data",
+        "tags": [
+          "transparency"
+        ]
+      }
+    },
+    "/study-area/terrain.jpg": {
+      "get": {
+        "description": "Shaded relief rendered from the vendored DEM, georeferenced by the study bbox.",
+        "operationId": "terrain_preview_study_area_terrain_jpg_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Terrain Preview",
+        "tags": [
+          "transparency"
         ]
       }
     },

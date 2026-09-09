@@ -25,6 +25,9 @@ export type LayersResponse = Schemas["LayersResponse"];
 export type ScenarioListResponse = Schemas["ScenarioListResponse"];
 export type ScenarioResponse = Schemas["ScenarioResponse"];
 export type ValidationCheckResponse = Schemas["ValidationCheckResponse"];
+export type HabitationsResponse = Schemas["HabitationsResponse"];
+export type SitesResponse = Schemas["SitesResponse"];
+export type StudyAreaDataResponse = Schemas["StudyAreaDataResponse"];
 
 export type AstraModelConfig = Schemas["AstraModelConfig"];
 export type Constant = Schemas["Constant"];
@@ -35,6 +38,10 @@ export type LayerDescriptor = Schemas["LayerDescriptor"];
 export type Scenario = Schemas["Scenario"];
 export type StudyArea = Schemas["StudyArea"];
 export type BBox = Schemas["BBox"];
+export type Habitation = Schemas["Habitation"];
+export type CandidateSite = Schemas["CandidateSite"];
+export type DerivedLayerSummary = Schemas["DerivedLayerSummary"];
+export type ServiceSupply = Schemas["ServiceSupply"];
 export type GeoPoint = Schemas["GeoPoint"];
 
 export type ProvenanceClass = Schemas["ProvenanceClass"];

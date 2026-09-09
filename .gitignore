@@ -29,10 +29,9 @@ pnpm-debug.log*
 # --- astra runtime state ---
 data/astra.sqlite
 data/astra.sqlite-*
-data/raw/**/*.tif
-data/raw/**/*.tiff
-data/raw/**/*.zip
-data/raw/**/*.hgt
+# Vendored study-area clips ARE committed (fetch once, never at demo time).
+# Only the transient national downloads are ignored.
+data/raw/**/.*.tif
 !data/raw/**/.gitkeep
 
 # --- os / editor ---
