@@ -8,14 +8,20 @@ recomputes a number (CLAUDE.md section 2.4).
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from astra.domain.enums import HazardType, ZoneClass
 from astra.domain.model_config import AstraModelConfig, Constant
 from astra.domain.models import (
     CandidateSite,
+    CompositeHazard,
+    ConfidenceReport,
     DatasetRecord,
+    Geometry,
+    GeoPoint,
     Habitation,
     LayerDescriptor,
     Scenario,
@@ -147,3 +153,133 @@ class StudyAreaDataResponse(BaseModel):
     generation: dict[str, Any]
     terrain_preview_url: str
     terrain_preview_bbox: list[float]
+
+
+class ZoneFeatureProperties(BaseModel):
+    """Attributes carried by every published zone polygon."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    zone_class: ZoneClass
+    classification_label: str = Field(
+        description="Always the ASTRA analytical label. Never an official designation."
+    )
+    area_km2: float
+    mean_composite: float
+    max_composite: float
+    dominant_hazard: HazardType
+    hazard_mix: dict[str, float]
+    mean_confidence: float
+    cell_count: int
+    population_intersected: int
+    habitation_ids: list[str]
+    rule_version: str
+
+
+class ZoneFeature(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["Feature"] = "Feature"
+    id: str
+    geometry: Geometry
+    properties: ZoneFeatureProperties
+
+
+class ZoneClassSummary(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    count: int
+    area_km2: float
+    population_intersected: int
+
+
+class ZonesResponse(BaseModel):
+    """Red zones as a GeoJSON feature collection, with the totals precomputed."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: list[ZoneFeature]
+    summary: dict[str, ZoneClassSummary]
+    classification_label: str
+    decision_authority: str
+    model_config_version: str
+    engine_version: str
+    computed_ms: float
+
+
+class RiskCellResponse(BaseModel):
+    """Everything behind the hazard score at one point on the map."""
+
+    model_config = ConfigDict(frozen=True)
+
+    lon: float
+    lat: float
+    row: int
+    col: int
+    cell_bbox: list[float]
+    hazard: CompositeHazard
+    confidence: ConfidenceReport
+    zone_id: str | None
+    zone_class: ZoneClass
+    formula: FormulaSpec
+    composite_formula: FormulaSpec
+    model_config_version: str
+    engine_version: str
+    computed_at: datetime
+
+
+class HabitationHazardRow(BaseModel):
+    """Hazard sampled over one habitation footprint. Exposure arrives in Slice 4."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    name: str
+    population: int
+    households: int
+    centroid: GeoPoint
+    hazard: CompositeHazard
+    footprint_mean_composite: float
+    footprint_max_composite: float
+    footprint_radius_m: float
+    confidence: ConfidenceReport
+    zone_id: str | None
+
+
+class HabitationHazardResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitations: list[HabitationHazardRow]
+    classification_label: str
+    decision_authority: str
+    scenario_disclaimer: str
+    note: str
+
+
+class RiskSummaryResponse(BaseModel):
+    """What the hazard engine computed, and over what."""
+
+    model_config = ConfigDict(frozen=True)
+
+    study_area: StudyArea
+    grid_rows: int
+    grid_cols: int
+    cell_x_m: float
+    cell_y_m: float
+    hazards_modelled: list[HazardType]
+    class_share_percent: dict[str, float]
+    hazard_statistics: dict[str, dict[str, float]]
+    zone_summary: dict[str, ZoneClassSummary]
+    incidents_used: int
+    incidents_excluded: int
+    rainfall_points: int
+    composite_lambda: float
+    zone_thresholds: dict[str, float]
+    overlay_url: str
+    overlay_bbox: list[float]
+    terrain_url: str
+    computed_ms: float
+    model_config_version: str
+    engine_version: str

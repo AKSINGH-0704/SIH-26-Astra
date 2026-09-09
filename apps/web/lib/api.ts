@@ -7,15 +7,19 @@
  */
 
 import type {
+  HabitationHazardResponse,
   HabitationsResponse,
   HealthStatus,
   LayersResponse,
   ModelConfigResponse,
   ProvenanceResponse,
+  RiskCellResponse,
+  RiskSummaryResponse,
   ScenarioListResponse,
   SitesResponse,
   StudyAreaDataResponse,
   ValidationCheckResponse,
+  ZonesResponse,
 } from "@astra/contracts";
 
 export const API_BASE =
@@ -57,7 +61,16 @@ export const api = {
   habitations: () => get<HabitationsResponse>("/habitations"),
   sites: () => get<SitesResponse>("/sites"),
   studyAreaData: () => get<StudyAreaDataResponse>("/study-area/data"),
+  riskSummary: () => get<RiskSummaryResponse>("/risk/summary"),
+  riskZones: () => get<ZonesResponse>("/risk/zones"),
+  riskHabitations: () => get<HabitationHazardResponse>("/risk/habitations"),
+  riskCell: (lon: number, lat: number) =>
+    get<RiskCellResponse>(`/risk/cell?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}`),
 };
+
+/** Served by the API so the map works with the network unplugged. */
+export const HAZARD_OVERLAY_URL = `${API_BASE}/risk/overlay/composite.png`;
+export const ROADS_GEOJSON_URL = `${API_BASE}/layers/roads.geojson`;
 
 /** The API serves the terrain render; the browser fetches it straight from there. */
 export const TERRAIN_PREVIEW_URL = `${API_BASE}/study-area/terrain.jpg`;

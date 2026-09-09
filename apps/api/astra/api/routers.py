@@ -27,6 +27,7 @@ from astra.api.schemas import (
     StudyAreaDataResponse,
     ValidationCheckResponse,
 )
+from astra.data import osm
 from astra.data.fixtures import load_fixtures
 from astra.data.layers import layer_catalogue
 from astra.data.provenance import get_registry
@@ -221,3 +222,41 @@ def terrain_preview() -> FileResponse:
             detail="terrain preview is not built; run scripts/build_derived.py",
         )
     return FileResponse(path, media_type="image/jpeg")
+
+
+@router.get("/layers/roads.geojson", tags=["transparency"])
+def roads_geojson() -> dict:
+    """The OSM road network as GeoJSON, for map context and route work."""
+    settings = get_settings()
+    path = settings.raw_dir / "osm" / "osm_alaknanda_network.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=503, detail="OSM extract is not vendored; run scripts/ingest.py"
+        )
+    ways = osm.load_ways(path)
+    features = [
+        {
+            "type": "Feature",
+            "id": way.osm_id,
+            "geometry": way.as_linestring(),
+            "properties": {
+                "osm_id": way.osm_id,
+                "kind": "road" if way.highway else "waterway",
+                "road_class": way.road_class.value if way.highway else None,
+                "highway": way.highway,
+                "waterway": way.waterway,
+                "bridge": way.is_bridge,
+                "name": way.name,
+            },
+        }
+        for way in ways
+    ]
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "properties": {
+            "source": "OpenStreetMap contributors, ODbL 1.0",
+            "road_ways": sum(1 for way in ways if way.highway),
+            "waterway_ways": sum(1 for way in ways if way.waterway),
+        },
+    }

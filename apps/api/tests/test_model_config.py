@@ -111,12 +111,12 @@ def test_priority_and_vulnerability_weights_sum_to_one() -> None:
     ("composite", "expected"),
     [
         (100.0, ZoneClass.CRITICAL),
-        (70.0, ZoneClass.CRITICAL),
-        (69.99, ZoneClass.ELEVATED),
-        (55.0, ZoneClass.ELEVATED),
-        (54.99, ZoneClass.WATCH),
-        (40.0, ZoneClass.WATCH),
-        (39.99, ZoneClass.LOW),
+        (78.0, ZoneClass.CRITICAL),
+        (77.99, ZoneClass.ELEVATED),
+        (62.0, ZoneClass.ELEVATED),
+        (61.99, ZoneClass.WATCH),
+        (52.0, ZoneClass.WATCH),
+        (51.99, ZoneClass.LOW),
         (0.0, ZoneClass.LOW),
     ],
 )

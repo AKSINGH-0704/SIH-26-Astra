@@ -309,6 +309,62 @@ LANDCOVER_INSTABILITY: dict[int, float] = {
 }
 
 
+#: Infiltration capacity by land cover class, 0 (runs straight off) to 1 (soaks
+#: away). Used inverted by the flood sub-model: low infiltration means more
+#: surface water reaching the channel.
+LANDCOVER_INFILTRATION: dict[int, float] = {
+    10: 0.85,
+    20: 0.70,
+    30: 0.60,
+    40: 0.55,
+    50: 0.15,
+    60: 0.35,
+    70: 0.10,
+    80: 0.05,
+    90: 0.45,
+    95: 0.50,
+    100: 0.40,
+}
+
+
+def landcover_infiltration(landcover: np.ndarray) -> np.ndarray:
+    """Per-cell infiltration capacity in 0-1, from land cover class."""
+    result = np.full(landcover.shape, 0.5, dtype="float64")
+    for code, value in LANDCOVER_INFILTRATION.items():
+        result[landcover == code] = value
+    return result
+
+
+def confluence_density(
+    receivers: np.ndarray,
+    channels: np.ndarray,
+    cell: CellSize,
+    window_m: float = 1500.0,
+) -> np.ndarray:
+    """Density of channel confluences, where flash flow concentrates.
+
+    A confluence is a channel cell receiving flow from two or more channel cells.
+    Counting them over a moving window measures how convergent the local drainage
+    is - the difference between a single stream passing through and several
+    joining at once.
+    """
+    donors = np.zeros(channels.size, dtype="int32")
+    flat_channels = channels.ravel()
+    nodes = np.arange(channels.size, dtype=np.int64)
+    contributing = (receivers != nodes) & flat_channels
+    np.add.at(donors, receivers[contributing], 1)
+    confluences = ((donors >= 2) & flat_channels).reshape(channels.shape)
+
+    window_cells = max(3, int(round(window_m / cell.mean_m)))
+    if window_cells % 2 == 0:
+        window_cells += 1
+    counts = ndimage.uniform_filter(
+        confluences.astype("float64"), size=window_cells, mode="nearest"
+    ) * (window_cells**2)
+    window_area_km2 = (window_cells * cell.mean_m / 1000.0) ** 2
+    return counts / window_area_km2
+
+
 def buildable_mask(landcover: np.ndarray) -> np.ndarray:
     """True where the land cover class permits construction."""
     mask = np.zeros(landcover.shape, dtype=bool)

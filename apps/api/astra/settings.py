@@ -27,7 +27,15 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000)
     data_dir: Path = Field(default=REPO_ROOT / "data")
     db_path: Path = Field(default=REPO_ROOT / "data" / "astra.sqlite")
-    cors_origins: str = Field(default="http://localhost:3000")
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:3100",
+        description=(
+            "Comma-separated origins allowed to call the API. The deployed frontend "
+            "origin is set here per environment; the map fetches its terrain, overlay "
+            "and road layers directly from the API, so an unlisted origin means a "
+            "blank map rather than a wrong one."
+        ),
+    )
     validate_fixtures_on_startup: bool = Field(default=True)
 
     # --- LLM narration layer. Optional by design (CLAUDE.md section 10). ---

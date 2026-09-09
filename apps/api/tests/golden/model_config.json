@@ -164,7 +164,81 @@
     }
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
-  "engine_version": "0.1.0",
+  "engine_version": "0.2.0",
+  "evidence": {
+    "incident_fatality_bonus": {
+      "citation": null,
+      "description": "Additional weight per recorded fatality, capped, so that events with a documented human toll count for more than an unattributed report.",
+      "key": "evidence.incident_fatality_bonus",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.05
+    },
+    "incident_fatality_bonus_cap": {
+      "citation": null,
+      "description": "Ceiling on the fatality contribution to a single event's weight.",
+      "key": "evidence.incident_fatality_bonus_cap",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 2.0
+    },
+    "incident_max_location_error_km": {
+      "citation": null,
+      "description": "Records whose stated location accuracy is coarser than this are excluded: at 100 m grid resolution they would smear evidence across whole valleys.",
+      "key": "evidence.incident_max_location_error_km",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km",
+      "value": 25.0
+    },
+    "incident_weight_large": {
+      "citation": null,
+      "description": "Relative weight of a large event.",
+      "key": "evidence.incident_weight.large",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 2.0
+    },
+    "incident_weight_medium": {
+      "citation": null,
+      "description": "Relative weight of a medium event.",
+      "key": "evidence.incident_weight.medium",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 1.0
+    },
+    "incident_weight_small": {
+      "citation": null,
+      "description": "Relative weight of a small recorded event.",
+      "key": "evidence.incident_weight.small",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.5
+    },
+    "incident_weight_unknown": {
+      "citation": null,
+      "description": "Relative weight where the record does not state a size.",
+      "key": "evidence.incident_weight.unknown",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 1.0
+    },
+    "incident_weight_very_large": {
+      "citation": null,
+      "description": "Relative weight of a very large event.",
+      "key": "evidence.incident_weight.very_large",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 3.0
+    },
+    "rainfall_idw_power": {
+      "citation": null,
+      "description": "Inverse-distance weighting exponent used to interpolate the rainfall grid points across the corridor.",
+      "key": "evidence.rainfall_idw_power",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 2.0
+    }
+  },
   "generation": {
     "demographic_jitter": {
       "citation": null,
@@ -406,7 +480,7 @@
           "key": "w.flood.drainage_distance",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.22
+          "value": 0.26
         },
         "hand": {
           "citation": null,
@@ -414,15 +488,7 @@
           "key": "w.flood.hand",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.34
-        },
-        "historical_inundation": {
-          "citation": null,
-          "description": "Overlap with recorded inundation extents.",
-          "key": "w.flood.historical_inundation",
-          "provenance": "DEMO_CONFIG",
-          "unit": null,
-          "value": 0.18
+          "value": 0.42
         },
         "infiltration": {
           "citation": null,
@@ -430,7 +496,7 @@
           "key": "w.flood.infiltration",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.1
+          "value": 0.12
         },
         "rainfall_intensity": {
           "citation": null,
@@ -438,7 +504,7 @@
           "key": "w.flood.rainfall_intensity",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.16
+          "value": 0.2
         }
       }
     },
@@ -476,7 +542,7 @@
           "key": "w.landslide.incident_density",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.2
+          "value": 0.21
         },
         "landcover": {
           "citation": null,
@@ -486,21 +552,13 @@
           "unit": null,
           "value": 0.1
         },
-        "lineament_distance": {
-          "citation": null,
-          "description": "Proximity to mapped faults and lineaments where obtainable.",
-          "key": "w.landslide.lineament_distance",
-          "provenance": "DEMO_CONFIG",
-          "unit": null,
-          "value": 0.05
-        },
         "rainfall_intensity": {
           "citation": null,
           "description": "Antecedent rainfall and return-period intensity.",
           "key": "w.landslide.rainfall_intensity",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.18
+          "value": 0.19
         },
         "ruggedness": {
           "citation": null,
@@ -508,7 +566,7 @@
           "key": "w.landslide.ruggedness",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.12
+          "value": 0.13
         },
         "slope": {
           "citation": null,
@@ -516,17 +574,17 @@
           "key": "w.landslide.slope",
           "provenance": "DEMO_CONFIG",
           "unit": null,
-          "value": 0.28
+          "value": 0.3
         }
       }
     },
     "min_mapping_unit_ha": {
       "citation": null,
-      "description": "Polygons smaller than this are removed as slivers during morphological cleaning of the thresholded surface.",
+      "description": "Smallest area published as a zone. Clusters below this are removed during morphological cleaning: at 100 m resolution a single cell above a threshold is noise, and publishing it as a zone would present noise as a finding.",
       "key": "hazard.min_mapping_unit_ha",
       "provenance": "DEMO_CONFIG",
       "unit": "ha",
-      "value": 1.0
+      "value": 25.0
     },
     "zone_buffer_m": {
       "citation": null,
@@ -538,27 +596,237 @@
     },
     "zone_threshold_critical": {
       "citation": null,
-      "description": "Composite score at or above which a cell is classified Critical.",
+      "description": "Composite score at or above which a cell is classified Critical. Set near the 95th percentile of the corridor's own composite distribution: a class that covered a third of the terrain would not direct anyone anywhere.",
       "key": "hazard.zone_threshold.CRITICAL",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 70.0
+      "value": 78.0
     },
     "zone_threshold_elevated": {
       "citation": null,
-      "description": "Composite score at or above which a cell is classified Elevated.",
+      "description": "Composite score at or above which a cell is classified Elevated. Near the 82nd percentile of the corridor composite distribution.",
       "key": "hazard.zone_threshold.ELEVATED",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 55.0
+      "value": 62.0
     },
     "zone_threshold_watch": {
       "citation": null,
-      "description": "Composite score at or above which a cell is classified Watch.",
+      "description": "Composite score at or above which a cell is classified Watch. Near the 57th percentile of the corridor composite distribution.",
       "key": "hazard.zone_threshold.WATCH",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 40.0
+      "value": 52.0
+    }
+  },
+  "normalisation": {
+    "catchment_slope_high_deg": {
+      "citation": null,
+      "description": "Mean catchment slope at full contribution.",
+      "key": "norm.catchment_slope_high_deg",
+      "provenance": "DEMO_CONFIG",
+      "unit": "degrees",
+      "value": 45.0
+    },
+    "catchment_slope_low_deg": {
+      "citation": null,
+      "description": "Mean catchment slope contributing nothing to flash-flood susceptibility.",
+      "key": "norm.catchment_slope_low_deg",
+      "provenance": "DEMO_CONFIG",
+      "unit": "degrees",
+      "value": 10.0
+    },
+    "coastal_elevation_high_m": {
+      "citation": null,
+      "description": "Elevation above which coastal erosion exposure is treated as negligible.",
+      "key": "norm.coastal_elevation_high_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 15.0
+    },
+    "coastal_elevation_low_m": {
+      "citation": null,
+      "description": "Elevation at or below which coastal exposure is saturated.",
+      "key": "norm.coastal_elevation_low_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 0.0
+    },
+    "coastal_retreat_high_m_yr": {
+      "citation": null,
+      "description": "Shoreline retreat at full contribution.",
+      "key": "norm.coastal_retreat_high_m_yr",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m/year",
+      "value": 5.0
+    },
+    "coastal_retreat_low_m_yr": {
+      "citation": null,
+      "description": "Shoreline retreat contributing nothing.",
+      "key": "norm.coastal_retreat_low_m_yr",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m/year",
+      "value": 0.0
+    },
+    "coastline_distance_high_m": {
+      "citation": null,
+      "description": "Distance to the coastline beyond which erosion exposure is negligible.",
+      "key": "norm.coastline_distance_high_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 2000.0
+    },
+    "coastline_distance_low_m": {
+      "citation": null,
+      "description": "Distance to the coastline, saturated.",
+      "key": "norm.coastline_distance_low_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 0.0
+    },
+    "density_percentile": {
+      "citation": null,
+      "description": "Percentile of a kernel-density surface used as its normalisation ceiling, so one exceptional cluster cannot flatten the rest of the map.",
+      "key": "norm.density_percentile",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 95.0
+    },
+    "drainage_density_high": {
+      "citation": null,
+      "description": "Drainage density at full contribution.",
+      "key": "norm.drainage_density_high",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km/km2",
+      "value": 12.0
+    },
+    "drainage_density_low": {
+      "citation": null,
+      "description": "Drainage density contributing nothing.",
+      "key": "norm.drainage_density_low",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km/km2",
+      "value": 0.0
+    },
+    "drainage_distance_high_m": {
+      "citation": null,
+      "description": "Distance to a channel beyond which proximity contributes nothing.",
+      "key": "norm.drainage_distance_high_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 600.0
+    },
+    "drainage_distance_low_m": {
+      "citation": null,
+      "description": "Distance to a channel at or below which proximity is saturated.",
+      "key": "norm.drainage_distance_low_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 25.0
+    },
+    "extreme_rain_days_high": {
+      "citation": null,
+      "description": "Heavy-rainfall days per year at which the frequency factor saturates.",
+      "key": "norm.extreme_rain_days_high",
+      "provenance": "DEMO_CONFIG",
+      "unit": "days/year",
+      "value": 3.0
+    },
+    "extreme_rain_days_low": {
+      "citation": null,
+      "description": "Heavy-rainfall days per year at or below which the cloudburst frequency factor is zero.",
+      "key": "norm.extreme_rain_days_low",
+      "provenance": "DEMO_CONFIG",
+      "unit": "days/year",
+      "value": 0.3
+    },
+    "extreme_rain_threshold_mm": {
+      "citation": null,
+      "description": "Daily rainfall counted as a heavy-rainfall day. Matches the IMD 'heavy rainfall' class boundary of 64.5 mm in 24 hours.",
+      "key": "norm.extreme_rain_threshold_mm",
+      "provenance": "DEMO_CONFIG",
+      "unit": "mm/day",
+      "value": 64.5
+    },
+    "hand_high_m": {
+      "citation": null,
+      "description": "Height above nearest drainage at or above which riverine flood exposure is treated as negligible.",
+      "key": "norm.hand_high_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 45.0
+    },
+    "hand_low_m": {
+      "citation": null,
+      "description": "Height above nearest drainage at or below which flood exposure is saturated.",
+      "key": "norm.hand_low_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 3.0
+    },
+    "rainfall_intensity_high_mm": {
+      "citation": null,
+      "description": "Annual maximum daily rainfall at or above which the intensity factor saturates.",
+      "key": "norm.rainfall_intensity_high_mm",
+      "provenance": "DEMO_CONFIG",
+      "unit": "mm/day",
+      "value": 120.0
+    },
+    "rainfall_intensity_low_mm": {
+      "citation": null,
+      "description": "Annual maximum daily rainfall at or below which the intensity factor is zero.",
+      "key": "norm.rainfall_intensity_low_mm",
+      "provenance": "DEMO_CONFIG",
+      "unit": "mm/day",
+      "value": 50.0
+    },
+    "ruggedness_high_m": {
+      "citation": null,
+      "description": "Terrain ruggedness at full contribution.",
+      "key": "norm.ruggedness_high_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 45.0
+    },
+    "ruggedness_low_m": {
+      "citation": null,
+      "description": "Terrain ruggedness contributing nothing.",
+      "key": "norm.ruggedness_low_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 2.0
+    },
+    "slope_high_deg": {
+      "citation": null,
+      "description": "Slope at or above which the slope factor is saturated. Above roughly this angle, loose material has already shed and failure behaviour changes.",
+      "key": "norm.slope_high_deg",
+      "provenance": "DEMO_CONFIG",
+      "unit": "degrees",
+      "value": 45.0
+    },
+    "slope_low_deg": {
+      "citation": null,
+      "description": "Slope at or below which slope contributes nothing to landslide susceptibility.",
+      "key": "norm.slope_low_deg",
+      "provenance": "DEMO_CONFIG",
+      "unit": "degrees",
+      "value": 10.0
+    },
+    "upstream_area_high_km2": {
+      "citation": null,
+      "description": "Upstream contributing area at which the concentration factor saturates.",
+      "key": "norm.upstream_area_high_km2",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km2",
+      "value": 200.0
+    },
+    "upstream_area_low_km2": {
+      "citation": null,
+      "description": "Upstream contributing area at or below which flow concentration is negligible. Normalised logarithmically between the bounds, since discharge scales with area over orders of magnitude.",
+      "key": "norm.upstream_area_low_km2",
+      "provenance": "DEMO_CONFIG",
+      "unit": "km2",
+      "value": 0.5
     }
   },
   "optimiser": {
@@ -961,5 +1229,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.1.0"
+  "version": "1.5.0"
 }

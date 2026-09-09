@@ -180,6 +180,17 @@ def main() -> int:
         "channel length per unit area over a 1 km moving window",
     )
 
+    with Stage("confluence density"):
+        confluences = terrain.confluence_density(receivers, channels, cell)
+    emit(
+        "confluence_density",
+        np.clip(confluences, 0.0, 6553.0),
+        "uint16",
+        10.0,
+        "confluences/km2",
+        "channel junctions per unit area over a 1.5 km moving window",
+    )
+
     with Stage("catchment mean slope"):
         catchment_slope = terrain.catchment_mean_slope(filled, receivers, slope)
     emit(
@@ -201,6 +212,7 @@ def main() -> int:
             landcover = np.nan_to_num(landcover_layer.data, nan=0).astype("int32")
             buildable = terrain.buildable_mask(landcover)
             instability = terrain.landcover_instability(landcover)
+            infiltration = terrain.landcover_infiltration(landcover)
         size = write_raster(
             derived / "landcover_buildable.tif",
             buildable.astype("float64"),
@@ -241,6 +253,25 @@ def main() -> int:
             "max": float(instability.max()),
             "mean": float(instability.mean()),
             "note": "vegetation stability proxy per land cover class",
+        }
+        size = write_raster(
+            derived / "landcover_infiltration.tif",
+            infiltration,
+            landcover_layer.transform,
+            landcover_layer.crs,
+            dtype="uint8",
+            scale=100.0,
+        )
+        outputs["landcover_infiltration"] = {
+            "file": "landcover_infiltration.tif",
+            "dtype": "uint8",
+            "stored_scale": 100.0,
+            "unit": "index 0-1",
+            "bytes": size,
+            "min": float(infiltration.min()),
+            "max": float(infiltration.max()),
+            "mean": float(infiltration.mean()),
+            "note": "infiltration capacity per land cover class, used inverted by the flood model",
         }
         print(f"  buildable land cover: {buildable.mean() * 100:.1f}% of the corridor")
 

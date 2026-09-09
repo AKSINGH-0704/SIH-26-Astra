@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * than to an empty dashboard.
  */
 export default function Home() {
-  redirect("/study-area");
+  redirect("/risk");
 }

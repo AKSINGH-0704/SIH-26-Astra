@@ -100,6 +100,17 @@
       "mean": 0.7473103233063151,
       "note": "channel length per unit area over a 1 km moving window"
     },
+    "confluence_density": {
+      "file": "confluence_density.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "confluences/km2",
+      "bytes": 49166,
+      "min": 0.0,
+      "max": 23.367000238411446,
+      "mean": 0.518886354663804,
+      "note": "channel junctions per unit area over a 1.5 km moving window"
+    },
     "catchment_slope_deg": {
       "file": "catchment_slope_deg.tif",
       "dtype": "uint8",
@@ -144,6 +155,17 @@
       "mean": 0.3775639991181658,
       "note": "vegetation stability proxy per land cover class"
     },
+    "landcover_infiltration": {
+      "file": "landcover_infiltration.tif",
+      "dtype": "uint8",
+      "stored_scale": 100.0,
+      "unit": "index 0-1",
+      "bytes": 1646196,
+      "min": 0.05,
+      "max": 0.85,
+      "mean": 0.6344376102292767,
+      "note": "infiltration capacity per land cover class, used inverted by the flood model"
+    },
     "road_distance_m": {
       "file": "road_distance_m.tif",
       "dtype": "uint16",
@@ -176,6 +198,120 @@
       "max": 6284.0,
       "mean": 3063.0035043111893,
       "note": "Hillshade shaded by elevation, downsampled for the study-area preview. Georeferenced by the study bounding box."
+    },
+    "hazard_landslide": {
+      "file": "hazard_landslide.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "index 0-100",
+      "bytes": 233317,
+      "min": 7.585548240270583,
+      "max": 79.15381266690763,
+      "mean": 37.40153955602593,
+      "note": "weighted overlay of 6 normalised factors (drainage_density 0.07, incident_density 0.21, landcover 0.10, rainfall_intensity 0.19, ruggedness 0.13, slope 0.30)"
+    },
+    "hazard_flood": {
+      "file": "hazard_flood.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "index 0-100",
+      "bytes": 204246,
+      "min": 6.271737467746077,
+      "max": 88.49980443058637,
+      "mean": 27.10823424749144,
+      "note": "weighted overlay of 4 normalised factors (drainage_distance 0.26, hand 0.42, infiltration 0.12, rainfall_intensity 0.20)"
+    },
+    "hazard_cloudburst": {
+      "file": "hazard_cloudburst.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "index 0-100",
+      "bytes": 218022,
+      "min": 2.4068507358462448,
+      "max": 80.6401394364448,
+      "mean": 30.574830833578194,
+      "note": "weighted overlay of 4 normalised factors (catchment_steepness 0.26, confluence_density 0.20, extreme_rainfall_frequency 0.30, upstream_area 0.24)"
+    },
+    "hazard_composite": {
+      "file": "hazard_composite.tif",
+      "dtype": "uint16",
+      "stored_scale": 10.0,
+      "unit": "index 0-100",
+      "bytes": 238797,
+      "min": 10.100065678011578,
+      "max": 100.0,
+      "mean": 50.72946575204555,
+      "note": "max_h(HSI_h) + 0.25 x second_highest_h(HSI_h), clipped to 100"
+    },
+    "confidence": {
+      "file": "confidence.tif",
+      "dtype": "uint16",
+      "stored_scale": 1000.0,
+      "unit": "index 0-1",
+      "bytes": 17691,
+      "min": 0.6225,
+      "max": 0.8384665424835653,
+      "mean": 0.6734002913783524,
+      "note": "evidence confidence, computed separately and never multiplied into the score"
+    },
+    "hazard_composite_overlay": {
+      "file": "hazard_composite.png",
+      "dtype": "uint8 RGBA",
+      "stored_scale": 1.0,
+      "unit": "image",
+      "bytes": 484154,
+      "min": 10.100065678011578,
+      "max": 100.0,
+      "mean": 50.72946575204555,
+      "note": "colour-mapped composite for the map overlay, aligned to the study bbox"
+    },
+    "red_zones": {
+      "file": "red_zones.geojson",
+      "dtype": "GeoJSON polygons",
+      "stored_scale": 1.0,
+      "unit": "polygons",
+      "bytes": 1019566,
+      "min": 0.0,
+      "max": 335.0,
+      "mean": 335.0,
+      "note": "thresholded composite, cleaned to the minimum mapping unit, grown by the configured buffer, exclusive between classes"
     }
+  },
+  "hazard": {
+    "grid_rows": 387,
+    "grid_cols": 432,
+    "cell_x_m": 99.94,
+    "cell_y_m": 100.0,
+    "hazards_modelled": [
+      "LANDSLIDE",
+      "FLOOD",
+      "CLOUDBURST"
+    ],
+    "incidents_used": 209,
+    "rainfall_points": 16,
+    "zone_summary": {
+      "LOW": {
+        "count": 0,
+        "area_km2": 0,
+        "population_intersected": 0
+      },
+      "WATCH": {
+        "count": 155,
+        "area_km2": 600.361,
+        "population_intersected": 550
+      },
+      "ELEVATED": {
+        "count": 154,
+        "area_km2": 370.357,
+        "population_intersected": 1381
+      },
+      "CRITICAL": {
+        "count": 26,
+        "area_km2": 109.628,
+        "population_intersected": 308
+      }
+    },
+    "model_config_version": "1.5.0",
+    "engine_version": "0.2.0"
   }
 }

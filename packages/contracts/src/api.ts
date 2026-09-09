@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/layers/roads.geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Roads Geojson
+         * @description The OSM road network as GeoJSON, for map context and route work.
+         */
+        get: operations["roads_geojson_layers_roads_geojson_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/model/config": {
         parameters: {
             query?: never;
@@ -96,6 +116,106 @@ export interface paths {
          * @description The dataset registry: real, derived, synthetic and demo-config, unblended.
          */
         get: operations["provenance_provenance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Risk Cell
+         * @description Take one point on the map apart: every hazard, every factor, every weight.
+         */
+        get: operations["risk_cell_risk_cell_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/habitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Risk Habitations
+         * @description Hazard summarised over each habitation footprint, ranked by composite.
+         */
+        get: operations["risk_habitations_risk_habitations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/overlay/composite.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Composite Overlay
+         * @description The colour-mapped composite surface, aligned to the study bounding box.
+         */
+        get: operations["composite_overlay_risk_overlay_composite_png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Risk Summary
+         * @description What Engine 1 computed for the baseline scenario, and over what inputs.
+         */
+        get: operations["risk_summary_risk_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Risk Zones
+         * @description The analytical red zones, each carrying the arithmetic behind it.
+         */
+        get: operations["risk_zones_risk_zones_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -384,9 +504,69 @@ export interface components {
             disclaimer: string;
             /**
              * Engine Version
-             * @default 0.1.0
+             * @default 0.2.0
              */
             engine_version: string;
+            /**
+             * @default {
+             *       "incident_fatality_bonus": {
+             *         "description": "Additional weight per recorded fatality, capped, so that events with a documented human toll count for more than an unattributed report.",
+             *         "key": "evidence.incident_fatality_bonus",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 0.05
+             *       },
+             *       "incident_fatality_bonus_cap": {
+             *         "description": "Ceiling on the fatality contribution to a single event's weight.",
+             *         "key": "evidence.incident_fatality_bonus_cap",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 2
+             *       },
+             *       "incident_max_location_error_km": {
+             *         "description": "Records whose stated location accuracy is coarser than this are excluded: at 100 m grid resolution they would smear evidence across whole valleys.",
+             *         "key": "evidence.incident_max_location_error_km",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "km",
+             *         "value": 25
+             *       },
+             *       "incident_weight_large": {
+             *         "description": "Relative weight of a large event.",
+             *         "key": "evidence.incident_weight.large",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 2
+             *       },
+             *       "incident_weight_medium": {
+             *         "description": "Relative weight of a medium event.",
+             *         "key": "evidence.incident_weight.medium",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 1
+             *       },
+             *       "incident_weight_small": {
+             *         "description": "Relative weight of a small recorded event.",
+             *         "key": "evidence.incident_weight.small",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 0.5
+             *       },
+             *       "incident_weight_unknown": {
+             *         "description": "Relative weight where the record does not state a size.",
+             *         "key": "evidence.incident_weight.unknown",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 1
+             *       },
+             *       "incident_weight_very_large": {
+             *         "description": "Relative weight of a very large event.",
+             *         "key": "evidence.incident_weight.very_large",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 3
+             *       },
+             *       "rainfall_idw_power": {
+             *         "description": "Inverse-distance weighting exponent used to interpolate the rainfall grid points across the corridor.",
+             *         "key": "evidence.rainfall_idw_power",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 2
+             *       }
+             *     }
+             */
+            evidence: components["schemas"]["EvidenceConfig"];
             /**
              * @default {
              *       "demographic_jitter": {
@@ -583,31 +763,25 @@ export interface components {
              *             "description": "Distance to the drainage network.",
              *             "key": "w.flood.drainage_distance",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.22
+             *             "value": 0.26
              *           },
              *           "hand": {
              *             "description": "Height above nearest drainage, inverted.",
              *             "key": "w.flood.hand",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.34
-             *           },
-             *           "historical_inundation": {
-             *             "description": "Overlap with recorded inundation extents.",
-             *             "key": "w.flood.historical_inundation",
-             *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.18
+             *             "value": 0.42
              *           },
              *           "infiltration": {
              *             "description": "Infiltration proxy derived from land cover.",
              *             "key": "w.flood.infiltration",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.1
+             *             "value": 0.12
              *           },
              *           "rainfall_intensity": {
              *             "description": "Rainfall intensity and return period.",
              *             "key": "w.flood.rainfall_intensity",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.16
+             *             "value": 0.2
              *           }
              *         }
              *       },
@@ -639,7 +813,7 @@ export interface components {
              *             "description": "Kernel density of historical landslide incidents.",
              *             "key": "w.landslide.incident_density",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.2
+             *             "value": 0.21
              *           },
              *           "landcover": {
              *             "description": "Land-cover and vegetation stability proxy.",
@@ -647,38 +821,32 @@ export interface components {
              *             "provenance": "DEMO_CONFIG",
              *             "value": 0.1
              *           },
-             *           "lineament_distance": {
-             *             "description": "Proximity to mapped faults and lineaments where obtainable.",
-             *             "key": "w.landslide.lineament_distance",
-             *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.05
-             *           },
              *           "rainfall_intensity": {
              *             "description": "Antecedent rainfall and return-period intensity.",
              *             "key": "w.landslide.rainfall_intensity",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.18
+             *             "value": 0.19
              *           },
              *           "ruggedness": {
              *             "description": "Terrain ruggedness index from the DEM.",
              *             "key": "w.landslide.ruggedness",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.12
+             *             "value": 0.13
              *           },
              *           "slope": {
              *             "description": "Normalised slope angle.",
              *             "key": "w.landslide.slope",
              *             "provenance": "DEMO_CONFIG",
-             *             "value": 0.28
+             *             "value": 0.3
              *           }
              *         }
              *       },
              *       "min_mapping_unit_ha": {
-             *         "description": "Polygons smaller than this are removed as slivers during morphological cleaning of the thresholded surface.",
+             *         "description": "Smallest area published as a zone. Clusters below this are removed during morphological cleaning: at 100 m resolution a single cell above a threshold is noise, and publishing it as a zone would present noise as a finding.",
              *         "key": "hazard.min_mapping_unit_ha",
              *         "provenance": "DEMO_CONFIG",
              *         "unit": "ha",
-             *         "value": 1
+             *         "value": 25
              *       },
              *       "zone_buffer_m": {
              *         "description": "Outward buffer applied to cleaned zone polygons before exposure intersection.",
@@ -688,26 +856,212 @@ export interface components {
              *         "value": 50
              *       },
              *       "zone_threshold_critical": {
-             *         "description": "Composite score at or above which a cell is classified Critical.",
+             *         "description": "Composite score at or above which a cell is classified Critical. Set near the 95th percentile of the corridor's own composite distribution: a class that covered a third of the terrain would not direct anyone anywhere.",
              *         "key": "hazard.zone_threshold.CRITICAL",
              *         "provenance": "DEMO_CONFIG",
-             *         "value": 70
+             *         "value": 78
              *       },
              *       "zone_threshold_elevated": {
-             *         "description": "Composite score at or above which a cell is classified Elevated.",
+             *         "description": "Composite score at or above which a cell is classified Elevated. Near the 82nd percentile of the corridor composite distribution.",
              *         "key": "hazard.zone_threshold.ELEVATED",
              *         "provenance": "DEMO_CONFIG",
-             *         "value": 55
+             *         "value": 62
              *       },
              *       "zone_threshold_watch": {
-             *         "description": "Composite score at or above which a cell is classified Watch.",
+             *         "description": "Composite score at or above which a cell is classified Watch. Near the 57th percentile of the corridor composite distribution.",
              *         "key": "hazard.zone_threshold.WATCH",
              *         "provenance": "DEMO_CONFIG",
-             *         "value": 40
+             *         "value": 52
              *       }
              *     }
              */
             hazard: components["schemas"]["HazardConfig"];
+            /**
+             * @default {
+             *       "catchment_slope_high_deg": {
+             *         "description": "Mean catchment slope at full contribution.",
+             *         "key": "norm.catchment_slope_high_deg",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "degrees",
+             *         "value": 45
+             *       },
+             *       "catchment_slope_low_deg": {
+             *         "description": "Mean catchment slope contributing nothing to flash-flood susceptibility.",
+             *         "key": "norm.catchment_slope_low_deg",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "degrees",
+             *         "value": 10
+             *       },
+             *       "coastal_elevation_high_m": {
+             *         "description": "Elevation above which coastal erosion exposure is treated as negligible.",
+             *         "key": "norm.coastal_elevation_high_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 15
+             *       },
+             *       "coastal_elevation_low_m": {
+             *         "description": "Elevation at or below which coastal exposure is saturated.",
+             *         "key": "norm.coastal_elevation_low_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 0
+             *       },
+             *       "coastal_retreat_high_m_yr": {
+             *         "description": "Shoreline retreat at full contribution.",
+             *         "key": "norm.coastal_retreat_high_m_yr",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m/year",
+             *         "value": 5
+             *       },
+             *       "coastal_retreat_low_m_yr": {
+             *         "description": "Shoreline retreat contributing nothing.",
+             *         "key": "norm.coastal_retreat_low_m_yr",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m/year",
+             *         "value": 0
+             *       },
+             *       "coastline_distance_high_m": {
+             *         "description": "Distance to the coastline beyond which erosion exposure is negligible.",
+             *         "key": "norm.coastline_distance_high_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 2000
+             *       },
+             *       "coastline_distance_low_m": {
+             *         "description": "Distance to the coastline, saturated.",
+             *         "key": "norm.coastline_distance_low_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 0
+             *       },
+             *       "density_percentile": {
+             *         "description": "Percentile of a kernel-density surface used as its normalisation ceiling, so one exceptional cluster cannot flatten the rest of the map.",
+             *         "key": "norm.density_percentile",
+             *         "provenance": "DEMO_CONFIG",
+             *         "value": 95
+             *       },
+             *       "drainage_density_high": {
+             *         "description": "Drainage density at full contribution.",
+             *         "key": "norm.drainage_density_high",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "km/km2",
+             *         "value": 12
+             *       },
+             *       "drainage_density_low": {
+             *         "description": "Drainage density contributing nothing.",
+             *         "key": "norm.drainage_density_low",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "km/km2",
+             *         "value": 0
+             *       },
+             *       "drainage_distance_high_m": {
+             *         "description": "Distance to a channel beyond which proximity contributes nothing.",
+             *         "key": "norm.drainage_distance_high_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 600
+             *       },
+             *       "drainage_distance_low_m": {
+             *         "description": "Distance to a channel at or below which proximity is saturated.",
+             *         "key": "norm.drainage_distance_low_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 25
+             *       },
+             *       "extreme_rain_days_high": {
+             *         "description": "Heavy-rainfall days per year at which the frequency factor saturates.",
+             *         "key": "norm.extreme_rain_days_high",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "days/year",
+             *         "value": 3
+             *       },
+             *       "extreme_rain_days_low": {
+             *         "description": "Heavy-rainfall days per year at or below which the cloudburst frequency factor is zero.",
+             *         "key": "norm.extreme_rain_days_low",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "days/year",
+             *         "value": 0.3
+             *       },
+             *       "extreme_rain_threshold_mm": {
+             *         "description": "Daily rainfall counted as a heavy-rainfall day. Matches the IMD 'heavy rainfall' class boundary of 64.5 mm in 24 hours.",
+             *         "key": "norm.extreme_rain_threshold_mm",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "mm/day",
+             *         "value": 64.5
+             *       },
+             *       "hand_high_m": {
+             *         "description": "Height above nearest drainage at or above which riverine flood exposure is treated as negligible.",
+             *         "key": "norm.hand_high_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 45
+             *       },
+             *       "hand_low_m": {
+             *         "description": "Height above nearest drainage at or below which flood exposure is saturated.",
+             *         "key": "norm.hand_low_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 3
+             *       },
+             *       "rainfall_intensity_high_mm": {
+             *         "description": "Annual maximum daily rainfall at or above which the intensity factor saturates.",
+             *         "key": "norm.rainfall_intensity_high_mm",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "mm/day",
+             *         "value": 120
+             *       },
+             *       "rainfall_intensity_low_mm": {
+             *         "description": "Annual maximum daily rainfall at or below which the intensity factor is zero.",
+             *         "key": "norm.rainfall_intensity_low_mm",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "mm/day",
+             *         "value": 50
+             *       },
+             *       "ruggedness_high_m": {
+             *         "description": "Terrain ruggedness at full contribution.",
+             *         "key": "norm.ruggedness_high_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 45
+             *       },
+             *       "ruggedness_low_m": {
+             *         "description": "Terrain ruggedness contributing nothing.",
+             *         "key": "norm.ruggedness_low_m",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "m",
+             *         "value": 2
+             *       },
+             *       "slope_high_deg": {
+             *         "description": "Slope at or above which the slope factor is saturated. Above roughly this angle, loose material has already shed and failure behaviour changes.",
+             *         "key": "norm.slope_high_deg",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "degrees",
+             *         "value": 45
+             *       },
+             *       "slope_low_deg": {
+             *         "description": "Slope at or below which slope contributes nothing to landslide susceptibility.",
+             *         "key": "norm.slope_low_deg",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "degrees",
+             *         "value": 10
+             *       },
+             *       "upstream_area_high_km2": {
+             *         "description": "Upstream contributing area at which the concentration factor saturates.",
+             *         "key": "norm.upstream_area_high_km2",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "km2",
+             *         "value": 200
+             *       },
+             *       "upstream_area_low_km2": {
+             *         "description": "Upstream contributing area at or below which flow concentration is negligible. Normalised logarithmically between the bounds, since discharge scales with area over orders of magnitude.",
+             *         "key": "norm.upstream_area_low_km2",
+             *         "provenance": "DEMO_CONFIG",
+             *         "unit": "km2",
+             *         "value": 0.5
+             *       }
+             *     }
+             */
+            normalisation: components["schemas"]["NormalisationConfig"];
             /**
              * @default {
              *       "beta_fragmentation": {
@@ -1037,7 +1391,7 @@ export interface components {
             validation: components["schemas"]["ValidationConfig"];
             /**
              * Version
-             * @default 1.1.0
+             * @default 1.5.0
              */
             version: string;
         };
@@ -1248,6 +1602,24 @@ export interface components {
             water_litres_per_person_day: components["schemas"]["Constant"];
         };
         /**
+         * CompositeHazard
+         * @description The multi-hazard composite, with the full per-hazard vector retained.
+         */
+        CompositeHazard: {
+            /**
+             * Classification Label
+             * @description Always the ASTRA analytical classification label, never official.
+             */
+            classification_label: string;
+            /** Composite */
+            composite: number;
+            dominant_hazard: components["schemas"]["HazardType"];
+            /** Per Hazard */
+            per_hazard: components["schemas"]["HazardScore"][];
+            second_hazard?: components["schemas"]["HazardType"] | null;
+            zone_class: components["schemas"]["ZoneClass"];
+        };
+        /**
          * ConfidenceBand
          * @description Evidence confidence — orthogonal to priority, never multiplied into it (§5.2).
          * @enum {string}
@@ -1312,6 +1684,21 @@ export interface components {
              *     }
              */
             w_spatial_resolution: components["schemas"]["Constant"];
+        };
+        /**
+         * ConfidenceReport
+         * @description Evidence confidence, reported beside a value and never folded into it.
+         */
+        ConfidenceReport: {
+            band: components["schemas"]["ConfidenceBand"];
+            /** Components */
+            components?: components["schemas"]["FactorContribution"][];
+            /** Evidence Age Days */
+            evidence_age_days?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Value */
+            value: number;
         };
         /**
          * Constant
@@ -1462,6 +1849,124 @@ export interface components {
             note: string;
             /** Unit */
             unit: string;
+        };
+        /**
+         * EvidenceConfig
+         * @description How recorded evidence is weighted and interpolated before it is scored.
+         *
+         *     The incident inventory is a record of reported events, so it carries a
+         *     reporting bias towards roads, settlements and media attention. These
+         *     constants decide how much weight each record carries; they do not correct
+         *     that bias, and nothing here claims to.
+         */
+        EvidenceConfig: {
+            /**
+             * @default {
+             *       "description": "Additional weight per recorded fatality, capped, so that events with a documented human toll count for more than an unattributed report.",
+             *       "key": "evidence.incident_fatality_bonus",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 0.05
+             *     }
+             */
+            incident_fatality_bonus: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Ceiling on the fatality contribution to a single event's weight.",
+             *       "key": "evidence.incident_fatality_bonus_cap",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 2
+             *     }
+             */
+            incident_fatality_bonus_cap: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Records whose stated location accuracy is coarser than this are excluded: at 100 m grid resolution they would smear evidence across whole valleys.",
+             *       "key": "evidence.incident_max_location_error_km",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "km",
+             *       "value": 25
+             *     }
+             */
+            incident_max_location_error_km: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Relative weight of a large event.",
+             *       "key": "evidence.incident_weight.large",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 2
+             *     }
+             */
+            incident_weight_large: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Relative weight of a medium event.",
+             *       "key": "evidence.incident_weight.medium",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 1
+             *     }
+             */
+            incident_weight_medium: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Relative weight of a small recorded event.",
+             *       "key": "evidence.incident_weight.small",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 0.5
+             *     }
+             */
+            incident_weight_small: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Relative weight where the record does not state a size.",
+             *       "key": "evidence.incident_weight.unknown",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 1
+             *     }
+             */
+            incident_weight_unknown: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Relative weight of a very large event.",
+             *       "key": "evidence.incident_weight.very_large",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 3
+             *     }
+             */
+            incident_weight_very_large: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Inverse-distance weighting exponent used to interpolate the rainfall grid points across the corridor.",
+             *       "key": "evidence.rainfall_idw_power",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 2
+             *     }
+             */
+            rainfall_idw_power: components["schemas"]["Constant"];
+        };
+        /**
+         * FactorContribution
+         * @description One term in a weighted sum, with the arithmetic left visible.
+         */
+        FactorContribution: {
+            /**
+             * Contribution
+             * @description weight x normalised_value
+             */
+            contribution: number;
+            /** Factor */
+            factor: string;
+            /** Normalised Value */
+            normalised_value: number;
+            provenance: components["schemas"]["ProvenanceClass"];
+            /**
+             * Raw Value
+             * @description Input in its own units, before normalisation.
+             */
+            raw_value?: number | null;
+            /** Unit */
+            unit?: string | null;
+            /** Weight */
+            weight: number;
         };
         /**
          * FormulaSpec
@@ -1771,6 +2276,44 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** HabitationHazardResponse */
+        HabitationHazardResponse: {
+            /** Classification Label */
+            classification_label: string;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Habitations */
+            habitations: components["schemas"]["HabitationHazardRow"][];
+            /** Note */
+            note: string;
+            /** Scenario Disclaimer */
+            scenario_disclaimer: string;
+        };
+        /**
+         * HabitationHazardRow
+         * @description Hazard sampled over one habitation footprint. Exposure arrives in Slice 4.
+         */
+        HabitationHazardRow: {
+            centroid: components["schemas"]["GeoPoint"];
+            confidence: components["schemas"]["ConfidenceReport"];
+            /** Footprint Max Composite */
+            footprint_max_composite: number;
+            /** Footprint Mean Composite */
+            footprint_mean_composite: number;
+            /** Footprint Radius M */
+            footprint_radius_m: number;
+            /** Habitation Id */
+            habitation_id: string;
+            hazard: components["schemas"]["CompositeHazard"];
+            /** Households */
+            households: number;
+            /** Name */
+            name: string;
+            /** Population */
+            population: number;
+            /** Zone Id */
+            zone_id: string | null;
+        };
         /**
          * HabitationsResponse
          * @description The habitation layer, with the totals a planner reads first.
@@ -1874,31 +2417,25 @@ export interface components {
              *           "description": "Distance to the drainage network.",
              *           "key": "w.flood.drainage_distance",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.22
+             *           "value": 0.26
              *         },
              *         "hand": {
              *           "description": "Height above nearest drainage, inverted.",
              *           "key": "w.flood.hand",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.34
-             *         },
-             *         "historical_inundation": {
-             *           "description": "Overlap with recorded inundation extents.",
-             *           "key": "w.flood.historical_inundation",
-             *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.18
+             *           "value": 0.42
              *         },
              *         "infiltration": {
              *           "description": "Infiltration proxy derived from land cover.",
              *           "key": "w.flood.infiltration",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.1
+             *           "value": 0.12
              *         },
              *         "rainfall_intensity": {
              *           "description": "Rainfall intensity and return period.",
              *           "key": "w.flood.rainfall_intensity",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.16
+             *           "value": 0.2
              *         }
              *       }
              *     }
@@ -1939,7 +2476,7 @@ export interface components {
              *           "description": "Kernel density of historical landslide incidents.",
              *           "key": "w.landslide.incident_density",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.2
+             *           "value": 0.21
              *         },
              *         "landcover": {
              *           "description": "Land-cover and vegetation stability proxy.",
@@ -1947,29 +2484,23 @@ export interface components {
              *           "provenance": "DEMO_CONFIG",
              *           "value": 0.1
              *         },
-             *         "lineament_distance": {
-             *           "description": "Proximity to mapped faults and lineaments where obtainable.",
-             *           "key": "w.landslide.lineament_distance",
-             *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.05
-             *         },
              *         "rainfall_intensity": {
              *           "description": "Antecedent rainfall and return-period intensity.",
              *           "key": "w.landslide.rainfall_intensity",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.18
+             *           "value": 0.19
              *         },
              *         "ruggedness": {
              *           "description": "Terrain ruggedness index from the DEM.",
              *           "key": "w.landslide.ruggedness",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.12
+             *           "value": 0.13
              *         },
              *         "slope": {
              *           "description": "Normalised slope angle.",
              *           "key": "w.landslide.slope",
              *           "provenance": "DEMO_CONFIG",
-             *           "value": 0.28
+             *           "value": 0.3
              *         }
              *       }
              *     }
@@ -1977,11 +2508,11 @@ export interface components {
             landslide_weights: components["schemas"]["WeightSet"];
             /**
              * @default {
-             *       "description": "Polygons smaller than this are removed as slivers during morphological cleaning of the thresholded surface.",
+             *       "description": "Smallest area published as a zone. Clusters below this are removed during morphological cleaning: at 100 m resolution a single cell above a threshold is noise, and publishing it as a zone would present noise as a finding.",
              *       "key": "hazard.min_mapping_unit_ha",
              *       "provenance": "DEMO_CONFIG",
              *       "unit": "ha",
-             *       "value": 1
+             *       "value": 25
              *     }
              */
             min_mapping_unit_ha: components["schemas"]["Constant"];
@@ -1997,31 +2528,42 @@ export interface components {
             zone_buffer_m: components["schemas"]["Constant"];
             /**
              * @default {
-             *       "description": "Composite score at or above which a cell is classified Critical.",
+             *       "description": "Composite score at or above which a cell is classified Critical. Set near the 95th percentile of the corridor's own composite distribution: a class that covered a third of the terrain would not direct anyone anywhere.",
              *       "key": "hazard.zone_threshold.CRITICAL",
              *       "provenance": "DEMO_CONFIG",
-             *       "value": 70
+             *       "value": 78
              *     }
              */
             zone_threshold_critical: components["schemas"]["Constant"];
             /**
              * @default {
-             *       "description": "Composite score at or above which a cell is classified Elevated.",
+             *       "description": "Composite score at or above which a cell is classified Elevated. Near the 82nd percentile of the corridor composite distribution.",
              *       "key": "hazard.zone_threshold.ELEVATED",
              *       "provenance": "DEMO_CONFIG",
-             *       "value": 55
+             *       "value": 62
              *     }
              */
             zone_threshold_elevated: components["schemas"]["Constant"];
             /**
              * @default {
-             *       "description": "Composite score at or above which a cell is classified Watch.",
+             *       "description": "Composite score at or above which a cell is classified Watch. Near the 57th percentile of the corridor composite distribution.",
              *       "key": "hazard.zone_threshold.WATCH",
              *       "provenance": "DEMO_CONFIG",
-             *       "value": 40
+             *       "value": 52
              *     }
              */
             zone_threshold_watch: components["schemas"]["Constant"];
+        };
+        /**
+         * HazardScore
+         * @description Susceptibility for one hazard at one location, with its decomposition.
+         */
+        HazardScore: {
+            /** Factors */
+            factors: components["schemas"]["FactorContribution"][];
+            hazard: components["schemas"]["HazardType"];
+            /** Score */
+            score: number;
         };
         /**
          * HazardType
@@ -2133,6 +2675,278 @@ export interface components {
             formulas: components["schemas"]["FormulaSpec"][];
             /** @description Standing framing text, served so the UI never retypes it. */
             notices: components["schemas"]["Notices"];
+        };
+        /**
+         * NormalisationConfig
+         * @description Bounds that turn a physical measurement into a 0-1 factor value.
+         *
+         *     A weighted overlay is only meaningful if each factor is normalised on a
+         *     stated scale. These are the stated scales. Each pair is a linear ramp: at or
+         *     below ``low`` the factor contributes 0, at or above ``high`` it contributes
+         *     1, and inverted factors (where less is worse) ramp the other way. The bounds
+         *     are ASTRA choices, informed by the observed range in the corridor, and every
+         *     one of them is visible in the transparency panel.
+         */
+        NormalisationConfig: {
+            /**
+             * @default {
+             *       "description": "Mean catchment slope at full contribution.",
+             *       "key": "norm.catchment_slope_high_deg",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "degrees",
+             *       "value": 45
+             *     }
+             */
+            catchment_slope_high_deg: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Mean catchment slope contributing nothing to flash-flood susceptibility.",
+             *       "key": "norm.catchment_slope_low_deg",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "degrees",
+             *       "value": 10
+             *     }
+             */
+            catchment_slope_low_deg: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Elevation above which coastal erosion exposure is treated as negligible.",
+             *       "key": "norm.coastal_elevation_high_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 15
+             *     }
+             */
+            coastal_elevation_high_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Elevation at or below which coastal exposure is saturated.",
+             *       "key": "norm.coastal_elevation_low_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 0
+             *     }
+             */
+            coastal_elevation_low_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Shoreline retreat at full contribution.",
+             *       "key": "norm.coastal_retreat_high_m_yr",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m/year",
+             *       "value": 5
+             *     }
+             */
+            coastal_retreat_high_m_yr: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Shoreline retreat contributing nothing.",
+             *       "key": "norm.coastal_retreat_low_m_yr",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m/year",
+             *       "value": 0
+             *     }
+             */
+            coastal_retreat_low_m_yr: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Distance to the coastline beyond which erosion exposure is negligible.",
+             *       "key": "norm.coastline_distance_high_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 2000
+             *     }
+             */
+            coastline_distance_high_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Distance to the coastline, saturated.",
+             *       "key": "norm.coastline_distance_low_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 0
+             *     }
+             */
+            coastline_distance_low_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Percentile of a kernel-density surface used as its normalisation ceiling, so one exceptional cluster cannot flatten the rest of the map.",
+             *       "key": "norm.density_percentile",
+             *       "provenance": "DEMO_CONFIG",
+             *       "value": 95
+             *     }
+             */
+            density_percentile: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Drainage density at full contribution.",
+             *       "key": "norm.drainage_density_high",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "km/km2",
+             *       "value": 12
+             *     }
+             */
+            drainage_density_high: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Drainage density contributing nothing.",
+             *       "key": "norm.drainage_density_low",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "km/km2",
+             *       "value": 0
+             *     }
+             */
+            drainage_density_low: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Distance to a channel beyond which proximity contributes nothing.",
+             *       "key": "norm.drainage_distance_high_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 600
+             *     }
+             */
+            drainage_distance_high_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Distance to a channel at or below which proximity is saturated.",
+             *       "key": "norm.drainage_distance_low_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 25
+             *     }
+             */
+            drainage_distance_low_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Heavy-rainfall days per year at which the frequency factor saturates.",
+             *       "key": "norm.extreme_rain_days_high",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "days/year",
+             *       "value": 3
+             *     }
+             */
+            extreme_rain_days_high: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Heavy-rainfall days per year at or below which the cloudburst frequency factor is zero.",
+             *       "key": "norm.extreme_rain_days_low",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "days/year",
+             *       "value": 0.3
+             *     }
+             */
+            extreme_rain_days_low: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Daily rainfall counted as a heavy-rainfall day. Matches the IMD 'heavy rainfall' class boundary of 64.5 mm in 24 hours.",
+             *       "key": "norm.extreme_rain_threshold_mm",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "mm/day",
+             *       "value": 64.5
+             *     }
+             */
+            extreme_rain_threshold_mm: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Height above nearest drainage at or above which riverine flood exposure is treated as negligible.",
+             *       "key": "norm.hand_high_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 45
+             *     }
+             */
+            hand_high_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Height above nearest drainage at or below which flood exposure is saturated.",
+             *       "key": "norm.hand_low_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 3
+             *     }
+             */
+            hand_low_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Annual maximum daily rainfall at or above which the intensity factor saturates.",
+             *       "key": "norm.rainfall_intensity_high_mm",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "mm/day",
+             *       "value": 120
+             *     }
+             */
+            rainfall_intensity_high_mm: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Annual maximum daily rainfall at or below which the intensity factor is zero.",
+             *       "key": "norm.rainfall_intensity_low_mm",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "mm/day",
+             *       "value": 50
+             *     }
+             */
+            rainfall_intensity_low_mm: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Terrain ruggedness at full contribution.",
+             *       "key": "norm.ruggedness_high_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 45
+             *     }
+             */
+            ruggedness_high_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Terrain ruggedness contributing nothing.",
+             *       "key": "norm.ruggedness_low_m",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "m",
+             *       "value": 2
+             *     }
+             */
+            ruggedness_low_m: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Slope at or above which the slope factor is saturated. Above roughly this angle, loose material has already shed and failure behaviour changes.",
+             *       "key": "norm.slope_high_deg",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "degrees",
+             *       "value": 45
+             *     }
+             */
+            slope_high_deg: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Slope at or below which slope contributes nothing to landslide susceptibility.",
+             *       "key": "norm.slope_low_deg",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "degrees",
+             *       "value": 10
+             *     }
+             */
+            slope_low_deg: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Upstream contributing area at which the concentration factor saturates.",
+             *       "key": "norm.upstream_area_high_km2",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "km2",
+             *       "value": 200
+             *     }
+             */
+            upstream_area_high_km2: components["schemas"]["Constant"];
+            /**
+             * @default {
+             *       "description": "Upstream contributing area at or below which flow concentration is negligible. Normalised logarithmically between the bounds, since discharge scales with area over orders of magnitude.",
+             *       "key": "norm.upstream_area_low_km2",
+             *       "provenance": "DEMO_CONFIG",
+             *       "unit": "km2",
+             *       "value": 0.5
+             *     }
+             */
+            upstream_area_low_km2: components["schemas"]["Constant"];
         };
         /**
          * Notices
@@ -2527,6 +3341,93 @@ export interface components {
             /** Registry Version */
             registry_version: string;
         };
+        /**
+         * RiskCellResponse
+         * @description Everything behind the hazard score at one point on the map.
+         */
+        RiskCellResponse: {
+            /** Cell Bbox */
+            cell_bbox: number[];
+            /** Col */
+            col: number;
+            composite_formula: components["schemas"]["FormulaSpec"];
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            confidence: components["schemas"]["ConfidenceReport"];
+            /** Engine Version */
+            engine_version: string;
+            formula: components["schemas"]["FormulaSpec"];
+            hazard: components["schemas"]["CompositeHazard"];
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Row */
+            row: number;
+            zone_class: components["schemas"]["ZoneClass"];
+            /** Zone Id */
+            zone_id: string | null;
+        };
+        /**
+         * RiskSummaryResponse
+         * @description What the hazard engine computed, and over what.
+         */
+        RiskSummaryResponse: {
+            /** Cell X M */
+            cell_x_m: number;
+            /** Cell Y M */
+            cell_y_m: number;
+            /** Class Share Percent */
+            class_share_percent: {
+                [key: string]: number;
+            };
+            /** Composite Lambda */
+            composite_lambda: number;
+            /** Computed Ms */
+            computed_ms: number;
+            /** Engine Version */
+            engine_version: string;
+            /** Grid Cols */
+            grid_cols: number;
+            /** Grid Rows */
+            grid_rows: number;
+            /** Hazard Statistics */
+            hazard_statistics: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** Hazards Modelled */
+            hazards_modelled: components["schemas"]["HazardType"][];
+            /** Incidents Excluded */
+            incidents_excluded: number;
+            /** Incidents Used */
+            incidents_used: number;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Overlay Bbox */
+            overlay_bbox: number[];
+            /** Overlay Url */
+            overlay_url: string;
+            /** Rainfall Points */
+            rainfall_points: number;
+            study_area: components["schemas"]["StudyArea"];
+            /** Terrain Url */
+            terrain_url: string;
+            /** Zone Summary */
+            zone_summary: {
+                [key: string]: components["schemas"]["ZoneClassSummary"];
+            };
+            /** Zone Thresholds */
+            zone_thresholds: {
+                [key: string]: number;
+            };
+        };
         /** RouteConfig */
         RouteConfig: {
             /**
@@ -2852,6 +3753,99 @@ export interface components {
                 [key: string]: components["schemas"]["Constant"];
             };
         };
+        /**
+         * ZoneClass
+         * @description Red-zone severity classes derived from the composite susceptibility surface.
+         *
+         *     These are ASTRA analytical classifications, never statutory designations.
+         * @enum {string}
+         */
+        ZoneClass: "CRITICAL" | "ELEVATED" | "WATCH" | "LOW";
+        /** ZoneClassSummary */
+        ZoneClassSummary: {
+            /** Area Km2 */
+            area_km2: number;
+            /** Count */
+            count: number;
+            /** Population Intersected */
+            population_intersected: number;
+        };
+        /** ZoneFeature */
+        ZoneFeature: {
+            geometry: components["schemas"]["Geometry"];
+            /** Id */
+            id: string;
+            properties: components["schemas"]["ZoneFeatureProperties"];
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+        };
+        /**
+         * ZoneFeatureProperties
+         * @description Attributes carried by every published zone polygon.
+         */
+        ZoneFeatureProperties: {
+            /** Area Km2 */
+            area_km2: number;
+            /** Cell Count */
+            cell_count: number;
+            /**
+             * Classification Label
+             * @description Always the ASTRA analytical label. Never an official designation.
+             */
+            classification_label: string;
+            dominant_hazard: components["schemas"]["HazardType"];
+            /** Habitation Ids */
+            habitation_ids: string[];
+            /** Hazard Mix */
+            hazard_mix: {
+                [key: string]: number;
+            };
+            /** Id */
+            id: string;
+            /** Max Composite */
+            max_composite: number;
+            /** Mean Composite */
+            mean_composite: number;
+            /** Mean Confidence */
+            mean_confidence: number;
+            /** Population Intersected */
+            population_intersected: number;
+            /** Rule Version */
+            rule_version: string;
+            zone_class: components["schemas"]["ZoneClass"];
+        };
+        /**
+         * ZonesResponse
+         * @description Red zones as a GeoJSON feature collection, with the totals precomputed.
+         */
+        ZonesResponse: {
+            /** Classification Label */
+            classification_label: string;
+            /** Computed Ms */
+            computed_ms: number;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Features */
+            features: components["schemas"]["ZoneFeature"][];
+            /** Model Config Version */
+            model_config_version: string;
+            /** Summary */
+            summary: {
+                [key: string]: components["schemas"]["ZoneClassSummary"];
+            };
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
     };
     responses: never;
     parameters: never;
@@ -2921,6 +3915,28 @@ export interface operations {
             };
         };
     };
+    roads_geojson_layers_roads_geojson_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     model_config_model_config_get: {
         parameters: {
             query?: never;
@@ -2957,6 +3973,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProvenanceResponse"];
+                };
+            };
+        };
+    };
+    risk_cell_risk_cell_get: {
+        parameters: {
+            query: {
+                /** @description Longitude, WGS84. */
+                lon: number;
+                /** @description Latitude, WGS84. */
+                lat: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskCellResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    risk_habitations_risk_habitations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitationHazardResponse"];
+                };
+            };
+        };
+    };
+    composite_overlay_risk_overlay_composite_png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    risk_summary_risk_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskSummaryResponse"];
+                };
+            };
+        };
+    };
+    risk_zones_risk_zones_get: {
+        parameters: {
+            query?: {
+                /** @description Filter to one class: CRITICAL, ELEVATED or WATCH. */
+                zone_class?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZonesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

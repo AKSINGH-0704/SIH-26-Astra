@@ -27,8 +27,28 @@ file covers what exists and how to run it.
 |---|---|---|
 | 1 | Monorepo, domain model, versioned config, provenance registry, contracts pipeline, deployment baseline | Done |
 | 2 | Study-area data ingest, derived terrain and hydrology surfaces, calibrated synthetic habitations and sites | Done |
-| 3 | Multi-hazard susceptibility engine, red zones, map surface | Next |
-| 4-13 | Priority, capacity, routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+| 3 | Multi-hazard susceptibility engine, analytical red zones, map surface | Done |
+| 4 | Exposure, vulnerability and phased relocation prioritisation | Next |
+| 5-13 | Capacity, routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+
+### The hazard model
+
+Three sub-models - landslide, flood and cloudburst/flash-flood - score a
+387 x 432 grid of 100 m cells by weighted linear overlay of normalised factors,
+the methodology used in published landslide hazard zonation:
+
+    HSI_h = 100 x sum_f( w_hf x n_f(x) ),   sum_f w_hf = 1
+    C     = min(100, max_h(HSI_h) + 0.25 x second_highest_h(HSI_h))
+
+The composite preserves dominance instead of averaging it away, so a cell
+exposed to two hazards at once scores higher than either alone. The per-hazard
+vector, the dominant hazard and every factor contribution survive to the API:
+clicking any point on the map returns the measured value, normalised value,
+weight and contribution of every factor, with the formula and config versions
+that produced them. Evidence confidence is computed separately and never
+multiplied into the score. A coastal-erosion sub-model is implemented and
+unit-tested; it is scored only where coastal inputs exist, which they do not in
+a Himalayan corridor.
 
 ### Data in the corridor
 
@@ -59,6 +79,7 @@ Requires Python 3.11+ and Node 20+.
 python scripts/ingest.py
 python scripts/build_derived.py
 python scripts/seed_fixtures.py
+python scripts/build_hazard.py
 
 # Backend
 python -m venv .venv

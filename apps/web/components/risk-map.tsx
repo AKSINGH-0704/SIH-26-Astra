@@ -1,0 +1,299 @@
+"use client";
+
+import { MapboxOverlay } from "@deck.gl/mapbox";
+import { BitmapLayer, GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import maplibregl, { type Map as MapLibreMap } from "maplibre-gl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import type { CandidateSite, Habitation, StudyArea, ZoneFeature } from "@astra/contracts";
+
+import "maplibre-gl/dist/maplibre-gl.css";
+
+/**
+ * The geospatial command surface.
+ *
+ * MapLibre needs no access token, so nothing here can expire or leak mid-demo,
+ * and the basemap is ASTRA's own shaded relief served by the API - the map keeps
+ * working with the network unplugged. deck.gl carries the hazard overlay and the
+ * zone geometry on the GPU in the viewer's browser.
+ *
+ * Nothing on this map is decorative. Every layer is a rendering of a value the
+ * API computed, and clicking anywhere asks the API to take that value apart.
+ */
+
+export type LayerToggles = {
+  hazard: boolean;
+  zones: boolean;
+  habitations: boolean;
+  sites: boolean;
+  roads: boolean;
+};
+
+const ZONE_FILL: Record<string, [number, number, number, number]> = {
+  CRITICAL: [192, 57, 47, 130],
+  ELEVATED: [205, 117, 56, 105],
+  WATCH: [185, 147, 64, 45],
+  LOW: [42, 111, 102, 60],
+};
+
+const ZONE_LINE: Record<string, [number, number, number, number]> = {
+  CRITICAL: [224, 96, 84, 230],
+  ELEVATED: [226, 148, 84, 210],
+  WATCH: [214, 180, 104, 120],
+  LOW: [86, 158, 148, 150],
+};
+
+function baseStyle(studyArea: StudyArea, terrainUrl: string): maplibregl.StyleSpecification {
+  const { min_lon, min_lat, max_lon, max_lat } = studyArea.bbox;
+  return {
+    version: 8,
+    // No sprite or glyph server: everything the style needs is served by ASTRA
+    // itself, so the map renders with no internet connection at all.
+    sources: {
+      terrain: {
+        type: "image",
+        url: terrainUrl,
+        coordinates: [
+          [min_lon, max_lat],
+          [max_lon, max_lat],
+          [max_lon, min_lat],
+          [min_lon, min_lat],
+        ],
+      },
+    },
+    layers: [
+      { id: "background", type: "background", paint: { "background-color": "#070b12" } },
+      {
+        id: "terrain",
+        type: "raster",
+        source: "terrain",
+        paint: { "raster-opacity": 0.92, "raster-fade-duration": 0 },
+      },
+    ],
+  } as maplibregl.StyleSpecification;
+}
+
+export function RiskMap({
+  studyArea,
+  terrainUrl,
+  overlayUrl,
+  roadsUrl,
+  zones,
+  habitations,
+  sites,
+  toggles,
+  hazardOpacity,
+  selected,
+  onSelectPoint,
+  onSelectZone,
+}: {
+  studyArea: StudyArea;
+  terrainUrl: string;
+  overlayUrl: string;
+  roadsUrl: string;
+  zones: ZoneFeature[];
+  habitations: Habitation[];
+  sites: CandidateSite[];
+  toggles: LayerToggles;
+  hazardOpacity: number;
+  selected: { lon: number; lat: number } | null;
+  onSelectPoint: (lon: number, lat: number) => void;
+  onSelectZone: (zoneId: string | null) => void;
+}) {
+  const container = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const overlayRef = useRef<MapboxOverlay | null>(null);
+  const [ready, setReady] = useState(false);
+  const [roads, setRoads] = useState<GeoJSON.FeatureCollection | null>(null);
+
+  const bounds = useMemo(
+    () =>
+      [
+        [studyArea.bbox.min_lon, studyArea.bbox.min_lat],
+        [studyArea.bbox.max_lon, studyArea.bbox.max_lat],
+      ] as [[number, number], [number, number]],
+    [studyArea],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(roadsUrl)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled) setRoads(data);
+      })
+      .catch(() => setRoads(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [roadsUrl]);
+
+  useEffect(() => {
+    if (!container.current || mapRef.current) return;
+    const map = new maplibregl.Map({
+      container: container.current,
+      style: baseStyle(studyArea, terrainUrl),
+      bounds,
+      fitBoundsOptions: { padding: 24 },
+      maxBounds: [
+        [studyArea.bbox.min_lon - 0.15, studyArea.bbox.min_lat - 0.12],
+        [studyArea.bbox.max_lon + 0.15, studyArea.bbox.max_lat + 0.12],
+      ],
+      attributionControl: false,
+      dragRotate: false,
+      maxPitch: 0,
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
+    map.addControl(overlay);
+    map.on("load", () => setReady(true));
+    map.on("click", (event) => {
+      onSelectPoint(event.lngLat.lng, event.lngLat.lat);
+    });
+    mapRef.current = map;
+    overlayRef.current = overlay;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      overlayRef.current = null;
+    };
+  }, [bounds, studyArea, terrainUrl, onSelectPoint]);
+
+  const handleZoneClick = useCallback(
+    (info: { object?: ZoneFeature }) => {
+      onSelectZone(info.object?.properties.id ?? null);
+      return true;
+    },
+    [onSelectZone],
+  );
+
+  useEffect(() => {
+    if (!ready || !overlayRef.current) return;
+    const { min_lon, min_lat, max_lon, max_lat } = studyArea.bbox;
+
+    const layers = [
+      toggles.hazard &&
+        new BitmapLayer({
+          id: "hazard-composite",
+          image: overlayUrl,
+          bounds: [min_lon, min_lat, max_lon, max_lat],
+          opacity: hazardOpacity,
+          pickable: false,
+        }),
+      toggles.roads &&
+        roads &&
+        new GeoJsonLayer({
+          id: "roads",
+          data: roads,
+          stroked: true,
+          filled: false,
+          getLineColor: (feature: GeoJSON.Feature) =>
+            feature.properties?.kind === "waterway"
+              ? [88, 132, 176, 150]
+              : [190, 202, 220, 120],
+          getLineWidth: (feature: GeoJSON.Feature) =>
+            feature.properties?.kind === "waterway" ? 18 : 26,
+          lineWidthMinPixels: 0.6,
+          lineWidthMaxPixels: 3,
+          pickable: false,
+        }),
+      toggles.zones &&
+        new GeoJsonLayer({
+          id: "red-zones",
+          data: { type: "FeatureCollection", features: zones } as GeoJSON.FeatureCollection,
+          stroked: true,
+          filled: true,
+          getFillColor: (feature: GeoJSON.Feature) =>
+            ZONE_FILL[String(feature.properties?.zone_class)] ?? ZONE_FILL.LOW,
+          getLineColor: (feature: GeoJSON.Feature) =>
+            ZONE_LINE[String(feature.properties?.zone_class)] ?? ZONE_LINE.LOW,
+          getLineWidth: 30,
+          lineWidthMinPixels: 0.75,
+          lineWidthMaxPixels: 2,
+          pickable: true,
+          onClick: handleZoneClick,
+        }),
+      toggles.sites &&
+        new ScatterplotLayer({
+          id: "sites",
+          data: sites,
+          getPosition: (site: CandidateSite) => [site.centroid.lon, site.centroid.lat],
+          getRadius: 130,
+          radiusMinPixels: 5,
+          radiusMaxPixels: 12,
+          filled: true,
+          stroked: true,
+          getFillColor: [63, 156, 140, 190],
+          getLineColor: [186, 240, 228, 235],
+          getLineWidth: 25,
+          lineWidthMinPixels: 1.5,
+          pickable: true,
+        }),
+      toggles.habitations &&
+        new ScatterplotLayer({
+          id: "habitations",
+          data: habitations,
+          getPosition: (habitation: Habitation) => [
+            habitation.centroid.lon,
+            habitation.centroid.lat,
+          ],
+          getRadius: (habitation: Habitation) => 90 + Math.sqrt(habitation.population) * 9,
+          radiusMinPixels: 5,
+          radiusMaxPixels: 22,
+          filled: true,
+          stroked: true,
+          getFillColor: [198, 154, 62, 170],
+          getLineColor: [245, 224, 168, 240],
+          getLineWidth: 25,
+          lineWidthMinPixels: 1.5,
+          pickable: true,
+          onClick: (info: { object?: Habitation }) => {
+            if (info.object) {
+              onSelectPoint(info.object.centroid.lon, info.object.centroid.lat);
+            }
+            return true;
+          },
+        }),
+      selected &&
+        new ScatterplotLayer({
+          id: "selection",
+          data: [selected],
+          getPosition: (point: { lon: number; lat: number }) => [point.lon, point.lat],
+          getRadius: 60,
+          radiusMinPixels: 8,
+          radiusMaxPixels: 14,
+          filled: false,
+          stroked: true,
+          getLineColor: [231, 238, 247, 240],
+          getLineWidth: 22,
+          lineWidthMinPixels: 2,
+        }),
+    ].filter(Boolean);
+
+    overlayRef.current.setProps({ layers });
+  }, [
+    ready,
+    toggles,
+    hazardOpacity,
+    zones,
+    habitations,
+    sites,
+    roads,
+    overlayUrl,
+    studyArea,
+    selected,
+    handleZoneClick,
+    onSelectPoint,
+  ]);
+
+  return (
+    <div className="relative h-full w-full">
+      <div ref={container} className="h-full w-full" />
+      <div className="pointer-events-none absolute bottom-2 left-2 rounded-sm bg-[var(--color-abyss)]/75 px-2 py-1 text-[10px] text-[var(--color-ink-faint)]">
+        Terrain: Copernicus DEM GLO-30 &middot; Roads and waterways: OpenStreetMap (ODbL)
+        &middot; Zones: ASTRA analytical classification
+      </div>
+    </div>
+  );
+}

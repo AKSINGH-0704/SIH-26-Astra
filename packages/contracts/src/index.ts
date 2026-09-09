@@ -28,6 +28,10 @@ export type ValidationCheckResponse = Schemas["ValidationCheckResponse"];
 export type HabitationsResponse = Schemas["HabitationsResponse"];
 export type SitesResponse = Schemas["SitesResponse"];
 export type StudyAreaDataResponse = Schemas["StudyAreaDataResponse"];
+export type RiskSummaryResponse = Schemas["RiskSummaryResponse"];
+export type RiskCellResponse = Schemas["RiskCellResponse"];
+export type ZonesResponse = Schemas["ZonesResponse"];
+export type HabitationHazardResponse = Schemas["HabitationHazardResponse"];
 
 export type AstraModelConfig = Schemas["AstraModelConfig"];
 export type Constant = Schemas["Constant"];
@@ -42,10 +46,22 @@ export type Habitation = Schemas["Habitation"];
 export type CandidateSite = Schemas["CandidateSite"];
 export type DerivedLayerSummary = Schemas["DerivedLayerSummary"];
 export type ServiceSupply = Schemas["ServiceSupply"];
+export type ZoneFeature = Schemas["ZoneFeature"];
+export type ZoneFeatureProperties = Schemas["ZoneFeatureProperties"];
+export type CompositeHazard = Schemas["CompositeHazard"];
+export type HazardScore = Schemas["HazardScore"];
+export type FactorContribution = Schemas["FactorContribution"];
+export type ConfidenceReport = Schemas["ConfidenceReport"];
+export type HabitationHazardRow = Schemas["HabitationHazardRow"];
+export type ZoneClass = Schemas["ZoneClass"];
+export type HazardType = Schemas["HazardType"];
 export type GeoPoint = Schemas["GeoPoint"];
 
 export type ProvenanceClass = Schemas["ProvenanceClass"];
 export type ConfidenceBand = Schemas["ConfidenceBand"];
+
+/** Severity ordering, most severe first. Used wherever zones are listed. */
+export const ZONE_CLASS_ORDER: ZoneClass[] = ["CRITICAL", "ELEVATED", "WATCH", "LOW"];
 
 /** Palette-independent ordering used wherever provenance classes are listed. */
 export const PROVENANCE_ORDER: ProvenanceClass[] = [

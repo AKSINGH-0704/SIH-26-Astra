@@ -123,3 +123,79 @@ computed on 23 points as if it were robust.
   record exactly.
 - `tsc --noEmit` and ESLint clean; `next build` succeeds; study-area page verified
   against a production build serving live API data.
+
+---
+
+## Slice 3 - multi-hazard susceptibility engine, analytical red zones and the map surface
+
+**Date:** 2026-09-09
+**Commit:** `feat(hazard): multi-hazard susceptibility engine and analytical red-zone mapping`
+
+### What actually works end to end
+
+Three hazard sub-models score a 387 x 432 grid of 100 m cells over the corridor
+by weighted overlay of normalised factors computed from the real DEM, land
+cover, road network, incident inventory and rainfall archive. The composite
+preserves dominance rather than averaging it away. The classified surface is
+cleaned to a minimum mapping unit, grown by the configured buffer and published
+as 335 non-overlapping zone polygons, each carrying its area, dominant hazard,
+hazard mix, mean and maximum composite, intersected population, evidence
+confidence and rule version. The Risk Explorer renders all of it on MapLibre and
+deck.gl, and clicking anywhere returns the full factor decomposition.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. Still no LLM anywhere in the codebase. Every score is `100 x sum(w_f x n_f)` over surfaces derived from real data. |
+| 2 | Can every number on screen be traced in one hop? | Yes, and it is now demonstrable: click any cell and the panel lists, per hazard, each factor's measured value, normalised value, weight and contribution, with the formula ID, formula version, engine version and config version underneath. A test asserts the published contributions sum to the published score. |
+| 3 | Is anything displayed that is not backed by a real value? | No. The basemap is a render of the vendored DEM, the overlay is the computed composite, the polygons are the computed zones, the markers are fixture coordinates. There is no animation. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The zone thresholds are stated on screen with the percentile of the corridor distribution they sit at, and chipped DEMO_CONFIG in the transparency panel. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic without blending? | Yes. Every factor carries its own provenance class through to the decomposition panel. |
+| 6 | Are the same figures identical across screens? | Yes. Zone summary, class shares and habitation composites are computed once in the engine and rendered as received. |
+| 7 | Does the opening avoid looking like a generic dashboard? | Yes. The root opens on the map, dominated by real terrain with the classified surface over it. The cinematic cold open is still Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes. Every zone feature carries `classification_label: ASTRA analytical classification`, the zones response carries the decision-authority line, and the panel footer states both it and the synthetic-scenario disclaimer. |
+| 9 | Does it run with the network off? | Yes. MapLibre uses no token and no external tiles: basemap, hazard overlay, zone geometry and roads are all served by the ASTRA API from local files, and the style declares no sprite or glyph server. |
+| 10 | Can the optimiser breach capacity? | Not applicable yet. Slice 7. |
+| 11 | Any feature that looks impressive but changes no decision? | The waterway-distance surface from Slice 2 is still unused: the flood sub-model ended up using HAND and channel distance from the DEM-derived network, which is better evidence than mapped-waterway distance. It stays for the route work in Slice 6 and comes out if unused there. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | This is the slice where that question gets answered on screen. Composite 94.9 at Rauligaon: Flood 79.4, driven by height above drainage 7.33 m normalised to 0.897 at weight 0.42, contributing 0.377; plus Cloudburst 61.9 as the second hazard at lambda 0.25. |
+
+### Red-team finding
+
+**The first version of this slice reported each habitation's hazard as the
+maximum composite within 300 m, and every settlement came out between 97 and
+100.** That is technically defensible and practically useless: it destroyed the
+ability to rank, which is the entire point of the product. The habitation score
+is now the composite at the settlement's own cell, with the footprint mean and
+maximum reported alongside as the spread around it. The corrected spread is 34
+to 95 across the twelve habitations, with three different dominant hazards.
+
+Second finding from the same pass: the initial thresholds put 10% of the corridor
+in Critical and produced a single 190 km2 polygon - a "zone" too coarse for
+anyone to act on. Thresholds now sit near the 95th, 82nd and 57th percentiles of
+the corridor's own composite distribution, which is stated in the constant
+descriptions and rendered on screen. A calibration choice, labelled as ASTRA's
+choice wherever it appears.
+
+Third: two factors CLAUDE.md lists - fault/lineament proximity for landslides and
+historical inundation overlap for floods - have no obtainable open dataset for
+this corridor. They were removed from the weight sets and the remaining weights
+renormalised, with a comment in the config saying why. A neutral placeholder
+constant would have looked like evidence and would not have been one.
+
+### Verification
+
+- 144 backend tests pass, 32 of them new: normalisation ramps against hand
+  arithmetic, weighted overlay against a hand-computed expected score, the
+  dominance-preserving composite against its own formula, exact behaviour at
+  every classification threshold, confidence bounded and independent of the
+  score, kernel density conserving total weight, single-cell speckle rejected by
+  the minimum mapping unit, and zone classes proven non-overlapping.
+- API tests assert that published factor contributions sum to the published
+  score, that the composite equals the dominance formula, and that zone
+  population totals agree with the habitation layer.
+- `ruff` clean, integrity gate PASS, `tsc --noEmit` clean, ESLint clean,
+  `next build` succeeds.
+- The Risk Explorer was driven in a real browser against a production build: the
+  map renders, layers toggle, opacity works, clicking a habitation returns its
+  decomposition. Zero console errors.

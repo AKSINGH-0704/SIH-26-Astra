@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
+from astra.api.risk_router import router as risk_router
 from astra.api.routers import router
 from astra.data.validate import FixtureValidationError, enforce, validate_all
 from astra.domain.notices import HOW_THIS_WORKS
@@ -49,6 +50,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning("fixture validation gate disabled by configuration")
     for warning in report.warnings:
         logger.warning("fixture validation: %s", warning)
+    # Warm the baseline hazard run so the first request is not the slow one.
+    try:
+        from astra.engines.service import baseline_risk
+
+        run = baseline_risk()
+        logger.info(
+            "hazard engine warm: %d zones over a %dx%d grid in %.0f ms",
+            len(run.zones),
+            run.grid.rows,
+            run.grid.cols,
+            run.computed_ms,
+        )
+    except Exception as exc:  # noqa: BLE001 - the API still serves without it
+        logger.warning(
+            "hazard engine could not warm (%s); risk endpoints will report the cause",
+            exc,
+        )
     logger.info("astra api %s ready - %s", __version__, report.summary())
     logger.info("llm narration mode: %s", settings.llm_mode)
     yield
@@ -70,6 +88,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router)
+    app.include_router(risk_router)
     return app
 
 

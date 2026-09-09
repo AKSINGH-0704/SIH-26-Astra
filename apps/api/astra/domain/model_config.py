@@ -22,10 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.1.0"
+MODEL_CONFIG_VERSION = "1.5.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
 """Bumped whenever engine logic (not just constants) changes."""
 
 # Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
@@ -145,24 +145,29 @@ class HazardConfig(BaseModel):
     )
     zone_threshold_critical: Constant = demo(
         "hazard.zone_threshold.CRITICAL",
-        70.0,
-        "Composite score at or above which a cell is classified Critical.",
+        78.0,
+        "Composite score at or above which a cell is classified Critical. Set near "
+        "the 95th percentile of the corridor's own composite distribution: a class "
+        "that covered a third of the terrain would not direct anyone anywhere.",
     )
     zone_threshold_elevated: Constant = demo(
         "hazard.zone_threshold.ELEVATED",
-        55.0,
-        "Composite score at or above which a cell is classified Elevated.",
+        62.0,
+        "Composite score at or above which a cell is classified Elevated. Near the "
+        "82nd percentile of the corridor composite distribution.",
     )
     zone_threshold_watch: Constant = demo(
         "hazard.zone_threshold.WATCH",
-        40.0,
-        "Composite score at or above which a cell is classified Watch.",
+        52.0,
+        "Composite score at or above which a cell is classified Watch. Near the 57th "
+        "percentile of the corridor composite distribution.",
     )
     min_mapping_unit_ha: Constant = demo(
         "hazard.min_mapping_unit_ha",
-        1.0,
-        "Polygons smaller than this are removed as slivers during morphological "
-        "cleaning of the thresholded surface.",
+        25.0,
+        "Smallest area published as a zone. Clusters below this are removed during "
+        "morphological cleaning: at 100 m resolution a single cell above a threshold "
+        "is noise, and publishing it as a zone would present noise as a finding.",
         unit="ha",
     )
     zone_buffer_m: Constant = demo(
@@ -181,18 +186,18 @@ class HazardConfig(BaseModel):
     landslide_weights: WeightSet = WeightSet(
         hazard=HazardType.LANDSLIDE,
         weights={
-            "slope": demo("w.landslide.slope", 0.28, "Normalised slope angle."),
+            "slope": demo("w.landslide.slope", 0.30, "Normalised slope angle."),
             "ruggedness": demo(
-                "w.landslide.ruggedness", 0.12, "Terrain ruggedness index from the DEM."
+                "w.landslide.ruggedness", 0.13, "Terrain ruggedness index from the DEM."
             ),
             "incident_density": demo(
                 "w.landslide.incident_density",
-                0.20,
+                0.21,
                 "Kernel density of historical landslide incidents.",
             ),
             "rainfall_intensity": demo(
                 "w.landslide.rainfall_intensity",
-                0.18,
+                0.19,
                 "Antecedent rainfall and return-period intensity.",
             ),
             "landcover": demo(
@@ -205,37 +210,34 @@ class HazardConfig(BaseModel):
                 0.07,
                 "Drainage density as a saturation and undercutting proxy.",
             ),
-            "lineament_distance": demo(
-                "w.landslide.lineament_distance",
-                0.05,
-                "Proximity to mapped faults and lineaments where obtainable.",
-            ),
+            # A fault/lineament proximity factor belongs in this model. No open
+            # lineament dataset covering the corridor could be obtained, so the
+            # factor is absent rather than filled with a neutral constant: a
+            # placeholder would look like evidence and would not be one.
         },
     )
     flood_weights: WeightSet = WeightSet(
         hazard=HazardType.FLOOD,
         weights={
             "hand": demo(
-                "w.flood.hand", 0.34, "Height above nearest drainage, inverted."
+                "w.flood.hand", 0.42, "Height above nearest drainage, inverted."
             ),
             "drainage_distance": demo(
-                "w.flood.drainage_distance", 0.22, "Distance to the drainage network."
-            ),
-            "historical_inundation": demo(
-                "w.flood.historical_inundation",
-                0.18,
-                "Overlap with recorded inundation extents.",
+                "w.flood.drainage_distance", 0.26, "Distance to the drainage network."
             ),
             "rainfall_intensity": demo(
                 "w.flood.rainfall_intensity",
-                0.16,
+                0.20,
                 "Rainfall intensity and return period.",
             ),
             "infiltration": demo(
                 "w.flood.infiltration",
-                0.10,
+                0.12,
                 "Infiltration proxy derived from land cover.",
             ),
+            # A historical-inundation overlap factor belongs here too. No open
+            # inundation extent dataset for this corridor could be obtained, so
+            # the factor is absent rather than fabricated.
         },
     )
     cloudburst_weights: WeightSet = WeightSet(
@@ -307,6 +309,227 @@ class HazardConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Engines 2 and 3 - exposure, vulnerability, priority, phasing
 # ---------------------------------------------------------------------------
+
+
+class NormalisationConfig(BaseModel):
+    """Bounds that turn a physical measurement into a 0-1 factor value.
+
+    A weighted overlay is only meaningful if each factor is normalised on a
+    stated scale. These are the stated scales. Each pair is a linear ramp: at or
+    below ``low`` the factor contributes 0, at or above ``high`` it contributes
+    1, and inverted factors (where less is worse) ramp the other way. The bounds
+    are ASTRA choices, informed by the observed range in the corridor, and every
+    one of them is visible in the transparency panel.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    slope_low_deg: Constant = demo(
+        "norm.slope_low_deg",
+        10.0,
+        "Slope at or below which slope contributes nothing to landslide susceptibility.",
+        unit="degrees",
+    )
+    slope_high_deg: Constant = demo(
+        "norm.slope_high_deg",
+        45.0,
+        "Slope at or above which the slope factor is saturated. Above roughly this "
+        "angle, loose material has already shed and failure behaviour changes.",
+        unit="degrees",
+    )
+    ruggedness_low_m: Constant = demo(
+        "norm.ruggedness_low_m", 2.0, "Terrain ruggedness contributing nothing.", unit="m"
+    )
+    ruggedness_high_m: Constant = demo(
+        "norm.ruggedness_high_m", 45.0, "Terrain ruggedness at full contribution.", unit="m"
+    )
+    drainage_density_low: Constant = demo(
+        "norm.drainage_density_low",
+        0.0,
+        "Drainage density contributing nothing.",
+        unit="km/km2",
+    )
+    drainage_density_high: Constant = demo(
+        "norm.drainage_density_high",
+        12.0,
+        "Drainage density at full contribution.",
+        unit="km/km2",
+    )
+    hand_low_m: Constant = demo(
+        "norm.hand_low_m",
+        3.0,
+        "Height above nearest drainage at or below which flood exposure is saturated.",
+        unit="m",
+    )
+    hand_high_m: Constant = demo(
+        "norm.hand_high_m",
+        45.0,
+        "Height above nearest drainage at or above which riverine flood exposure is "
+        "treated as negligible.",
+        unit="m",
+    )
+    drainage_distance_low_m: Constant = demo(
+        "norm.drainage_distance_low_m",
+        25.0,
+        "Distance to a channel at or below which proximity is saturated.",
+        unit="m",
+    )
+    drainage_distance_high_m: Constant = demo(
+        "norm.drainage_distance_high_m",
+        600.0,
+        "Distance to a channel beyond which proximity contributes nothing.",
+        unit="m",
+    )
+    rainfall_intensity_low_mm: Constant = demo(
+        "norm.rainfall_intensity_low_mm",
+        50.0,
+        "Annual maximum daily rainfall at or below which the intensity factor is zero.",
+        unit="mm/day",
+    )
+    rainfall_intensity_high_mm: Constant = demo(
+        "norm.rainfall_intensity_high_mm",
+        120.0,
+        "Annual maximum daily rainfall at or above which the intensity factor saturates.",
+        unit="mm/day",
+    )
+    extreme_rain_threshold_mm: Constant = demo(
+        "norm.extreme_rain_threshold_mm",
+        64.5,
+        "Daily rainfall counted as a heavy-rainfall day. Matches the IMD 'heavy "
+        "rainfall' class boundary of 64.5 mm in 24 hours.",
+        unit="mm/day",
+    )
+    extreme_rain_days_low: Constant = demo(
+        "norm.extreme_rain_days_low",
+        0.3,
+        "Heavy-rainfall days per year at or below which the cloudburst frequency "
+        "factor is zero.",
+        unit="days/year",
+    )
+    extreme_rain_days_high: Constant = demo(
+        "norm.extreme_rain_days_high",
+        3.0,
+        "Heavy-rainfall days per year at which the frequency factor saturates.",
+        unit="days/year",
+    )
+    catchment_slope_low_deg: Constant = demo(
+        "norm.catchment_slope_low_deg",
+        10.0,
+        "Mean catchment slope contributing nothing to flash-flood susceptibility.",
+        unit="degrees",
+    )
+    catchment_slope_high_deg: Constant = demo(
+        "norm.catchment_slope_high_deg",
+        45.0,
+        "Mean catchment slope at full contribution.",
+        unit="degrees",
+    )
+    upstream_area_low_km2: Constant = demo(
+        "norm.upstream_area_low_km2",
+        0.5,
+        "Upstream contributing area at or below which flow concentration is negligible. "
+        "Normalised logarithmically between the bounds, since discharge scales with "
+        "area over orders of magnitude.",
+        unit="km2",
+    )
+    upstream_area_high_km2: Constant = demo(
+        "norm.upstream_area_high_km2",
+        200.0,
+        "Upstream contributing area at which the concentration factor saturates.",
+        unit="km2",
+    )
+    density_percentile: Constant = demo(
+        "norm.density_percentile",
+        95.0,
+        "Percentile of a kernel-density surface used as its normalisation ceiling, so "
+        "one exceptional cluster cannot flatten the rest of the map.",
+    )
+    coastal_retreat_low_m_yr: Constant = demo(
+        "norm.coastal_retreat_low_m_yr", 0.0, "Shoreline retreat contributing nothing.",
+        unit="m/year",
+    )
+    coastal_retreat_high_m_yr: Constant = demo(
+        "norm.coastal_retreat_high_m_yr", 5.0, "Shoreline retreat at full contribution.",
+        unit="m/year",
+    )
+    coastal_elevation_low_m: Constant = demo(
+        "norm.coastal_elevation_low_m",
+        0.0,
+        "Elevation at or below which coastal exposure is saturated.",
+        unit="m",
+    )
+    coastal_elevation_high_m: Constant = demo(
+        "norm.coastal_elevation_high_m",
+        15.0,
+        "Elevation above which coastal erosion exposure is treated as negligible.",
+        unit="m",
+    )
+    coastline_distance_low_m: Constant = demo(
+        "norm.coastline_distance_low_m", 0.0, "Distance to the coastline, saturated.",
+        unit="m",
+    )
+    coastline_distance_high_m: Constant = demo(
+        "norm.coastline_distance_high_m",
+        2000.0,
+        "Distance to the coastline beyond which erosion exposure is negligible.",
+        unit="m",
+    )
+
+
+class EvidenceConfig(BaseModel):
+    """How recorded evidence is weighted and interpolated before it is scored.
+
+    The incident inventory is a record of reported events, so it carries a
+    reporting bias towards roads, settlements and media attention. These
+    constants decide how much weight each record carries; they do not correct
+    that bias, and nothing here claims to.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    incident_weight_small: Constant = demo(
+        "evidence.incident_weight.small", 0.5, "Relative weight of a small recorded event."
+    )
+    incident_weight_medium: Constant = demo(
+        "evidence.incident_weight.medium", 1.0, "Relative weight of a medium event."
+    )
+    incident_weight_large: Constant = demo(
+        "evidence.incident_weight.large", 2.0, "Relative weight of a large event."
+    )
+    incident_weight_very_large: Constant = demo(
+        "evidence.incident_weight.very_large",
+        3.0,
+        "Relative weight of a very large event.",
+    )
+    incident_weight_unknown: Constant = demo(
+        "evidence.incident_weight.unknown",
+        1.0,
+        "Relative weight where the record does not state a size.",
+    )
+    incident_fatality_bonus: Constant = demo(
+        "evidence.incident_fatality_bonus",
+        0.05,
+        "Additional weight per recorded fatality, capped, so that events with a "
+        "documented human toll count for more than an unattributed report.",
+    )
+    incident_fatality_bonus_cap: Constant = demo(
+        "evidence.incident_fatality_bonus_cap",
+        2.0,
+        "Ceiling on the fatality contribution to a single event's weight.",
+    )
+    incident_max_location_error_km: Constant = demo(
+        "evidence.incident_max_location_error_km",
+        25.0,
+        "Records whose stated location accuracy is coarser than this are excluded: "
+        "at 100 m grid resolution they would smear evidence across whole valleys.",
+        unit="km",
+    )
+    rainfall_idw_power: Constant = demo(
+        "evidence.rainfall_idw_power",
+        2.0,
+        "Inverse-distance weighting exponent used to interpolate the rainfall grid "
+        "points across the corridor.",
+    )
 
 
 class PriorityConfig(BaseModel):
@@ -947,6 +1170,8 @@ class AstraModelConfig(BaseModel):
         "standard they are drawn from."
     )
     hazard: HazardConfig = HazardConfig()
+    normalisation: NormalisationConfig = NormalisationConfig()
+    evidence: EvidenceConfig = EvidenceConfig()
     priority: PriorityConfig = PriorityConfig()
     capacity: CapacityConfig = CapacityConfig()
     route: RouteConfig = RouteConfig()

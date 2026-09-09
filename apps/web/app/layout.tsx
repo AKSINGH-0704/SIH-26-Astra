@@ -26,10 +26,10 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
+  { href: "/risk", label: "Risk Explorer", available: true },
   { href: "/study-area", label: "Study Area & Data", available: true },
   { href: "/model", label: "Model & Provenance", available: true },
   { href: "/command", label: "Command Centre", available: false },
-  { href: "/risk", label: "Risk Explorer", available: false },
   { href: "/priority", label: "Habitation Priority", available: false },
   { href: "/sites", label: "Relocation Sites", available: false },
   { href: "/plan", label: "Optimised Plan", available: false },
@@ -83,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[var(--color-abyss)]">
         <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[var(--color-surface)]/95 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3">
-            <Link href="/model" className="rounded-sm">
+            <Link href="/risk" className="rounded-sm">
               <Wordmark />
             </Link>
             <StatusStrip />

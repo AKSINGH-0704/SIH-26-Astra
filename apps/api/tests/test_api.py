@@ -166,5 +166,111 @@ def test_layers_flip_to_available_only_when_their_artifacts_exist(client: TestCl
     assert layers["exposure.habitations"]["available"] is True
     assert layers["network.roads"]["available"] is True
     # Not built yet: the catalogue must not claim them.
-    assert layers["hazard.composite"]["available"] is False
+    assert layers["network.routes"]["available"] is False
     assert layers["plan.assignments"]["available"] is False
+
+
+def test_risk_summary_reports_what_was_computed(client: TestClient) -> None:
+    payload = client.get("/risk/summary").json()
+    assert set(payload["class_share_percent"]) == {"LOW", "WATCH", "ELEVATED", "CRITICAL"}
+    assert sum(payload["class_share_percent"].values()) == pytest.approx(100.0, abs=0.2)
+    assert payload["hazards_modelled"] == ["LANDSLIDE", "FLOOD", "CLOUDBURST"]
+    assert payload["incidents_used"] > 0
+    assert payload["grid_rows"] > 100 and payload["grid_cols"] > 100
+
+
+def test_zones_carry_their_arithmetic_and_never_claim_authority(client: TestClient) -> None:
+    payload = client.get("/risk/zones").json()
+    assert payload["classification_label"] == "ASTRA analytical classification"
+    assert "SDMA" in payload["decision_authority"]
+    assert payload["features"], "the baseline scenario must produce zones"
+    for feature in payload["features"]:
+        properties = feature["properties"]
+        assert properties["classification_label"] == "ASTRA analytical classification"
+        assert properties["max_composite"] >= properties["mean_composite"]
+        assert properties["area_km2"] > 0
+        assert properties["cell_count"] > 0
+        assert properties["rule_version"]
+        assert properties["dominant_hazard"] in {"LANDSLIDE", "FLOOD", "CLOUDBURST"}
+
+
+def test_zone_population_totals_agree_with_the_habitation_layer(client: TestClient) -> None:
+    zones = client.get("/risk/zones").json()
+    habitations = {h["id"]: h for h in client.get("/habitations").json()["habitations"]}
+    for feature in zones["features"]:
+        properties = feature["properties"]
+        expected = sum(
+            habitations[habitation_id]["population"]
+            for habitation_id in properties["habitation_ids"]
+        )
+        assert properties["population_intersected"] == expected
+
+
+def test_risk_cell_decomposes_the_score_into_its_factors(client: TestClient) -> None:
+    payload = client.get("/risk/cell", params={"lon": 79.56, "lat": 30.55}).json()
+    hazard = payload["hazard"]
+    assert 0 <= hazard["composite"] <= 100
+    assert hazard["classification_label"] == "ASTRA analytical classification"
+    assert payload["formula"]["formula_id"] == "hazard.hsi"
+    assert payload["composite_formula"]["formula_id"] == "hazard.composite"
+
+    for score in hazard["per_hazard"]:
+        weights = sum(factor["weight"] for factor in score["factors"])
+        assert weights == pytest.approx(1.0, abs=1e-6), "factor weights must sum to 1"
+        recomputed = 100.0 * sum(factor["contribution"] for factor in score["factors"])
+        assert recomputed == pytest.approx(score["score"], abs=0.05), (
+            "the published score must equal the sum of its published contributions"
+        )
+        for factor in score["factors"]:
+            assert factor["contribution"] == pytest.approx(
+                factor["weight"] * factor["normalised_value"], abs=1e-6
+            )
+
+
+def test_composite_equals_dominance_preserving_formula(client: TestClient) -> None:
+    payload = client.get("/risk/cell", params={"lon": 79.5, "lat": 30.45}).json()
+    config = client.get("/model/config").json()["config"]
+    lam = config["hazard"]["composite_lambda"]["value"]
+    scores = sorted((score["score"] for score in payload["hazard"]["per_hazard"]), reverse=True)
+    expected = min(100.0, scores[0] + lam * scores[1])
+    assert payload["hazard"]["composite"] == pytest.approx(expected, abs=0.05)
+
+
+def test_confidence_is_reported_separately_from_the_score(client: TestClient) -> None:
+    payload = client.get("/risk/cell", params={"lon": 79.5, "lat": 30.45}).json()
+    confidence = payload["confidence"]
+    assert 0.0 <= confidence["value"] <= 1.0
+    assert confidence["band"] in {"HIGH", "MEDIUM", "LOW"}
+    assert "never multiplied into it" in confidence["note"]
+
+
+def test_risk_cell_outside_the_grid_is_a_404(client: TestClient) -> None:
+    assert client.get("/risk/cell", params={"lon": 77.2, "lat": 28.6}).status_code == 404
+
+
+def test_habitation_hazard_rows_are_ranked_and_labelled(client: TestClient) -> None:
+    payload = client.get("/risk/habitations").json()
+    rows = payload["habitations"]
+    assert len(rows) == 12
+    composites = [row["hazard"]["composite"] for row in rows]
+    assert composites == sorted(composites, reverse=True)
+    assert "not a probability" in payload["note"]
+    for row in rows:
+        assert row["footprint_max_composite"] >= row["footprint_mean_composite"]
+        assert row["confidence"]["band"] in {"HIGH", "MEDIUM", "LOW"}
+
+
+def test_hazard_layers_are_now_available_in_the_catalogue(client: TestClient) -> None:
+    layers = {layer["id"]: layer for layer in client.get("/layers").json()["layers"]}
+    assert layers["hazard.composite"]["available"] is True
+    assert layers["hazard.red_zones"]["available"] is True
+    assert layers["hazard.confidence"]["available"] is True
+    # Still not built: the catalogue must keep saying so.
+    assert layers["network.routes"]["available"] is False
+    assert layers["plan.assignments"]["available"] is False
+
+
+def test_roads_geojson_is_served_for_the_map(client: TestClient) -> None:
+    payload = client.get("/layers/roads.geojson").json()
+    assert payload["properties"]["road_ways"] > 0
+    assert payload["features"][0]["geometry"]["type"] == "LineString"
