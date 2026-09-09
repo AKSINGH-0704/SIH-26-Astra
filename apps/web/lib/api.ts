@@ -7,7 +7,9 @@
  */
 
 import type {
+  HabitationDetailResponse,
   HabitationHazardResponse,
+  HabitationPriorityResponse,
   HabitationsResponse,
   HealthStatus,
   LayersResponse,
@@ -64,6 +66,9 @@ export const api = {
   riskSummary: () => get<RiskSummaryResponse>("/risk/summary"),
   riskZones: () => get<ZonesResponse>("/risk/zones"),
   riskHabitations: () => get<HabitationHazardResponse>("/risk/habitations"),
+  priorityHabitations: () => get<HabitationPriorityResponse>("/priority/habitations"),
+  priorityHabitation: (id: string) =>
+    get<HabitationDetailResponse>(`/priority/habitations/${encodeURIComponent(id)}`),
   riskCell: (lon: number, lat: number) =>
     get<RiskCellResponse>(`/risk/cell?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}`),
 };

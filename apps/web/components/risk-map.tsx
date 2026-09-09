@@ -86,6 +86,8 @@ export function RiskMap({
   selected,
   onSelectPoint,
   onSelectZone,
+  habitationColour,
+  highlightId,
 }: {
   studyArea: StudyArea;
   terrainUrl: string;
@@ -99,6 +101,10 @@ export function RiskMap({
   selected: { lon: number; lat: number } | null;
   onSelectPoint: (lon: number, lat: number) => void;
   onSelectZone: (zoneId: string | null) => void;
+  /** Optional per-habitation colour, so a screen can encode phase or rank. */
+  habitationColour?: (habitation: Habitation) => [number, number, number, number];
+  /** Habitation to ring, when a list selection drives the map. */
+  highlightId?: string | null;
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -243,10 +249,19 @@ export function RiskMap({
           radiusMaxPixels: 22,
           filled: true,
           stroked: true,
-          getFillColor: [198, 154, 62, 170],
-          getLineColor: [245, 224, 168, 240],
-          getLineWidth: 25,
+          getFillColor: (habitation: Habitation) =>
+            habitationColour?.(habitation) ?? [198, 154, 62, 170],
+          getLineColor: (habitation: Habitation) =>
+            habitation.id === highlightId ? [231, 238, 247, 255] : [245, 224, 168, 220],
+          getLineWidth: (habitation: Habitation) =>
+            habitation.id === highlightId ? 60 : 25,
           lineWidthMinPixels: 1.5,
+          lineWidthMaxPixels: 4,
+          updateTriggers: {
+            getFillColor: [habitationColour, highlightId],
+            getLineColor: [highlightId],
+            getLineWidth: [highlightId],
+          },
           pickable: true,
           onClick: (info: { object?: Habitation }) => {
             if (info.object) {
@@ -285,6 +300,8 @@ export function RiskMap({
     selected,
     handleZoneClick,
     onSelectPoint,
+    habitationColour,
+    highlightId,
   ]);
 
   return (

@@ -199,3 +199,83 @@ constant would have looked like evidence and would not have been one.
 - The Risk Explorer was driven in a real browser against a production build: the
   map renders, layers toggle, opacity works, clicking a habitation returns its
   decomposition. Zero console errors.
+
+---
+
+## Slice 4 - exposure, vulnerability, history and phased relocation prioritisation
+
+**Date:** 2026-09-10
+**Commit:** `feat(priority): exposure, vulnerability and phased relocation prioritisation`
+
+### What actually works end to end
+
+Every habitation now carries four separately computed quantities - hazard over
+its footprint, exposure, vulnerability and recency-weighted incident history -
+combined into a priority score by declared weights, and assigned to Immediate,
+Short-term or Medium-term by documented thresholds plus override rules that name
+themselves when they fire. The Habitation Priority screen shows the ranked list
+grouped by phase, colours the map by phase, and opens a reasoning drawer that
+reproduces the whole calculation, component by component and factor by factor.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. Four weighted components, each decomposed into named factors with measured values. |
+| 2 | Can every number on screen be traced in one hop? | Yes. The drawer shows priority = sum of four contributions, then each component's own factor table with measured, normalised, weight and contribution. Tests assert the published score equals the sum of the published contributions to within 0.02. |
+| 3 | Is anything displayed that is not backed by a real value? | No. Phase colours on the map come from the computed phase; the override chip appears only when a rule actually fired. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. Tier thresholds are described in the config as a policy choice about how much a district can act on at once, and that framing is on screen. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic without blending? | Yes, and it now matters: exposure and vulnerability factors are marked SYNTHETIC_CALIBRATED, history REAL_OPEN, hazard DERIVED. The habitation confidence is explicitly lower than the terrain confidence because of that mix. |
+| 6 | Are the same figures identical across screens? | Yes. Habitation hazard composite matches between the Risk Explorer and the Priority screen because both render the same engine output. |
+| 7 | Does the opening avoid looking like a generic dashboard? | Yes. Both built screens are map-dominant with a reasoning panel, not a KPI wall. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes. The decision-authority line, the scenario disclaimer and the history caveat sit in the drawer footer, and "priority is a ranking score, not a probability" is at the top of the list. |
+| 9 | Does it run with the network off? | Yes; nothing new reaches outside. |
+| 10 | Can the optimiser breach capacity? | Not applicable yet - and this slice is careful about that. `CAPACITY_BLOCKED` exists in the vocabulary but is never assigned, because no capacity engine has run. Every row instead lists the checks still pending: matched capacity (Engine 4) and route reliability (Engine 5). |
+| 11 | Any feature that looks impressive but changes no decision? | No new ones. The waterway-distance surface is still on notice for Slice 6. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. Devgarh Tok, priority 61.1: hazard 0.875 x 0.35 = 0.306, exposure 0.146 x 0.25 = 0.036, vulnerability 0.558 x 0.25 = 0.139, history 0.859 x 0.15 = 0.129. Escalated to Immediate by the named Critical-zone vulnerability override, not by its score. |
+
+### Red-team finding
+
+**The first run of this engine ranked every habitation between 27 and 40, with
+nothing reaching Immediate or Short-term, and the cause was a real modelling
+error rather than a threshold problem.** Vulnerability was computed as a weighted
+average of demographic shares, which lands near 0.2 for any realistic settlement
+because those shares are individually small - so a component carrying a declared
+weight of 0.25 was contributing about a fifth of that in practice, while hazard
+(naturally 0.5-0.9) dominated. The components were on incomparable scales and the
+configuration was quietly not doing what it said.
+
+The fix is a stated reference profile: vulnerability is scaled against the score
+of an acutely vulnerable settlement (25% elderly, 15% under five, 6% disability,
+5% medically dependent, 70% low-income households, 100% weak construction), each
+element a DEMO_CONFIG constant. Vulnerability now spans 0.51-0.58 across the
+corridor and its weight carries what the config says it carries. A test asserts
+that the reference profile scores 1.0 and that a resilient settlement scores
+below 0.25.
+
+Two related findings from the same pass. The history factor was dead - a
+five-year decay constant against an inventory whose most recent record is nine
+years old left every habitation at 0.00-0.05, discarding the one genuinely real
+evidence layer in the priority score; the constant is now ten years, with the
+reasoning in its description. And the confidence component named
+`evidence_recency` was actually measuring how much incident evidence exists
+nearby, so it was renamed `evidence_support` to say what it measures.
+
+Standing weakness, recorded rather than hidden: the tier thresholds were revised
+after seeing the score distribution. That is legitimate calibration - the
+thresholds are a policy statement about how much a district can move at once, and
+they are labelled as such - but it is exactly the kind of choice that the weight
+sensitivity analysis in Slice 10 has to test rather than assert.
+
+### Verification
+
+- 184 backend tests pass, 40 of them new: exposure against fixed references and
+  its saturation point, vulnerability against the reference profile in both
+  directions, history decay and radius cut-off, the priority sum against hand
+  arithmetic, exact behaviour at all three tier thresholds, both override rules
+  firing only inside a Critical zone, and both being named when they fire.
+- API tests assert the components arrive separately, that published contributions
+  reproduce the published score, that phase totals account for every resident,
+  and that pending constraint checks are declared on every row.
+- `ruff` clean, gate PASS, `tsc --noEmit` clean, ESLint clean, `next build`
+  succeeds, screen driven in a real browser with zero console errors.

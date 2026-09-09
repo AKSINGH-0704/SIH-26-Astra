@@ -28,8 +28,24 @@ file covers what exists and how to run it.
 | 1 | Monorepo, domain model, versioned config, provenance registry, contracts pipeline, deployment baseline | Done |
 | 2 | Study-area data ingest, derived terrain and hydrology surfaces, calibrated synthetic habitations and sites | Done |
 | 3 | Multi-hazard susceptibility engine, analytical red zones, map surface | Done |
-| 4 | Exposure, vulnerability and phased relocation prioritisation | Next |
-| 5-13 | Capacity, routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+| 4 | Exposure, vulnerability, history and phased relocation prioritisation | Done |
+| 5 | Site suitability gates and multi-constraint carrying capacity | Next |
+| 6-13 | Routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+
+### Priority and phasing
+
+Hazard is not consequence, and ASTRA keeps them apart:
+
+    P = 100 x ( 0.35*hazard + 0.25*exposure + 0.25*vulnerability + 0.15*history )
+
+Each component is computed and reported separately with its own factor
+decomposition, and each is scaled against a stated reference so that a declared
+weight carries what it says it carries. Phase tiering applies documented
+thresholds plus override rules - a vulnerable or populous settlement standing on
+Critical ground is escalated to Immediate regardless of score, and the rule that
+escalated it is named on screen. Evidence confidence is computed separately and
+is deliberately lower than the confidence in the terrain, because the demographic
+composition is an assumption while the terrain is measured.
 
 ### The hazard model
 

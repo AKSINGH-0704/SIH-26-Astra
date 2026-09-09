@@ -160,7 +160,7 @@
             "type": "string"
           },
           "engine_version": {
-            "default": "0.2.0",
+            "default": "0.3.0",
             "title": "Engine Version",
             "type": "string"
           },
@@ -828,6 +828,33 @@
           "priority": {
             "$ref": "#/components/schemas/PriorityConfig",
             "default": {
+              "confidence_synthetic_penalty": {
+                "description": "Provenance score assigned to a synthetic input when computing a habitation's evidence confidence. Demographic composition is assumed, so confidence in a habitation's priority is lower than confidence in the terrain beneath it.",
+                "key": "confidence.synthetic_input_penalty",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.45
+              },
+              "exposure_reference_facilities": {
+                "description": "Number of critical facilities at which that component of exposure saturates.",
+                "key": "exposure.reference_facilities",
+                "provenance": "DEMO_CONFIG",
+                "unit": "facilities",
+                "value": 4.0
+              },
+              "exposure_reference_households": {
+                "description": "Household count at which the household component of exposure saturates.",
+                "key": "exposure.reference_households",
+                "provenance": "DEMO_CONFIG",
+                "unit": "households",
+                "value": 300.0
+              },
+              "exposure_reference_population": {
+                "description": "Population at which the population component of exposure saturates. A fixed reference rather than the largest settlement in the set, so a score does not change when a habitation is added or removed.",
+                "key": "exposure.reference_population",
+                "provenance": "DEMO_CONFIG",
+                "unit": "persons",
+                "value": 1500.0
+              },
               "exposure_w_facilities": {
                 "description": "Share of exposure driven by critical facilities (school, clinic, anganwadi).",
                 "key": "exposure.w_facilities",
@@ -846,6 +873,25 @@
                 "provenance": "DEMO_CONFIG",
                 "value": 0.55
               },
+              "footprint_radius_m": {
+                "description": "Radius over which composite hazard is summarised for a habitation. These settlements are compact; 300 m covers the built footprint and the slope immediately above it without reaching into the next valley.",
+                "key": "priority.footprint_radius_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 300.0
+              },
+              "footprint_w_max": {
+                "description": "Weight on the maximum composite within the footprint. The maximum is what can reach the settlement, so it counts - but taking the maximum alone would push every settlement in this terrain to 100 and destroy the ranking.",
+                "key": "priority.footprint_w_max",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.4
+              },
+              "footprint_w_mean": {
+                "description": "Weight on the mean composite across the habitation footprint. The mean describes the ground the settlement actually sits on.",
+                "key": "priority.footprint_w_mean",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.6
+              },
               "history_radius_m": {
                 "description": "Radius around a habitation within which historical incidents are counted.",
                 "key": "history.radius_m",
@@ -853,12 +899,18 @@
                 "unit": "m",
                 "value": 3000.0
               },
+              "history_reference_weighted_events": {
+                "description": "Recency-weighted incident total at which the history factor saturates. Fixed so the factor means the same thing in every scenario. Set against the observed record for this corridor: reported inventories are sparse, and a reference set far above what the record can produce would make the one real evidence layer contribute nothing.",
+                "key": "history.reference_weighted_events",
+                "provenance": "DEMO_CONFIG",
+                "value": 1.5
+              },
               "history_tau_days": {
-                "description": "Exponential decay constant for incident recency (five years).",
+                "description": "Exponential decay constant for incident recency, ten years. A slope that failed a decade ago is still a slope that fails; a five-year memory would discard most of the published record for this corridor.",
                 "key": "history.tau_days",
                 "provenance": "DEMO_CONFIG",
                 "unit": "days",
-                "value": 1825.0
+                "value": 3650.0
               },
               "override_critical_vulnerability": {
                 "description": "Vulnerability index at or above which a habitation inside a Critical zone is escalated to Immediate regardless of its composite priority score.",
@@ -866,11 +918,18 @@
                 "provenance": "DEMO_CONFIG",
                 "value": 0.55
               },
+              "override_critical_zone_population": {
+                "description": "Population inside a Critical zone at or above which a habitation is escalated to Immediate regardless of its composite priority score. A large settlement on Critical ground is an immediate question even when its averaged score is not the highest in the district.",
+                "key": "tier.override.critical_zone_population",
+                "provenance": "DEMO_CONFIG",
+                "unit": "persons",
+                "value": 400.0
+              },
               "tier_immediate_min_priority": {
-                "description": "Priority score at or above which a habitation is considered for Immediate.",
+                "description": "Priority score at or above which a habitation is considered for Immediate. A policy choice about how much a district can act on at once, not a statutory trigger: set so the Immediate tier covers the settlements a district could plausibly move within one season.",
                 "key": "tier.immediate.min_priority",
                 "provenance": "DEMO_CONFIG",
-                "value": 75.0
+                "value": 55.0
               },
               "tier_medium_term_min_priority": {
                 "description": "Priority score at or above which a habitation enters Medium-term planning.",
@@ -879,10 +938,46 @@
                 "value": 35.0
               },
               "tier_short_term_min_priority": {
-                "description": "Priority score at or above which a habitation is considered for Short-term.",
+                "description": "Priority score at or above which a habitation is considered for Short-term relocation, once bottlenecks identified by the capacity engine are relieved.",
                 "key": "tier.short_term.min_priority",
                 "provenance": "DEMO_CONFIG",
-                "value": 55.0
+                "value": 45.0
+              },
+              "vuln_reference_children_u5": {
+                "description": "Under-five share in the acutely vulnerable reference profile.",
+                "key": "vulnerability.reference.children_u5",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.15
+              },
+              "vuln_reference_disability": {
+                "description": "Disability share in the acutely vulnerable reference profile.",
+                "key": "vulnerability.reference.disability",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.06
+              },
+              "vuln_reference_elderly": {
+                "description": "Elderly share in the acutely vulnerable reference profile against which the vulnerability index is scaled.",
+                "key": "vulnerability.reference.elderly",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.25
+              },
+              "vuln_reference_kutcha": {
+                "description": "Kutcha and semi-pucca dwelling share in the acutely vulnerable reference profile: every dwelling of weak construction.",
+                "key": "vulnerability.reference.kutcha_semi_pucca",
+                "provenance": "DEMO_CONFIG",
+                "value": 1.0
+              },
+              "vuln_reference_low_income": {
+                "description": "Low-income household share in the acutely vulnerable reference profile.",
+                "key": "vulnerability.reference.low_income",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.7
+              },
+              "vuln_reference_medical_dependency": {
+                "description": "Medically dependent share in the acutely vulnerable reference profile.",
+                "key": "vulnerability.reference.medical_dependency",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.05
               },
               "vuln_w_children_u5": {
                 "description": "Share of children under five.",
@@ -1047,7 +1142,7 @@
             }
           },
           "version": {
-            "default": "1.5.0",
+            "default": "1.7.0",
             "title": "Version",
             "type": "string"
           }
@@ -1344,6 +1439,46 @@
           }
         },
         "title": "CapacityConfig",
+        "type": "object"
+      },
+      "ComponentScoreResponse": {
+        "description": "One input to the priority score, with its own factor decomposition.",
+        "properties": {
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/FactorContribution"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "formula_id": {
+            "title": "Formula Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "value": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "formula_id",
+          "factors"
+        ],
+        "title": "ComponentScoreResponse",
         "type": "object"
       },
       "CompositeHazard": {
@@ -2370,6 +2505,60 @@
         "title": "Habitation",
         "type": "object"
       },
+      "HabitationDetailResponse": {
+        "description": "Everything behind one habitation's ranking, for the reasoning drawer.",
+        "properties": {
+          "explanation": {
+            "$ref": "#/components/schemas/ValueExplanation"
+          },
+          "exposure_formula": {
+            "$ref": "#/components/schemas/FormulaSpec"
+          },
+          "habitation": {
+            "$ref": "#/components/schemas/Habitation"
+          },
+          "history_formula": {
+            "$ref": "#/components/schemas/FormulaSpec"
+          },
+          "peers_above": {
+            "description": "Habitations ranked immediately above this one, for context.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Peers Above",
+            "type": "array"
+          },
+          "peers_below": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Peers Below",
+            "type": "array"
+          },
+          "priority_formula": {
+            "$ref": "#/components/schemas/FormulaSpec"
+          },
+          "row": {
+            "$ref": "#/components/schemas/HabitationPriorityRow"
+          },
+          "vulnerability_formula": {
+            "$ref": "#/components/schemas/FormulaSpec"
+          }
+        },
+        "required": [
+          "row",
+          "habitation",
+          "explanation",
+          "priority_formula",
+          "exposure_formula",
+          "vulnerability_formula",
+          "history_formula",
+          "peers_above",
+          "peers_below"
+        ],
+        "title": "HabitationDetailResponse",
+        "type": "object"
+      },
       "HabitationHazardResponse": {
         "properties": {
           "classification_label": {
@@ -2472,6 +2661,217 @@
           "zone_id"
         ],
         "title": "HabitationHazardRow",
+        "type": "object"
+      },
+      "HabitationPriorityResponse": {
+        "description": "The ranked decision list behind the Habitation Priority screen.",
+        "properties": {
+          "classification_label": {
+            "title": "Classification Label",
+            "type": "string"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "habitations": {
+            "items": {
+              "$ref": "#/components/schemas/HabitationPriorityRow"
+            },
+            "title": "Habitations",
+            "type": "array"
+          },
+          "history_note": {
+            "title": "History Note",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "priority_note": {
+            "title": "Priority Note",
+            "type": "string"
+          },
+          "scenario_disclaimer": {
+            "title": "Scenario Disclaimer",
+            "type": "string"
+          },
+          "tier_thresholds": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Tier Thresholds",
+            "type": "object"
+          },
+          "total_population_assessed": {
+            "title": "Total Population Assessed",
+            "type": "integer"
+          },
+          "totals_by_phase": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PhaseTotals"
+            },
+            "title": "Totals By Phase",
+            "type": "object"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "required": [
+          "habitations",
+          "totals_by_phase",
+          "total_population_assessed",
+          "weights",
+          "tier_thresholds",
+          "classification_label",
+          "decision_authority",
+          "scenario_disclaimer",
+          "priority_note",
+          "history_note",
+          "computed_at",
+          "model_config_version",
+          "engine_version"
+        ],
+        "title": "HabitationPriorityResponse",
+        "type": "object"
+      },
+      "HabitationPriorityRow": {
+        "description": "A habitation's full assessment: hazard, exposure, vulnerability, history.",
+        "properties": {
+          "centroid": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ConfidenceReport"
+          },
+          "elevation_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation M"
+          },
+          "exposure": {
+            "$ref": "#/components/schemas/ComponentScoreResponse"
+          },
+          "footprint_max_composite": {
+            "title": "Footprint Max Composite",
+            "type": "number"
+          },
+          "footprint_mean_composite": {
+            "title": "Footprint Mean Composite",
+            "type": "number"
+          },
+          "footprint_radius_m": {
+            "title": "Footprint Radius M",
+            "type": "number"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "hazard": {
+            "$ref": "#/components/schemas/CompositeHazard"
+          },
+          "hazard_component": {
+            "$ref": "#/components/schemas/ComponentScoreResponse"
+          },
+          "history": {
+            "$ref": "#/components/schemas/ComponentScoreResponse"
+          },
+          "households": {
+            "title": "Households",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseDecision"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          },
+          "priority_factors": {
+            "items": {
+              "$ref": "#/components/schemas/FactorContribution"
+            },
+            "title": "Priority Factors",
+            "type": "array"
+          },
+          "priority_score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "vulnerability": {
+            "$ref": "#/components/schemas/ComponentScoreResponse"
+          },
+          "zone_class": {
+            "$ref": "#/components/schemas/ZoneClass"
+          },
+          "zone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Id"
+          }
+        },
+        "required": [
+          "rank",
+          "habitation_id",
+          "name",
+          "population",
+          "households",
+          "centroid",
+          "elevation_m",
+          "priority_score",
+          "priority_factors",
+          "hazard",
+          "hazard_component",
+          "footprint_mean_composite",
+          "footprint_max_composite",
+          "footprint_radius_m",
+          "exposure",
+          "vulnerability",
+          "history",
+          "confidence",
+          "zone_class",
+          "zone_id",
+          "phase"
+        ],
+        "title": "HabitationPriorityRow",
         "type": "object"
       },
       "HabitationsResponse": {
@@ -3438,8 +3838,116 @@
         "title": "OptimiserConfig",
         "type": "object"
       },
+      "PhaseDecision": {
+        "description": "Which relocation phase a habitation falls in, and exactly why.",
+        "properties": {
+          "pending_checks": {
+            "description": "Constraint checks that belong in this decision but whose engine has not been built yet. Listed rather than left implicit.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Pending Checks",
+            "type": "array"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rules_applied": {
+            "description": "Override rules that fired, named. An escalation is never silent.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Rules Applied",
+            "type": "array"
+          }
+        },
+        "required": [
+          "phase",
+          "reason"
+        ],
+        "title": "PhaseDecision",
+        "type": "object"
+      },
+      "PhaseTier": {
+        "description": "Relocation phasing tiers \u2014 the PS's exact three-tier language (\u00a75.3).",
+        "enum": [
+          "IMMEDIATE",
+          "SHORT_TERM",
+          "MEDIUM_TERM",
+          "NOT_PRIORITISED",
+          "CAPACITY_BLOCKED"
+        ],
+        "title": "PhaseTier",
+        "type": "string"
+      },
+      "PhaseTotals": {
+        "properties": {
+          "habitations": {
+            "title": "Habitations",
+            "type": "integer"
+          },
+          "households": {
+            "title": "Households",
+            "type": "integer"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "habitations",
+          "population",
+          "households"
+        ],
+        "title": "PhaseTotals",
+        "type": "object"
+      },
       "PriorityConfig": {
         "properties": {
+          "confidence_synthetic_penalty": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Provenance score assigned to a synthetic input when computing a habitation's evidence confidence. Demographic composition is assumed, so confidence in a habitation's priority is lower than confidence in the terrain beneath it.",
+              "key": "confidence.synthetic_input_penalty",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.45
+            }
+          },
+          "exposure_reference_facilities": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Number of critical facilities at which that component of exposure saturates.",
+              "key": "exposure.reference_facilities",
+              "provenance": "DEMO_CONFIG",
+              "unit": "facilities",
+              "value": 4.0
+            }
+          },
+          "exposure_reference_households": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Household count at which the household component of exposure saturates.",
+              "key": "exposure.reference_households",
+              "provenance": "DEMO_CONFIG",
+              "unit": "households",
+              "value": 300.0
+            }
+          },
+          "exposure_reference_population": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Population at which the population component of exposure saturates. A fixed reference rather than the largest settlement in the set, so a score does not change when a habitation is added or removed.",
+              "key": "exposure.reference_population",
+              "provenance": "DEMO_CONFIG",
+              "unit": "persons",
+              "value": 1500.0
+            }
+          },
           "exposure_w_facilities": {
             "$ref": "#/components/schemas/Constant",
             "default": {
@@ -3467,6 +3975,34 @@
               "value": 0.55
             }
           },
+          "footprint_radius_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Radius over which composite hazard is summarised for a habitation. These settlements are compact; 300 m covers the built footprint and the slope immediately above it without reaching into the next valley.",
+              "key": "priority.footprint_radius_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 300.0
+            }
+          },
+          "footprint_w_max": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Weight on the maximum composite within the footprint. The maximum is what can reach the settlement, so it counts - but taking the maximum alone would push every settlement in this terrain to 100 and destroy the ranking.",
+              "key": "priority.footprint_w_max",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.4
+            }
+          },
+          "footprint_w_mean": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Weight on the mean composite across the habitation footprint. The mean describes the ground the settlement actually sits on.",
+              "key": "priority.footprint_w_mean",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.6
+            }
+          },
           "history_radius_m": {
             "$ref": "#/components/schemas/Constant",
             "default": {
@@ -3477,14 +4013,23 @@
               "value": 3000.0
             }
           },
+          "history_reference_weighted_events": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Recency-weighted incident total at which the history factor saturates. Fixed so the factor means the same thing in every scenario. Set against the observed record for this corridor: reported inventories are sparse, and a reference set far above what the record can produce would make the one real evidence layer contribute nothing.",
+              "key": "history.reference_weighted_events",
+              "provenance": "DEMO_CONFIG",
+              "value": 1.5
+            }
+          },
           "history_tau_days": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Exponential decay constant for incident recency (five years).",
+              "description": "Exponential decay constant for incident recency, ten years. A slope that failed a decade ago is still a slope that fails; a five-year memory would discard most of the published record for this corridor.",
               "key": "history.tau_days",
               "provenance": "DEMO_CONFIG",
               "unit": "days",
-              "value": 1825.0
+              "value": 3650.0
             }
           },
           "override_critical_vulnerability": {
@@ -3496,13 +4041,23 @@
               "value": 0.55
             }
           },
+          "override_critical_zone_population": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Population inside a Critical zone at or above which a habitation is escalated to Immediate regardless of its composite priority score. A large settlement on Critical ground is an immediate question even when its averaged score is not the highest in the district.",
+              "key": "tier.override.critical_zone_population",
+              "provenance": "DEMO_CONFIG",
+              "unit": "persons",
+              "value": 400.0
+            }
+          },
           "tier_immediate_min_priority": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Priority score at or above which a habitation is considered for Immediate.",
+              "description": "Priority score at or above which a habitation is considered for Immediate. A policy choice about how much a district can act on at once, not a statutory trigger: set so the Immediate tier covers the settlements a district could plausibly move within one season.",
               "key": "tier.immediate.min_priority",
               "provenance": "DEMO_CONFIG",
-              "value": 75.0
+              "value": 55.0
             }
           },
           "tier_medium_term_min_priority": {
@@ -3517,10 +4072,64 @@
           "tier_short_term_min_priority": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Priority score at or above which a habitation is considered for Short-term.",
+              "description": "Priority score at or above which a habitation is considered for Short-term relocation, once bottlenecks identified by the capacity engine are relieved.",
               "key": "tier.short_term.min_priority",
               "provenance": "DEMO_CONFIG",
-              "value": 55.0
+              "value": 45.0
+            }
+          },
+          "vuln_reference_children_u5": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Under-five share in the acutely vulnerable reference profile.",
+              "key": "vulnerability.reference.children_u5",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.15
+            }
+          },
+          "vuln_reference_disability": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Disability share in the acutely vulnerable reference profile.",
+              "key": "vulnerability.reference.disability",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.06
+            }
+          },
+          "vuln_reference_elderly": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Elderly share in the acutely vulnerable reference profile against which the vulnerability index is scaled.",
+              "key": "vulnerability.reference.elderly",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.25
+            }
+          },
+          "vuln_reference_kutcha": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Kutcha and semi-pucca dwelling share in the acutely vulnerable reference profile: every dwelling of weak construction.",
+              "key": "vulnerability.reference.kutcha_semi_pucca",
+              "provenance": "DEMO_CONFIG",
+              "value": 1.0
+            }
+          },
+          "vuln_reference_low_income": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Low-income household share in the acutely vulnerable reference profile.",
+              "key": "vulnerability.reference.low_income",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.7
+            }
+          },
+          "vuln_reference_medical_dependency": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Medically dependent share in the acutely vulnerable reference profile.",
+              "key": "vulnerability.reference.medical_dependency",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.05
             }
           },
           "vuln_w_children_u5": {
@@ -4401,6 +5010,91 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "ValueExplanation": {
+        "description": "The payload behind every inspectable number in the interface.",
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfidenceReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/FactorContribution"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "formula_id": {
+            "description": "Resolvable in the formula registry.",
+            "title": "Formula Id",
+            "type": "string"
+          },
+          "formula_version": {
+            "title": "Formula Version",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "formula_id",
+          "formula_version",
+          "engine_version",
+          "model_config_version",
+          "computed_at"
+        ],
+        "title": "ValueExplanation",
+        "type": "object"
+      },
       "WeightSet": {
         "description": "Factor weights for one hazard. Must sum to 1.0 (section 5.1).",
         "properties": {
@@ -4741,6 +5435,71 @@
         "summary": "Model Config",
         "tags": [
           "transparency"
+        ]
+      }
+    },
+    "/priority/habitations": {
+      "get": {
+        "description": "The ranked decision list, with every component of every score.",
+        "operationId": "priority_habitations_priority_habitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitationPriorityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Priority Habitations",
+        "tags": [
+          "priority"
+        ]
+      }
+    },
+    "/priority/habitations/{habitation_id}": {
+      "get": {
+        "description": "Why this habitation is ranked where it is - the full reasoning payload.",
+        "operationId": "priority_habitation_detail_priority_habitations__habitation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habitation_id",
+            "required": true,
+            "schema": {
+              "title": "Habitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitationDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Priority Habitation Detail",
+        "tags": [
+          "priority"
         ]
       }
     },

@@ -274,3 +274,83 @@ def test_roads_geojson_is_served_for_the_map(client: TestClient) -> None:
     payload = client.get("/layers/roads.geojson").json()
     assert payload["properties"]["road_ways"] > 0
     assert payload["features"][0]["geometry"]["type"] == "LineString"
+
+
+def test_priority_ranking_is_served_with_its_weights_and_thresholds(client: TestClient) -> None:
+    payload = client.get("/priority/habitations").json()
+    assert len(payload["habitations"]) == 12
+    assert payload["weights"]["hazard"] + payload["weights"]["exposure"] + payload[
+        "weights"
+    ]["vulnerability"] + payload["weights"]["history"] == pytest.approx(1.0, abs=1e-9)
+    assert set(payload["tier_thresholds"]) == {"IMMEDIATE", "SHORT_TERM", "MEDIUM_TERM"}
+    assert "not a probability" in payload["priority_note"]
+    assert "SDMA" in payload["decision_authority"]
+
+
+def test_priority_rows_publish_the_arithmetic_behind_the_score(client: TestClient) -> None:
+    for row in client.get("/priority/habitations").json()["habitations"]:
+        recomputed = 100.0 * sum(f["contribution"] for f in row["priority_factors"])
+        assert recomputed == pytest.approx(row["priority_score"], abs=0.02)
+        for factor in row["priority_factors"]:
+            assert factor["contribution"] == pytest.approx(
+                factor["weight"] * factor["normalised_value"], abs=1e-6
+            )
+        for component in ("hazard_component", "exposure", "vulnerability", "history"):
+            block = row[component]
+            assert 0.0 <= block["value"] <= 1.0
+            assert block["factors"]
+            assert block["formula_id"]
+
+
+def test_hazard_exposure_and_vulnerability_are_reported_separately(client: TestClient) -> None:
+    """The three quantities must never arrive pre-collapsed into one number."""
+    row = client.get("/priority/habitations").json()["habitations"][0]
+    assert row["hazard_component"]["value"] != row["vulnerability"]["value"]
+    assert "hazard" in row and "exposure" in row and "vulnerability" in row
+    assert row["hazard"]["per_hazard"], "the per-hazard vector must survive"
+
+
+def test_phase_totals_account_for_every_assessed_resident(client: TestClient) -> None:
+    payload = client.get("/priority/habitations").json()
+    assert sum(t["habitations"] for t in payload["totals_by_phase"].values()) == len(
+        payload["habitations"]
+    )
+    assert sum(t["population"] for t in payload["totals_by_phase"].values()) == payload[
+        "total_population_assessed"
+    ]
+
+
+def test_an_override_is_named_wherever_it_fires(client: TestClient) -> None:
+    rows = client.get("/priority/habitations").json()["habitations"]
+    overridden = [row for row in rows if row["phase"]["rules_applied"]]
+    assert overridden, "the demonstration scenario should exercise at least one override"
+    for row in overridden:
+        assert row["phase"]["phase"] == "IMMEDIATE"
+        assert row["zone_class"] == "CRITICAL"
+        for rule in row["phase"]["rules_applied"]:
+            assert rule.startswith("OVERRIDE ")
+
+
+def test_unbuilt_constraint_checks_are_declared(client: TestClient) -> None:
+    for row in client.get("/priority/habitations").json()["habitations"]:
+        assert row["phase"]["pending_checks"], "pending engines must be stated, not implied"
+
+
+def test_priority_ranking_is_ordered_and_dense(client: TestClient) -> None:
+    rows = client.get("/priority/habitations").json()["habitations"]
+    assert [row["rank"] for row in rows] == list(range(1, len(rows) + 1))
+    scores = [row["priority_score"] for row in rows]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_habitation_detail_returns_the_full_reasoning(client: TestClient) -> None:
+    payload = client.get("/priority/habitations/H-03").json()
+    assert payload["row"]["habitation_id"] == "H-03"
+    assert payload["priority_formula"]["formula_id"] == "priority.score"
+    assert payload["explanation"]["value"] == payload["row"]["priority_score"]
+    assert "not a probability" in (payload["explanation"]["notes"] or "")
+    assert payload["habitation"]["provenance"] == "SYNTHETIC_CALIBRATED"
+
+
+def test_unknown_habitation_detail_is_a_404(client: TestClient) -> None:
+    assert client.get("/priority/habitations/H-99").status_code == 404

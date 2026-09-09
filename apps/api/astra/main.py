@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
+from astra.api.priority_router import router as priority_router
 from astra.api.risk_router import router as risk_router
 from astra.api.routers import router
 from astra.data.validate import FixtureValidationError, enforce, validate_all
@@ -62,6 +63,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             run.grid.cols,
             run.computed_ms,
         )
+        from astra.api.priority_router import baseline_priority
+
+        ranking = baseline_priority()
+        logger.info(
+            "priority engine warm: %d habitations ranked, top %s at %.1f",
+            len(ranking.rows),
+            ranking.rows[0].habitation.id if ranking.rows else "-",
+            ranking.rows[0].priority_score if ranking.rows else 0.0,
+        )
     except Exception as exc:  # noqa: BLE001 - the API still serves without it
         logger.warning(
             "hazard engine could not warm (%s); risk endpoints will report the cause",
@@ -89,6 +99,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(router)
     app.include_router(risk_router)
+    app.include_router(priority_router)
     return app
 
 

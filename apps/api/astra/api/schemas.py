@@ -13,19 +13,21 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from astra.domain.enums import HazardType, ZoneClass
+from astra.domain.enums import HazardType, PhaseTier, ZoneClass
 from astra.domain.model_config import AstraModelConfig, Constant
 from astra.domain.models import (
     CandidateSite,
     CompositeHazard,
     ConfidenceReport,
     DatasetRecord,
+    FactorContribution,
     Geometry,
     GeoPoint,
     Habitation,
     LayerDescriptor,
     Scenario,
     StudyArea,
+    ValueExplanation,
 )
 from astra.domain.notices import Notices
 from astra.domain.registry import FormulaSpec
@@ -283,3 +285,110 @@ class RiskSummaryResponse(BaseModel):
     computed_ms: float
     model_config_version: str
     engine_version: str
+
+
+class ComponentScoreResponse(BaseModel):
+    """One input to the priority score, with its own factor decomposition."""
+
+    model_config = ConfigDict(frozen=True)
+
+    value: float = Field(ge=0.0, le=1.0)
+    formula_id: str
+    factors: list[FactorContribution]
+    note: str | None = None
+
+
+class PhaseDecision(BaseModel):
+    """Which relocation phase a habitation falls in, and exactly why."""
+
+    model_config = ConfigDict(frozen=True)
+
+    phase: PhaseTier
+    reason: str
+    rules_applied: list[str] = Field(
+        default_factory=list,
+        description="Override rules that fired, named. An escalation is never silent.",
+    )
+    pending_checks: list[str] = Field(
+        default_factory=list,
+        description="Constraint checks that belong in this decision but whose engine "
+        "has not been built yet. Listed rather than left implicit.",
+    )
+
+
+class HabitationPriorityRow(BaseModel):
+    """A habitation's full assessment: hazard, exposure, vulnerability, history."""
+
+    model_config = ConfigDict(frozen=True)
+
+    rank: int
+    habitation_id: str
+    name: str
+    population: int
+    households: int
+    centroid: GeoPoint
+    elevation_m: float | None
+
+    priority_score: float = Field(ge=0.0, le=100.0)
+    priority_factors: list[FactorContribution]
+
+    hazard: CompositeHazard
+    hazard_component: ComponentScoreResponse
+    footprint_mean_composite: float
+    footprint_max_composite: float
+    footprint_radius_m: float
+
+    exposure: ComponentScoreResponse
+    vulnerability: ComponentScoreResponse
+    history: ComponentScoreResponse
+
+    confidence: ConfidenceReport
+    zone_class: ZoneClass
+    zone_id: str | None
+    phase: PhaseDecision
+
+
+class PhaseTotals(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitations: int
+    population: int
+    households: int
+
+
+class HabitationPriorityResponse(BaseModel):
+    """The ranked decision list behind the Habitation Priority screen."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitations: list[HabitationPriorityRow]
+    totals_by_phase: dict[str, PhaseTotals]
+    total_population_assessed: int
+    weights: dict[str, float]
+    tier_thresholds: dict[str, float]
+    classification_label: str
+    decision_authority: str
+    scenario_disclaimer: str
+    priority_note: str
+    history_note: str
+    computed_at: datetime
+    model_config_version: str
+    engine_version: str
+
+
+class HabitationDetailResponse(BaseModel):
+    """Everything behind one habitation's ranking, for the reasoning drawer."""
+
+    model_config = ConfigDict(frozen=True)
+
+    row: HabitationPriorityRow
+    habitation: Habitation
+    explanation: ValueExplanation
+    priority_formula: FormulaSpec
+    exposure_formula: FormulaSpec
+    vulnerability_formula: FormulaSpec
+    history_formula: FormulaSpec
+    peers_above: list[str] = Field(
+        description="Habitations ranked immediately above this one, for context."
+    )
+    peers_below: list[str]

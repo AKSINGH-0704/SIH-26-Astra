@@ -22,10 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.5.0"
+MODEL_CONFIG_VERSION = "1.7.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 """Bumped whenever engine logic (not just constants) changes."""
 
 # Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
@@ -595,10 +595,99 @@ class PriorityConfig(BaseModel):
         "Structural typology proxy: kutcha and semi-pucca dwelling share.",
     )
 
+    footprint_radius_m: Constant = demo(
+        "priority.footprint_radius_m",
+        300.0,
+        "Radius over which composite hazard is summarised for a habitation. These "
+        "settlements are compact; 300 m covers the built footprint and the slope "
+        "immediately above it without reaching into the next valley.",
+        unit="m",
+    )
+    footprint_w_mean: Constant = demo(
+        "priority.footprint_w_mean",
+        0.60,
+        "Weight on the mean composite across the habitation footprint. The mean "
+        "describes the ground the settlement actually sits on.",
+    )
+    footprint_w_max: Constant = demo(
+        "priority.footprint_w_max",
+        0.40,
+        "Weight on the maximum composite within the footprint. The maximum is what "
+        "can reach the settlement, so it counts - but taking the maximum alone would "
+        "push every settlement in this terrain to 100 and destroy the ranking.",
+    )
+    exposure_reference_population: Constant = demo(
+        "exposure.reference_population",
+        1500.0,
+        "Population at which the population component of exposure saturates. A fixed "
+        "reference rather than the largest settlement in the set, so a score does not "
+        "change when a habitation is added or removed.",
+        unit="persons",
+    )
+    exposure_reference_households: Constant = demo(
+        "exposure.reference_households",
+        300.0,
+        "Household count at which the household component of exposure saturates.",
+        unit="households",
+    )
+    exposure_reference_facilities: Constant = demo(
+        "exposure.reference_facilities",
+        4.0,
+        "Number of critical facilities at which that component of exposure saturates.",
+        unit="facilities",
+    )
+    history_reference_weighted_events: Constant = demo(
+        "history.reference_weighted_events",
+        1.5,
+        "Recency-weighted incident total at which the history factor saturates. Fixed "
+        "so the factor means the same thing in every scenario. Set against the "
+        "observed record for this corridor: reported inventories are sparse, and a "
+        "reference set far above what the record can produce would make the one real "
+        "evidence layer contribute nothing.",
+    )
+
+    # --- The reference profile that puts vulnerability on the same 0-1 scale as
+    # --- hazard. Without it, a weighted average of small demographic shares
+    # --- lands near 0.2 for every settlement and the vulnerability weight does
+    # --- nothing, whatever the configuration says it should do.
+    vuln_reference_elderly: Constant = demo(
+        "vulnerability.reference.elderly",
+        0.25,
+        "Elderly share in the acutely vulnerable reference profile against which the "
+        "vulnerability index is scaled.",
+    )
+    vuln_reference_children_u5: Constant = demo(
+        "vulnerability.reference.children_u5",
+        0.15,
+        "Under-five share in the acutely vulnerable reference profile.",
+    )
+    vuln_reference_disability: Constant = demo(
+        "vulnerability.reference.disability",
+        0.06,
+        "Disability share in the acutely vulnerable reference profile.",
+    )
+    vuln_reference_medical_dependency: Constant = demo(
+        "vulnerability.reference.medical_dependency",
+        0.05,
+        "Medically dependent share in the acutely vulnerable reference profile.",
+    )
+    vuln_reference_low_income: Constant = demo(
+        "vulnerability.reference.low_income",
+        0.70,
+        "Low-income household share in the acutely vulnerable reference profile.",
+    )
+    vuln_reference_kutcha: Constant = demo(
+        "vulnerability.reference.kutcha_semi_pucca",
+        1.00,
+        "Kutcha and semi-pucca dwelling share in the acutely vulnerable reference "
+        "profile: every dwelling of weak construction.",
+    )
     history_tau_days: Constant = demo(
         "history.tau_days",
-        1825.0,
-        "Exponential decay constant for incident recency (five years).",
+        3650.0,
+        "Exponential decay constant for incident recency, ten years. A slope that "
+        "failed a decade ago is still a slope that fails; a five-year memory would "
+        "discard most of the published record for this corridor.",
         unit="days",
     )
     history_radius_m: Constant = demo(
@@ -610,13 +699,17 @@ class PriorityConfig(BaseModel):
 
     tier_immediate_min_priority: Constant = demo(
         "tier.immediate.min_priority",
-        75.0,
-        "Priority score at or above which a habitation is considered for Immediate.",
+        55.0,
+        "Priority score at or above which a habitation is considered for Immediate. "
+        "A policy choice about how much a district can act on at once, not a "
+        "statutory trigger: set so the Immediate tier covers the settlements a "
+        "district could plausibly move within one season.",
     )
     tier_short_term_min_priority: Constant = demo(
         "tier.short_term.min_priority",
-        55.0,
-        "Priority score at or above which a habitation is considered for Short-term.",
+        45.0,
+        "Priority score at or above which a habitation is considered for Short-term "
+        "relocation, once bottlenecks identified by the capacity engine are relieved.",
     )
     tier_medium_term_min_priority: Constant = demo(
         "tier.medium_term.min_priority",
@@ -628,6 +721,22 @@ class PriorityConfig(BaseModel):
         0.55,
         "Vulnerability index at or above which a habitation inside a Critical zone is "
         "escalated to Immediate regardless of its composite priority score.",
+    )
+    override_critical_zone_population: Constant = demo(
+        "tier.override.critical_zone_population",
+        400.0,
+        "Population inside a Critical zone at or above which a habitation is escalated "
+        "to Immediate regardless of its composite priority score. A large settlement "
+        "on Critical ground is an immediate question even when its averaged score is "
+        "not the highest in the district.",
+        unit="persons",
+    )
+    confidence_synthetic_penalty: Constant = demo(
+        "confidence.synthetic_input_penalty",
+        0.45,
+        "Provenance score assigned to a synthetic input when computing a habitation's "
+        "evidence confidence. Demographic composition is assumed, so confidence in a "
+        "habitation's priority is lower than confidence in the terrain beneath it.",
     )
 
     @model_validator(mode="after")

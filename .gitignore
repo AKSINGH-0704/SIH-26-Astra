@@ -42,3 +42,6 @@ Thumbs.db
 
 # build artefacts
 *.tsbuildinfo
+
+# local screenshot/debug scratch
+shot.tmp.mjs

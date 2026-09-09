@@ -164,7 +164,7 @@
     }
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
-  "engine_version": "0.2.0",
+  "engine_version": "0.3.0",
   "evidence": {
     "incident_fatality_bonus": {
       "citation": null,
@@ -960,6 +960,38 @@
     }
   },
   "priority": {
+    "confidence_synthetic_penalty": {
+      "citation": null,
+      "description": "Provenance score assigned to a synthetic input when computing a habitation's evidence confidence. Demographic composition is assumed, so confidence in a habitation's priority is lower than confidence in the terrain beneath it.",
+      "key": "confidence.synthetic_input_penalty",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.45
+    },
+    "exposure_reference_facilities": {
+      "citation": null,
+      "description": "Number of critical facilities at which that component of exposure saturates.",
+      "key": "exposure.reference_facilities",
+      "provenance": "DEMO_CONFIG",
+      "unit": "facilities",
+      "value": 4.0
+    },
+    "exposure_reference_households": {
+      "citation": null,
+      "description": "Household count at which the household component of exposure saturates.",
+      "key": "exposure.reference_households",
+      "provenance": "DEMO_CONFIG",
+      "unit": "households",
+      "value": 300.0
+    },
+    "exposure_reference_population": {
+      "citation": null,
+      "description": "Population at which the population component of exposure saturates. A fixed reference rather than the largest settlement in the set, so a score does not change when a habitation is added or removed.",
+      "key": "exposure.reference_population",
+      "provenance": "DEMO_CONFIG",
+      "unit": "persons",
+      "value": 1500.0
+    },
     "exposure_w_facilities": {
       "citation": null,
       "description": "Share of exposure driven by critical facilities (school, clinic, anganwadi).",
@@ -984,6 +1016,30 @@
       "unit": null,
       "value": 0.55
     },
+    "footprint_radius_m": {
+      "citation": null,
+      "description": "Radius over which composite hazard is summarised for a habitation. These settlements are compact; 300 m covers the built footprint and the slope immediately above it without reaching into the next valley.",
+      "key": "priority.footprint_radius_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 300.0
+    },
+    "footprint_w_max": {
+      "citation": null,
+      "description": "Weight on the maximum composite within the footprint. The maximum is what can reach the settlement, so it counts - but taking the maximum alone would push every settlement in this terrain to 100 and destroy the ranking.",
+      "key": "priority.footprint_w_max",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.4
+    },
+    "footprint_w_mean": {
+      "citation": null,
+      "description": "Weight on the mean composite across the habitation footprint. The mean describes the ground the settlement actually sits on.",
+      "key": "priority.footprint_w_mean",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.6
+    },
     "history_radius_m": {
       "citation": null,
       "description": "Radius around a habitation within which historical incidents are counted.",
@@ -992,13 +1048,21 @@
       "unit": "m",
       "value": 3000.0
     },
+    "history_reference_weighted_events": {
+      "citation": null,
+      "description": "Recency-weighted incident total at which the history factor saturates. Fixed so the factor means the same thing in every scenario. Set against the observed record for this corridor: reported inventories are sparse, and a reference set far above what the record can produce would make the one real evidence layer contribute nothing.",
+      "key": "history.reference_weighted_events",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 1.5
+    },
     "history_tau_days": {
       "citation": null,
-      "description": "Exponential decay constant for incident recency (five years).",
+      "description": "Exponential decay constant for incident recency, ten years. A slope that failed a decade ago is still a slope that fails; a five-year memory would discard most of the published record for this corridor.",
       "key": "history.tau_days",
       "provenance": "DEMO_CONFIG",
       "unit": "days",
-      "value": 1825.0
+      "value": 3650.0
     },
     "override_critical_vulnerability": {
       "citation": null,
@@ -1008,13 +1072,21 @@
       "unit": null,
       "value": 0.55
     },
+    "override_critical_zone_population": {
+      "citation": null,
+      "description": "Population inside a Critical zone at or above which a habitation is escalated to Immediate regardless of its composite priority score. A large settlement on Critical ground is an immediate question even when its averaged score is not the highest in the district.",
+      "key": "tier.override.critical_zone_population",
+      "provenance": "DEMO_CONFIG",
+      "unit": "persons",
+      "value": 400.0
+    },
     "tier_immediate_min_priority": {
       "citation": null,
-      "description": "Priority score at or above which a habitation is considered for Immediate.",
+      "description": "Priority score at or above which a habitation is considered for Immediate. A policy choice about how much a district can act on at once, not a statutory trigger: set so the Immediate tier covers the settlements a district could plausibly move within one season.",
       "key": "tier.immediate.min_priority",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 75.0
+      "value": 55.0
     },
     "tier_medium_term_min_priority": {
       "citation": null,
@@ -1026,11 +1098,59 @@
     },
     "tier_short_term_min_priority": {
       "citation": null,
-      "description": "Priority score at or above which a habitation is considered for Short-term.",
+      "description": "Priority score at or above which a habitation is considered for Short-term relocation, once bottlenecks identified by the capacity engine are relieved.",
       "key": "tier.short_term.min_priority",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 55.0
+      "value": 45.0
+    },
+    "vuln_reference_children_u5": {
+      "citation": null,
+      "description": "Under-five share in the acutely vulnerable reference profile.",
+      "key": "vulnerability.reference.children_u5",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.15
+    },
+    "vuln_reference_disability": {
+      "citation": null,
+      "description": "Disability share in the acutely vulnerable reference profile.",
+      "key": "vulnerability.reference.disability",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.06
+    },
+    "vuln_reference_elderly": {
+      "citation": null,
+      "description": "Elderly share in the acutely vulnerable reference profile against which the vulnerability index is scaled.",
+      "key": "vulnerability.reference.elderly",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.25
+    },
+    "vuln_reference_kutcha": {
+      "citation": null,
+      "description": "Kutcha and semi-pucca dwelling share in the acutely vulnerable reference profile: every dwelling of weak construction.",
+      "key": "vulnerability.reference.kutcha_semi_pucca",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 1.0
+    },
+    "vuln_reference_low_income": {
+      "citation": null,
+      "description": "Low-income household share in the acutely vulnerable reference profile.",
+      "key": "vulnerability.reference.low_income",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.7
+    },
+    "vuln_reference_medical_dependency": {
+      "citation": null,
+      "description": "Medically dependent share in the acutely vulnerable reference profile.",
+      "key": "vulnerability.reference.medical_dependency",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.05
     },
     "vuln_w_children_u5": {
       "citation": null,
@@ -1229,5 +1349,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.5.0"
+  "version": "1.7.0"
 }

@@ -27,10 +27,10 @@ export const metadata: Metadata = {
 
 const NAV = [
   { href: "/risk", label: "Risk Explorer", available: true },
+  { href: "/priority", label: "Habitation Priority", available: true },
   { href: "/study-area", label: "Study Area & Data", available: true },
   { href: "/model", label: "Model & Provenance", available: true },
   { href: "/command", label: "Command Centre", available: false },
-  { href: "/priority", label: "Habitation Priority", available: false },
   { href: "/sites", label: "Relocation Sites", available: false },
   { href: "/plan", label: "Optimised Plan", available: false },
   { href: "/simulate", label: "What-If Simulation", available: false },
