@@ -7,6 +7,13 @@
           "capacity": {
             "$ref": "#/components/schemas/CapacityConfig",
             "default": {
+              "access_persons_per_route_day": {
+                "description": "People one usable approach route can deliver to a site, being the route throughput ceiling times the daily movement window. Access capacity is the number of approach routes times this figure - the ACCESS row on the capacity table, supplied by the route engine.",
+                "key": "capacity.access_persons_per_route_day",
+                "provenance": "DEMO_CONFIG",
+                "unit": "persons per route",
+                "value": 3200.0
+              },
               "covered_area_m2_per_person": {
                 "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
                 "description": "Minimum covered living area per person.",
@@ -216,7 +223,7 @@
             "type": "string"
           },
           "engine_version": {
-            "default": "0.4.0",
+            "default": "0.5.0",
             "title": "Engine Version",
             "type": "string"
           },
@@ -1100,23 +1107,49 @@
           "route": {
             "$ref": "#/components/schemas/RouteConfig",
             "default": {
+              "access_movement_window_hours": {
+                "description": "Hours of usable movement in a relocation day - daylight on mountain roads, less the time convoys are not running. Throughput times this window is how many people the approach to a site can deliver, which is what makes ACCESS a capacity constraint rather than a yes/no.",
+                "key": "route.access_window_hours",
+                "provenance": "DEMO_CONFIG",
+                "unit": "h",
+                "value": 8.0
+              },
+              "hazard_segment_exposure_threshold": {
+                "description": "Normalised composite hazard at or above which a road segment counts as hazard-exposed for the route's exposure tally and its longest continuous run.",
+                "key": "route.hazard_segment_threshold",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.6
+              },
               "min_reliability_threshold": {
-                "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised.",
+                "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised. A road ASTRA would not plan a relocation convoy down is not a slightly worse road. This threshold is a policy choice about acceptable risk, not a physical constant, and the weight sensitivity analysis is required to test what moves when it moves.",
                 "key": "route.min_reliability",
                 "provenance": "DEMO_CONFIG",
                 "value": 0.6
               },
               "p_fail_bridge_dependency": {
-                "description": "Additional failure probability for a segment dependent on a bridge or culvert.",
+                "description": "Additional failure probability for a segment carrying a bridge or culvert. Not scaled by length: a structure does not fail gradually. Kept low because the OpenStreetMap bridge tag does not distinguish a major span over the Alaknanda from a metre-wide culvert, and ASTRA does not have the structural inventory that would let it tell them apart.",
                 "key": "route.p_fail.bridge_dependency",
                 "provenance": "DEMO_CONFIG",
-                "value": 0.12
+                "value": 0.01
               },
               "p_fail_hazard_coefficient": {
-                "description": "Maximum per-segment failure probability contributed by hazard exposure, scaled by the segment's normalised composite hazard.",
+                "description": "Probability that one reference length of road at maximum modelled hazard susceptibility is impassable when relocation movement is required. This is a planning-horizon figure, not a per-journey one: it asks whether a road is usable across the weeks a phased relocation runs, allowing for normal clearance and restoration, which is why it is far below the chance of a road being blocked at some point during a monsoon.",
                 "key": "route.p_fail.hazard_coefficient",
                 "provenance": "DEMO_CONFIG",
-                "value": 0.45
+                "value": 0.015
+              },
+              "p_fail_reference_length_m": {
+                "description": "Length of fully hazard-exposed road over which the failure coefficient applies in full. Hazard-driven failure is treated as independent per unit of exposed length, so a stretch carrying twice this exposure carries the compounded chance of failing somewhere along it. This is what makes a route's reliability a property of the road rather than of how many junctions OSM happens to have mapped along it.",
+                "key": "route.p_fail.reference_length_m",
+                "provenance": "DEMO_CONFIG",
+                "unit": "m",
+                "value": 1000.0
+              },
+              "point_of_failure_p_fail": {
+                "description": "Segment failure probability at or above which a stretch of road is listed as a point of failure on a route. Every segment of a single-path route is technically one; this threshold, with the bridge test and the no-way-around test, picks out the ones worth an SDMA's attention. It sits near the 95th percentile of segment failure probability in this corridor, so the list names the worst of the road rather than all of it.",
+                "key": "route.point_of_failure_p_fail",
+                "provenance": "DEMO_CONFIG",
+                "value": 0.04
               },
               "safest_risk_alpha": {
                 "description": "Risk aversion in the SAFEST objective: minimise time x (1 + alpha x risk).",
@@ -1198,7 +1231,7 @@
             }
           },
           "version": {
-            "default": "1.8.0",
+            "default": "1.9.0",
             "title": "Version",
             "type": "string"
           }
@@ -1347,6 +1380,16 @@
       },
       "CapacityConfig": {
         "properties": {
+          "access_persons_per_route_day": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "People one usable approach route can deliver to a site, being the route throughput ceiling times the daily movement window. Access capacity is the number of approach routes times this figure - the ACCESS row on the capacity table, supplied by the route engine.",
+              "key": "capacity.access_persons_per_route_day",
+              "provenance": "DEMO_CONFIG",
+              "unit": "persons per route",
+              "value": 3200.0
+            }
+          },
           "covered_area_m2_per_person": {
             "$ref": "#/components/schemas/Constant",
             "default": {
@@ -1575,6 +1618,78 @@
           }
         },
         "title": "CapacityConfig",
+        "type": "object"
+      },
+      "ClosureImpactResponse": {
+        "description": "The before-and-after of a closure, as two real assessments compared.",
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/RouteAssessmentResponse"
+          },
+          "changed": {
+            "items": {
+              "$ref": "#/components/schemas/RouteDeltaRow"
+            },
+            "title": "Changed",
+            "type": "array"
+          },
+          "closed_segment_detail": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentLegResponse"
+            },
+            "title": "Closed Segment Detail",
+            "type": "array"
+          },
+          "closed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "newly_infeasible": {
+            "title": "Newly Infeasible",
+            "type": "integer"
+          },
+          "newly_unreachable": {
+            "title": "Newly Unreachable",
+            "type": "integer"
+          },
+          "population_losing_a_reachable_site": {
+            "title": "Population Losing A Reachable Site",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "closed_segments",
+          "closed_segment_detail",
+          "assessment",
+          "changed",
+          "newly_infeasible",
+          "newly_unreachable",
+          "population_losing_a_reachable_site",
+          "headline"
+        ],
+        "title": "ClosureImpactResponse",
+        "type": "object"
+      },
+      "ClosureRequest": {
+        "description": "Ask what the corridor looks like with these road segments shut.",
+        "properties": {
+          "closed_segments": {
+            "description": "Segment identifiers to close, as returned on route legs.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          }
+        },
+        "title": "ClosureRequest",
         "type": "object"
       },
       "ComponentScoreResponse": {
@@ -3638,6 +3753,75 @@
         "title": "ModelConfigResponse",
         "type": "object"
       },
+      "NetworkSummaryResponse": {
+        "description": "The graph itself: what was built, and how much choice it offers.",
+        "properties": {
+          "bridge_segments": {
+            "title": "Bridge Segments",
+            "type": "integer"
+          },
+          "independent_loops": {
+            "description": "Cycle rank of the network: how many genuinely alternative ways through it exist. A tree has none.",
+            "title": "Independent Loops",
+            "type": "integer"
+          },
+          "nodes": {
+            "title": "Nodes",
+            "type": "integer"
+          },
+          "redundancy_note": {
+            "title": "Redundancy Note",
+            "type": "string"
+          },
+          "segments": {
+            "title": "Segments",
+            "type": "integer"
+          },
+          "segments_by_class": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Segments By Class",
+            "type": "object"
+          },
+          "segments_without_alternative": {
+            "title": "Segments Without Alternative",
+            "type": "integer"
+          },
+          "share_without_alternative": {
+            "title": "Share Without Alternative",
+            "type": "number"
+          },
+          "total_length_km": {
+            "title": "Total Length Km",
+            "type": "number"
+          },
+          "unrouted_ways": {
+            "title": "Unrouted Ways",
+            "type": "integer"
+          },
+          "unscored_segments": {
+            "description": "Road segments dropped from the graph because they lie outside the scored hazard surface. Routing over them would assume an unscored road is a safe one.",
+            "title": "Unscored Segments",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "nodes",
+          "segments",
+          "bridge_segments",
+          "total_length_km",
+          "segments_by_class",
+          "unrouted_ways",
+          "unscored_segments",
+          "independent_loops",
+          "segments_without_alternative",
+          "share_without_alternative",
+          "redundancy_note"
+        ],
+        "title": "NetworkSummaryResponse",
+        "type": "object"
+      },
       "NormalisationConfig": {
         "description": "Bounds that turn a physical measurement into a 0-1 factor value.\n\nA weighted overlay is only meaningful if each factor is normalised on a\nstated scale. These are the stated scales. Each pair is a linear ramp: at or\nbelow ``low`` the factor contributes 0, at or above ``high`` it contributes\n1, and inverted factors (where less is worse) ramp the other way. The bounds\nare ASTRA choices, informed by the observed range in the corridor, and every\none of them is visible in the transparency panel.",
         "properties": {
@@ -4168,6 +4352,52 @@
           "households"
         ],
         "title": "PhaseTotals",
+        "type": "object"
+      },
+      "PointOfFailureResponse": {
+        "description": "A stretch of road whose loss on its own decides whether the journey happens.",
+        "properties": {
+          "length_m": {
+            "title": "Length M",
+            "type": "number"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "no_alternative": {
+            "title": "No Alternative",
+            "type": "boolean"
+          },
+          "p_fail": {
+            "title": "P Fail",
+            "type": "number"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "segment_id": {
+            "title": "Segment Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "segment_id",
+          "name",
+          "reason",
+          "p_fail",
+          "length_m",
+          "no_alternative"
+        ],
+        "title": "PointOfFailureResponse",
         "type": "object"
       },
       "PriorityConfig": {
@@ -4749,12 +4979,136 @@
         "title": "RiskSummaryResponse",
         "type": "object"
       },
+      "RoadClass": {
+        "description": "OSM-derived road classes used for free-flow speed and reliability (\u00a75.5).",
+        "enum": [
+          "NATIONAL_HIGHWAY",
+          "STATE_HIGHWAY",
+          "DISTRICT_ROAD",
+          "VILLAGE_ROAD",
+          "TRACK"
+        ],
+        "title": "RoadClass",
+        "type": "string"
+      },
+      "RouteAssessmentResponse": {
+        "description": "Every habitation-to-site pair under one set of closures.",
+        "properties": {
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SiteAccessResponse"
+            },
+            "title": "Access",
+            "type": "array"
+          },
+          "closed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          },
+          "constants": {
+            "items": {
+              "$ref": "#/components/schemas/Constant"
+            },
+            "title": "Constants",
+            "type": "array"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "feasible_pairs": {
+            "title": "Feasible Pairs",
+            "type": "integer"
+          },
+          "habitations_with_a_reachable_suitable_site": {
+            "title": "Habitations With A Reachable Suitable Site",
+            "type": "integer"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "network": {
+            "$ref": "#/components/schemas/NetworkSummaryResponse"
+          },
+          "pairs_evaluated": {
+            "title": "Pairs Evaluated",
+            "type": "integer"
+          },
+          "profiles_differ_count": {
+            "title": "Profiles Differ Count",
+            "type": "integer"
+          },
+          "reliability_threshold": {
+            "title": "Reliability Threshold",
+            "type": "number"
+          },
+          "route_blocked_habitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Route Blocked Habitations",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RouteMatrixRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network",
+          "closed_segments",
+          "rows",
+          "access",
+          "pairs_evaluated",
+          "feasible_pairs",
+          "habitations_with_a_reachable_suitable_site",
+          "route_blocked_habitations",
+          "reliability_threshold",
+          "profiles_differ_count",
+          "constants",
+          "decision_authority",
+          "model_config_version",
+          "engine_version"
+        ],
+        "title": "RouteAssessmentResponse",
+        "type": "object"
+      },
       "RouteConfig": {
         "properties": {
+          "access_movement_window_hours": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Hours of usable movement in a relocation day - daylight on mountain roads, less the time convoys are not running. Throughput times this window is how many people the approach to a site can deliver, which is what makes ACCESS a capacity constraint rather than a yes/no.",
+              "key": "route.access_window_hours",
+              "provenance": "DEMO_CONFIG",
+              "unit": "h",
+              "value": 8.0
+            }
+          },
+          "hazard_segment_exposure_threshold": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Normalised composite hazard at or above which a road segment counts as hazard-exposed for the route's exposure tally and its longest continuous run.",
+              "key": "route.hazard_segment_threshold",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.6
+            }
+          },
           "min_reliability_threshold": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised.",
+              "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised. A road ASTRA would not plan a relocation convoy down is not a slightly worse road. This threshold is a policy choice about acceptable risk, not a physical constant, and the weight sensitivity analysis is required to test what moves when it moves.",
               "key": "route.min_reliability",
               "provenance": "DEMO_CONFIG",
               "value": 0.6
@@ -4763,19 +5117,38 @@
           "p_fail_bridge_dependency": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Additional failure probability for a segment dependent on a bridge or culvert.",
+              "description": "Additional failure probability for a segment carrying a bridge or culvert. Not scaled by length: a structure does not fail gradually. Kept low because the OpenStreetMap bridge tag does not distinguish a major span over the Alaknanda from a metre-wide culvert, and ASTRA does not have the structural inventory that would let it tell them apart.",
               "key": "route.p_fail.bridge_dependency",
               "provenance": "DEMO_CONFIG",
-              "value": 0.12
+              "value": 0.01
             }
           },
           "p_fail_hazard_coefficient": {
             "$ref": "#/components/schemas/Constant",
             "default": {
-              "description": "Maximum per-segment failure probability contributed by hazard exposure, scaled by the segment's normalised composite hazard.",
+              "description": "Probability that one reference length of road at maximum modelled hazard susceptibility is impassable when relocation movement is required. This is a planning-horizon figure, not a per-journey one: it asks whether a road is usable across the weeks a phased relocation runs, allowing for normal clearance and restoration, which is why it is far below the chance of a road being blocked at some point during a monsoon.",
               "key": "route.p_fail.hazard_coefficient",
               "provenance": "DEMO_CONFIG",
-              "value": 0.45
+              "value": 0.015
+            }
+          },
+          "p_fail_reference_length_m": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Length of fully hazard-exposed road over which the failure coefficient applies in full. Hazard-driven failure is treated as independent per unit of exposed length, so a stretch carrying twice this exposure carries the compounded chance of failing somewhere along it. This is what makes a route's reliability a property of the road rather than of how many junctions OSM happens to have mapped along it.",
+              "key": "route.p_fail.reference_length_m",
+              "provenance": "DEMO_CONFIG",
+              "unit": "m",
+              "value": 1000.0
+            }
+          },
+          "point_of_failure_p_fail": {
+            "$ref": "#/components/schemas/Constant",
+            "default": {
+              "description": "Segment failure probability at or above which a stretch of road is listed as a point of failure on a route. Every segment of a single-path route is technically one; this threshold, with the bridge test and the no-way-around test, picks out the ones worth an SDMA's attention. It sits near the 95th percentile of segment failure probability in this corridor, so the list names the worst of the road rather than all of it.",
+              "key": "route.point_of_failure_p_fail",
+              "provenance": "DEMO_CONFIG",
+              "value": 0.04
             }
           },
           "safest_risk_alpha": {
@@ -4849,6 +5222,324 @@
           }
         },
         "title": "RouteConfig",
+        "type": "object"
+      },
+      "RouteDeltaRow": {
+        "description": "How one pair changed between the open network and the closed one.",
+        "properties": {
+          "became_unreachable": {
+            "title": "Became Unreachable",
+            "type": "boolean"
+          },
+          "feasible_after": {
+            "title": "Feasible After",
+            "type": "boolean"
+          },
+          "feasible_before": {
+            "title": "Feasible Before",
+            "type": "boolean"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "reliability_after": {
+            "title": "Reliability After",
+            "type": "number"
+          },
+          "reliability_before": {
+            "title": "Reliability Before",
+            "type": "number"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "travel_time_after_min": {
+            "title": "Travel Time After Min",
+            "type": "number"
+          },
+          "travel_time_before_min": {
+            "title": "Travel Time Before Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "site_id",
+          "reliability_before",
+          "reliability_after",
+          "travel_time_before_min",
+          "travel_time_after_min",
+          "feasible_before",
+          "feasible_after",
+          "became_unreachable"
+        ],
+        "title": "RouteDeltaRow",
+        "type": "object"
+      },
+      "RouteMatrixRow": {
+        "description": "One habitation's options, ranked by the reliability it can actually get.",
+        "properties": {
+          "bridges_crossed": {
+            "title": "Bridges Crossed",
+            "type": "integer"
+          },
+          "distance_km": {
+            "title": "Distance Km",
+            "type": "number"
+          },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "habitation_name": {
+            "title": "Habitation Name",
+            "type": "string"
+          },
+          "hazard_exposed_km": {
+            "title": "Hazard Exposed Km",
+            "type": "number"
+          },
+          "points_of_failure": {
+            "title": "Points Of Failure",
+            "type": "integer"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          },
+          "reliability": {
+            "title": "Reliability",
+            "type": "number"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "site_name": {
+            "title": "Site Name",
+            "type": "string"
+          },
+          "site_suitable": {
+            "title": "Site Suitable",
+            "type": "boolean"
+          },
+          "travel_time_min": {
+            "title": "Travel Time Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "habitation_name",
+          "population",
+          "site_id",
+          "site_name",
+          "travel_time_min",
+          "distance_km",
+          "reliability",
+          "feasible",
+          "site_suitable",
+          "bridges_crossed",
+          "hazard_exposed_km",
+          "points_of_failure"
+        ],
+        "title": "RouteMatrixRow",
+        "type": "object"
+      },
+      "RoutePairResponse": {
+        "description": "Fastest and safest for one habitation-site pair, with the trade stated.",
+        "properties": {
+          "destination_id": {
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "fastest": {
+            "$ref": "#/components/schemas/RouteResponse"
+          },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "minutes_paid": {
+            "title": "Minutes Paid",
+            "type": "number"
+          },
+          "origin_id": {
+            "title": "Origin Id",
+            "type": "string"
+          },
+          "profiles_differ": {
+            "title": "Profiles Differ",
+            "type": "boolean"
+          },
+          "reliability_gained": {
+            "title": "Reliability Gained",
+            "type": "number"
+          },
+          "safest": {
+            "$ref": "#/components/schemas/RouteResponse"
+          },
+          "tradeoff": {
+            "title": "Tradeoff",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin_id",
+          "destination_id",
+          "fastest",
+          "safest",
+          "profiles_differ",
+          "minutes_paid",
+          "reliability_gained",
+          "tradeoff",
+          "feasible"
+        ],
+        "title": "RoutePairResponse",
+        "type": "object"
+      },
+      "RouteProfile": {
+        "description": "Routing objectives returned per origin/destination pair (\u00a75.5).",
+        "enum": [
+          "FASTEST",
+          "SAFEST"
+        ],
+        "title": "RouteProfile",
+        "type": "string"
+      },
+      "RouteResponse": {
+        "description": "One evaluated journey under one routing objective.",
+        "properties": {
+          "bridges_crossed": {
+            "title": "Bridges Crossed",
+            "type": "integer"
+          },
+          "destination_id": {
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "distance_km": {
+            "title": "Distance Km",
+            "type": "number"
+          },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "geometry": {
+            "description": "The route drawn end to end as [lon, lat] pairs.",
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Geometry",
+            "type": "array"
+          },
+          "hazard_exposed_km": {
+            "title": "Hazard Exposed Km",
+            "type": "number"
+          },
+          "hazard_segment_count": {
+            "title": "Hazard Segment Count",
+            "type": "integer"
+          },
+          "infeasible_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Infeasible Reason"
+          },
+          "legs": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentLegResponse"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "longest_hazard_run_km": {
+            "title": "Longest Hazard Run Km",
+            "type": "number"
+          },
+          "off_network_m": {
+            "title": "Off Network M",
+            "type": "number"
+          },
+          "off_network_min": {
+            "title": "Off Network Min",
+            "type": "number"
+          },
+          "origin_id": {
+            "title": "Origin Id",
+            "type": "string"
+          },
+          "points_of_failure": {
+            "items": {
+              "$ref": "#/components/schemas/PointOfFailureResponse"
+            },
+            "title": "Points Of Failure",
+            "type": "array"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/RouteProfile"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "reliability": {
+            "description": "Product over segments of (1 - p_fail). A survivability figure, not a confidence in the estimate.",
+            "title": "Reliability",
+            "type": "number"
+          },
+          "risk": {
+            "title": "Risk",
+            "type": "number"
+          },
+          "scored_share": {
+            "description": "Share of this route, by length, that runs over ground ASTRA scored. Below one, part of the road leaves the study area.",
+            "title": "Scored Share",
+            "type": "number"
+          },
+          "travel_time_min": {
+            "title": "Travel Time Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "origin_id",
+          "destination_id",
+          "profile",
+          "travel_time_min",
+          "distance_km",
+          "reliability",
+          "risk",
+          "off_network_m",
+          "off_network_min",
+          "hazard_segment_count",
+          "hazard_exposed_km",
+          "longest_hazard_run_km",
+          "bridges_crossed",
+          "feasible",
+          "scored_share",
+          "infeasible_reason",
+          "legs",
+          "points_of_failure",
+          "geometry",
+          "provenance"
+        ],
+        "title": "RouteResponse",
         "type": "object"
       },
       "Scenario": {
@@ -4943,6 +5634,66 @@
           "study_area"
         ],
         "title": "ScenarioResponse",
+        "type": "object"
+      },
+      "SegmentLegResponse": {
+        "description": "One stretch of road as travelled, with its own contribution to the risk.",
+        "properties": {
+          "hazard_coverage": {
+            "default": 1.0,
+            "title": "Hazard Coverage",
+            "type": "number"
+          },
+          "hazard_max": {
+            "title": "Hazard Max",
+            "type": "number"
+          },
+          "is_bridge": {
+            "title": "Is Bridge",
+            "type": "boolean"
+          },
+          "length_m": {
+            "title": "Length M",
+            "type": "number"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "p_fail": {
+            "title": "P Fail",
+            "type": "number"
+          },
+          "road_class": {
+            "$ref": "#/components/schemas/RoadClass"
+          },
+          "segment_id": {
+            "title": "Segment Id",
+            "type": "string"
+          },
+          "travel_time_min": {
+            "title": "Travel Time Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "segment_id",
+          "name",
+          "road_class",
+          "length_m",
+          "travel_time_min",
+          "hazard_max",
+          "is_bridge",
+          "p_fail"
+        ],
+        "title": "SegmentLegResponse",
         "type": "object"
       },
       "ServiceCapacity": {
@@ -5052,6 +5803,60 @@
         ],
         "title": "ServiceType",
         "type": "string"
+      },
+      "SiteAccessResponse": {
+        "description": "What the road network means for one candidate site.",
+        "properties": {
+          "access_capacity_persons": {
+            "title": "Access Capacity Persons",
+            "type": "number"
+          },
+          "best_reliability": {
+            "title": "Best Reliability",
+            "type": "number"
+          },
+          "feasible_habitations": {
+            "title": "Feasible Habitations",
+            "type": "integer"
+          },
+          "median_travel_time_min": {
+            "title": "Median Travel Time Min",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "population_with_feasible_route": {
+            "title": "Population With Feasible Route",
+            "type": "integer"
+          },
+          "reachable_habitations": {
+            "title": "Reachable Habitations",
+            "type": "integer"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "usable_routes": {
+            "title": "Usable Routes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "site_id",
+          "name",
+          "reachable_habitations",
+          "feasible_habitations",
+          "usable_routes",
+          "best_reliability",
+          "median_travel_time_min",
+          "access_capacity_persons",
+          "population_with_feasible_route"
+        ],
+        "title": "SiteAccessResponse",
+        "type": "object"
       },
       "SiteCapacityListResponse": {
         "description": "Every candidate site, with the district totals a planner needs first.",
@@ -6431,6 +7236,146 @@
         "summary": "Risk Zones",
         "tags": [
           "risk"
+        ]
+      }
+    },
+    "/routes": {
+      "get": {
+        "description": "Every habitation-to-site pair on the open network.",
+        "operationId": "routes_routes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteAssessmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Routes",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/routes/evaluate": {
+      "post": {
+        "description": "Re-route the corridor with the given segments closed, against the baseline.",
+        "operationId": "evaluate_routes_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosureImpactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/routes/network.geojson": {
+      "get": {
+        "description": "The routed graph as GeoJSON, coloured by what each segment contributes.",
+        "operationId": "network_geojson_routes_network_geojson_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Network Geojson Routes Network Geojson Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Network Geojson",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/routes/pair/{habitation_id}/{site_id}": {
+      "get": {
+        "description": "Fastest and safest between one habitation and one site, with the trade.",
+        "operationId": "route_pair_routes_pair__habitation_id___site_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habitation_id",
+            "required": true,
+            "schema": {
+              "title": "Habitation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "title": "Site Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutePairResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Route Pair",
+        "tags": [
+          "routes"
         ]
       }
     },

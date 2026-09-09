@@ -44,11 +44,13 @@ FORMULA_PER_SERVICE = "capacity.per_service"
 FORMULA_EFFECTIVE = "capacity.effective"
 FORMULA_MARGINAL = "capacity.marginal_intervention"
 
-#: Access capacity is a route-throughput question, and the route engine lands in
-#: the next slice. Named here so the gap is visible in the response.
+#: Kept for the case where the route engine cannot run - a missing OSM extract -
+#: so the gap stays visible in the response instead of access silently becoming
+#: unconstrained.
 PENDING_ACCESS = (
     "Access throughput is set by route reliability and travel time (Engine 5). "
-    "Until that engine runs, access is not treated as a binding constraint."
+    "That engine could not run for this site, so access is not treated as a "
+    "binding constraint here and the effective capacity below may be optimistic."
 )
 
 
@@ -281,9 +283,18 @@ class CapacityEngine:
     # -- step 3: per-service capacity ---------------------------------------
 
     def service_capacities(
-        self, site: CandidateSite, usable_area_m2: float
+        self,
+        site: CandidateSite,
+        usable_area_m2: float,
+        access_capacity: float | None = None,
     ) -> list[ServiceCapacity]:
-        """How many people each service at this site can support."""
+        """How many people each service at this site can support.
+
+        ``access_capacity`` is the number of people the roads reaching this site
+        can actually deliver, from Engine 5. Passed as ``None`` when the route
+        engine has not run, in which case access is reported as pending rather
+        than assumed unconstrained.
+        """
         capacity = self.config.capacity
         results: list[ServiceCapacity] = []
 
@@ -347,6 +358,21 @@ class CapacityEngine:
                     norm_provenance=norm.provenance,
                     norm_citation=norm.citation,
                     capacity_persons=round(max(persons, 0.0), 1),
+                )
+            )
+
+        if access_capacity is not None:
+            access_norm = capacity.access_persons_per_route_day
+            results.append(
+                ServiceCapacity(
+                    service=ServiceType.ACCESS,
+                    supply=round(access_capacity / access_norm.value, 2),
+                    supply_unit="usable approach routes",
+                    norm_value=access_norm.value,
+                    norm_unit=access_norm.unit or "",
+                    norm_provenance=access_norm.provenance,
+                    norm_citation=access_norm.citation,
+                    capacity_persons=round(max(access_capacity, 0.0), 1),
                 )
             )
         return results
@@ -414,6 +440,10 @@ class CapacityEngine:
             current = next((s for s in services if s.service is service), None)
             if current is None:
                 continue
+            # Access can bind capacity but is not on this list: unlocking it means
+            # building or reopening a road, which is a different kind of decision
+            # on a different timescale, and pricing it as one more service unit
+            # here would be dishonest about what it takes.
             improved = self._with_added_supply(services, service, unit_size)
             after, next_binding = self.effective(improved)
             next_capacity = (
@@ -461,6 +491,8 @@ class CapacityEngine:
                 persons = supply * capacity.persons_per_latrine.value
             elif service is ServiceType.HEALTHCARE:
                 persons = supply * capacity.persons_per_health_facility.value
+            elif service is ServiceType.ACCESS:
+                persons = supply * capacity.access_persons_per_route_day.value
             else:
                 persons = (
                     supply

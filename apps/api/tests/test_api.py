@@ -423,10 +423,18 @@ def test_capacity_norms_are_served_with_their_citations(client: TestClient) -> N
             assert norm["citation"]
 
 
-def test_access_capacity_is_pending_not_assumed(client: TestClient) -> None:
+def test_access_capacity_is_computed_now_that_the_route_engine_exists(
+    client: TestClient,
+) -> None:
+    """Slice 5 declared access pending on Engine 5. Engine 5 exists, so it is not."""
     for site in client.get("/capacity/sites").json()["sites"]:
-        assert site["pending_constraints"]
-        assert all(s["service"] != "ACCESS" for s in site["services"])
+        assert not site["pending_constraints"], (
+            f"{site['site_id']} still declares a pending constraint"
+        )
+        access = [s for s in site["services"] if s["service"] == "ACCESS"]
+        assert len(access) == 1
+        assert access[0]["capacity_persons"] > 0
+        assert access[0]["norm_provenance"] == "DEMO_CONFIG"
 
 
 def test_unknown_site_capacity_is_a_404(client: TestClient) -> None:
@@ -446,3 +454,153 @@ def test_landcover_refinement_reports_its_own_limits(client: TestClient) -> None
     caveats = " ".join(refinement["caveats"]).lower()
     assert "never from the worldcover product" in caveats
     assert "scores no hazard" in caveats
+
+# ---------------------------------------------------------------------------
+# Engine 5 - routes
+# ---------------------------------------------------------------------------
+
+
+def test_routes_report_reliability_for_every_habitation_site_pair(
+    client: TestClient,
+) -> None:
+    payload = client.get("/routes").json()
+    assert payload["pairs_evaluated"] == 72
+    assert len(payload["rows"]) == 72
+    for row in payload["rows"]:
+        assert 0.0 <= row["reliability"] <= 1.0
+        assert row["travel_time_min"] > 0
+        assert row["feasible"] == (
+            row["reliability"] >= payload["reliability_threshold"]
+        )
+
+
+def test_routes_name_the_habitations_no_suitable_site_can_be_reached_from(
+    client: TestClient,
+) -> None:
+    """A habitation with nowhere reachable and safe is intelligence, not a gap."""
+    payload = client.get("/routes").json()
+    blocked = set(payload["route_blocked_habitations"])
+    usable = {
+        row["habitation_id"]
+        for row in payload["rows"]
+        if row["feasible"] and row["site_suitable"]
+    }
+    assert blocked == {row["habitation_id"] for row in payload["rows"]} - usable
+    assert payload["habitations_with_a_reachable_suitable_site"] == len(usable)
+
+
+def test_the_network_reports_its_own_lack_of_redundancy(client: TestClient) -> None:
+    network = client.get("/routes").json()["network"]
+    assert network["segments"] > 400
+    assert 0.0 <= network["share_without_alternative"] <= 1.0
+    assert str(network["independent_loops"]) in network["redundancy_note"]
+    assert network["unrouted_ways"] == 0
+
+
+def test_a_route_pair_states_the_trade_between_fastest_and_safest(
+    client: TestClient,
+) -> None:
+    pair = client.get("/routes/pair/H-01/S-03").json()
+    assert pair["safest"]["reliability"] >= pair["fastest"]["reliability"] - 1e-9
+    assert pair["tradeoff"]
+    if not pair["profiles_differ"]:
+        assert "no trade to make" in pair["tradeoff"]
+    for profile in ("fastest", "safest"):
+        route = pair[profile]
+        assert route["geometry"], "a route must be drawable"
+        assert len(route["legs"]) > 0
+        assert route["risk"] == pytest.approx(1.0 - route["reliability"], abs=1e-6)
+
+
+def test_every_route_leg_carries_the_facts_behind_its_own_risk(
+    client: TestClient,
+) -> None:
+    route = client.get("/routes/pair/H-06/S-01").json()["safest"]
+    for leg in route["legs"]:
+        assert leg["segment_id"]
+        assert leg["length_m"] > 0
+        assert 0.0 <= leg["p_fail"] <= 1.0
+        assert 0.0 <= leg["hazard_max"] <= 1.0
+    product = 1.0
+    for leg in route["legs"]:
+        product *= 1.0 - leg["p_fail"]
+    assert route["reliability"] == pytest.approx(product, abs=1e-3)
+
+
+def test_an_unknown_route_pair_is_a_404(client: TestClient) -> None:
+    assert client.get("/routes/pair/H-99/S-01").status_code == 404
+
+
+def test_the_network_geojson_carries_what_the_map_needs_to_colour_it(
+    client: TestClient,
+) -> None:
+    payload = client.get("/routes/network.geojson").json()
+    assert payload["type"] == "FeatureCollection"
+    assert payload["features"]
+    for feature in payload["features"][:20]:
+        properties = feature["properties"]
+        assert properties["segment_id"]
+        assert 0.0 <= properties["p_fail"] <= 1.0
+        assert isinstance(properties["no_alternative"], bool)
+    assert "OpenStreetMap" in payload["properties"]["source"]
+
+
+def test_closing_a_road_changes_real_routes_and_says_by_how_much(
+    client: TestClient,
+) -> None:
+    row = max(client.get("/routes").json()["rows"], key=lambda r: r["bridges_crossed"])
+    pair = client.get(f"/routes/pair/{row['habitation_id']}/{row['site_id']}").json()
+    bridges = [leg for leg in pair["safest"]["legs"] if leg["is_bridge"]]
+    assert bridges, "the corridor routes cross bridges"
+    closed = bridges[0]["segment_id"]
+
+    payload = client.post("/routes/evaluate", json={"closed_segments": [closed]}).json()
+    assert payload["closed_segments"] == [closed]
+    assert payload["closed_segment_detail"][0]["segment_id"] == closed
+    assert payload["changed"], "closing a used bridge must change something"
+    for changed in payload["changed"]:
+        assert (
+            changed["reliability_after"] != changed["reliability_before"]
+            or changed["travel_time_after_min"] != changed["travel_time_before_min"]
+            or changed["feasible_after"] != changed["feasible_before"]
+        )
+    assert str(payload["newly_infeasible"]) in payload["headline"]
+
+    after = client.get(f"/routes/pair/{row['habitation_id']}/{row['site_id']}").json()
+    assert after["safest"]["reliability"] == pair["safest"]["reliability"], (
+        "evaluating a closure must not mutate the baseline assessment"
+    )
+
+
+def test_closing_nothing_changes_nothing(client: TestClient) -> None:
+    payload = client.post("/routes/evaluate", json={"closed_segments": []}).json()
+    assert payload["changed"] == []
+    assert payload["newly_infeasible"] == 0
+    assert "change no habitation-site route" in payload["headline"]
+
+
+def test_closing_an_unknown_segment_is_rejected(client: TestClient) -> None:
+    response = client.post(
+        "/routes/evaluate", json={"closed_segments": ["not-a-segment"]}
+    )
+    assert response.status_code == 422
+    assert "unknown road segments" in response.json()["detail"]
+
+
+def test_a_closure_request_cannot_dismantle_the_network(client: TestClient) -> None:
+    segments = [
+        feature["properties"]["segment_id"]
+        for feature in client.get("/routes/network.geojson").json()["features"][:30]
+    ]
+    response = client.post("/routes/evaluate", json={"closed_segments": segments})
+    assert response.status_code == 422
+
+
+def test_route_constants_are_served_with_their_provenance(client: TestClient) -> None:
+    constants = client.get("/routes").json()["constants"]
+    keys = {constant["key"] for constant in constants}
+    assert "route.p_fail.hazard_coefficient" in keys
+    assert "route.min_reliability" in keys
+    for constant in constants:
+        assert constant["provenance"] == "DEMO_CONFIG"
+        assert constant["description"]

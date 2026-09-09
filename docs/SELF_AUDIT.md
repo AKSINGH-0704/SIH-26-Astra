@@ -378,3 +378,128 @@ exists.
   TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint clean,
   `next build` succeeds, and the Sites screen was driven in a real browser -
   selection, hover projection and gate-failure states - with zero console errors.
+
+---
+
+## Slice 6 - route reliability, survivability and closure analysis
+
+**Date:** 2026-09-10
+**Commit:** `feat(routes): route reliability and survivability analysis`
+
+### What actually works end to end
+
+The OpenStreetMap extract is now a routed graph: 392 tagged road ways split at
+their shared OSM nodes into 529 segments, each carrying a class-derived speed, a
+bridge flag and hazard exposure sampled from the composite surface along its own
+length. Every one of the 72 habitation-to-site pairs is routed twice, and each
+route reports travel time, distance, reliability, hazard-exposed length, longest
+continuous exposure, bridges crossed and the named stretches of road that decide
+whether the journey happens. The Access & Routes screen draws the network
+coloured by segment failure probability, draws the selected route, fits the
+camera to it, and lets an official close any segment and re-route the whole
+corridor against the open network.
+
+Slice 5's one declared gap is closed: ACCESS is now a scored capacity row on
+every site, supplied by this engine, and the pending-constraint notice is gone.
+
+The corridor's answer is again a real one. Forty-eight of 72 routes clear the
+60% reliability threshold; eleven of twelve habitations can reach a site that is
+both suitable and reliably reachable, and one - Bhairaunkhal - cannot, which is
+intelligence rather than a missing result. Closing a single 69 m bridge on the
+Joshimath-Malari road changes 36 routes, drops 13 below the threshold and leaves
+six habitations with nowhere suitable they can reach.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. Reliability is a product over segments, each segment's failure probability a documented function of its exposed length and its bridge flag. |
+| 2 | Can every number on screen be traced in one hop? | Yes. The route panel lists each point of failure with its own probability and the reason it qualifies, and a test asserts the route reliability equals the product of the published per-leg figures. |
+| 3 | Is anything displayed that is not backed by a real value? | No. Segment colours come from the computed `p_fail`; the route line is the geometry the router returned; the closure table is two real assessments compared. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. Every speed, coefficient and threshold is `DEMO_CONFIG` and served on the assessment with its description. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic? | Yes. The road geometry is `REAL_OPEN` OpenStreetMap; the routes computed from it are `DERIVED`, and each route reports what share of it ASTRA actually scored. |
+| 6 | Are the same figures identical across screens? | Yes, and one bug here was exactly that - see below. The habitation list, the header totals and the site options are now all read from one assessment object. |
+| 7 | Does the opening avoid looking like a generic dashboard? | The screen is map-dominant with a ranked list and a reasoning panel. The cold open is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes; the decision-authority line closes the panel, and the closure tool is explicitly a what-if against the open network. |
+| 9 | Does it run with the network off? | Yes. The graph is built from the vendored Overpass extract; nothing is fetched at request time. |
+| 10 | Can the optimiser breach capacity or use an unusable route? | Not yet applicable, but the constraint it will be held to now exists: a pair below the reliability threshold is `feasible: false`, not merely expensive, and the optimiser slice must consume that. |
+| 11 | Any feature that looks impressive but changes no decision? | The fastest-versus-safest contrast came close - see below. It is kept because it is correct and because the reason it rarely fires is itself the finding. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. Simalkot to Sarauli Bench: 23.7 km over 12 segments, 92 min at class speeds, reliability 0.81 as the product of twelve survival probabilities, the two worst being 7,575 m of the Joshimath-Malari road at exposure 0.81 (5.2%) and 4,738 m of the Joshimath-Auli road at 0.79 (4.2%), neither with any way around it. |
+
+### Red-team finding
+
+**The first version of the failure model made a route's survivability a property
+of OpenStreetMap's mapping habits rather than of the road.** Failure probability
+was a flat per-segment value, so the same stretch of road reported different
+reliability depending on how many junctions happened to be mapped along it - and
+this corridor has ways running 20 km without one beside ways of 2 m. Fixed by
+scaling hazard failure with *exposed length*: `1 - (1 - c) ** (mean exposure x
+length / reference)`. A test now asserts directly that one segment and the same
+road split into four give identical reliability. The same fix removed a second
+distortion, where taking the maximum exposure over a 20 km way saturated every
+long road at the worst cell it touched, so the model stopped discriminating
+between them.
+
+**The stated SAFEST objective is not a shortest-path problem, and pretending it
+was produced a safest route that was less reliable than the fastest one.**
+`time x (1 + alpha x risk)` is a property of the finished route; minimising it
+edge by edge is not the same thing, and at alpha 20 one pair came back with a
+"safest" route seven minutes slower and four points *less* reliable. The engine
+now generates three candidate paths - quickest, most reliable, and the
+edge-weighted compromise - and scores each against the stated objective, which
+costs three Dijkstra runs and guarantees the safest route is never worse. A test
+asserts that across the whole corridor.
+
+**Unscored road was being treated as safe road.** The Overpass extract runs past
+the study bounding box, and segments outside the scored hazard surface came back
+with exposure 0.0 - which the router read as a perfectly safe road and therefore
+preferred. Segments with no coverage at all are now dropped from the graph and
+counted (`unscored_segments`), and every route reports the share of its length
+that was actually scored, with the caveat on screen when it is below 100%.
+
+**One screen was showing two different assessments at once.** After a closure was
+evaluated, the habitation list drew its "route blocked" badge from the
+closed-network result while the reliability figure beside it still came from the
+baseline. Both are true; on the same row they contradict each other. The header
+totals, the list and the site options now all read one assessment object, and the
+route panel is labelled "open network" while a closure is active.
+
+**Calibration recorded rather than hidden.** The route constants inherited from
+Slice 1 were written for a per-segment model and produced a corridor in which no
+route at all cleared the threshold. They were re-set for the length-scaled model:
+1.5% failure per kilometre of fully exposed road, 1% per bridge structure. These
+are planning-horizon figures - whether a road is usable across the weeks a phased
+relocation runs - and the descriptions say so. They were chosen so the model
+discriminates rather than saturates, which is legitimate calibration and exactly
+the kind of choice the Slice 10 sensitivity analysis has to test rather than
+accept.
+
+**A finding worth stating plainly:** the fastest and safest routes are the same
+road for every pair in this corridor, and that is not a shortcoming of the
+router. The valley network has 15 independent loops across 529 segments, and 76%
+of segments have no alternative at all - removing one disconnects the network.
+There is rarely a second road to choose. The screen says this in its own computed
+numbers rather than leaving a feature looking broken, and a test asserts the
+claim so it cannot quietly stop being true.
+
+### Verification
+
+- 274 backend tests pass, 41 of them new: travel time against class speeds, the
+  failure formula against its documented form, bridge risk as an independent
+  factor, compounding rather than doubling with length, split-invariance of route
+  reliability, the reliability product, infeasibility below the threshold with a
+  stated reason, the off-network walk, the safest route taking a detour and never
+  being less reliable, the trade-off sentence carrying its own numbers, closures
+  forcing a detour and reporting no path rather than a slow one, continuous
+  versus cumulative hazard exposure, points of failure ranked and marked where no
+  alternative exists, and against the real corridor: every pair evaluated, every
+  site snapped to the main network rather than an isolated stub, both feasible
+  and infeasible pairs present, geometry drawn in travel order to within 2% of
+  the reported distance, closing the busiest bridge degrading real routes,
+  determinism across two runs, and access capacity equal to route count times its
+  norm.
+- `ruff` clean, fixture gate PASS, OpenAPI exported and TypeScript contracts
+  regenerated, `tsc --noEmit` clean, ESLint clean, `next build` succeeds, and the
+  Risk, Priority, Sites and Routes screens were all driven in a real browser -
+  including selecting a habitation, routing it, closing a point of failure and
+  evaluating the impact - with zero console errors.

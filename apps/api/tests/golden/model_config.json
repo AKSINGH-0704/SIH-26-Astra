@@ -1,5 +1,13 @@
 {
   "capacity": {
+    "access_persons_per_route_day": {
+      "citation": null,
+      "description": "People one usable approach route can deliver to a site, being the route throughput ceiling times the daily movement window. Access capacity is the number of approach routes times this figure - the ACCESS row on the capacity table, supplied by the route engine.",
+      "key": "capacity.access_persons_per_route_day",
+      "provenance": "DEMO_CONFIG",
+      "unit": "persons per route",
+      "value": 3200.0
+    },
     "covered_area_m2_per_person": {
       "citation": "Sphere Association (2018), The Sphere Handbook: Humanitarian Charter and Minimum Standards in Humanitarian Response, 4th edition.",
       "description": "Minimum covered living area per person.",
@@ -228,7 +236,7 @@
     }
   },
   "disclaimer": "Values marked DEMO_CONFIG are ASTRA's own analytical choices, not government rules or statutory thresholds. Values marked REAL_OPEN carry the published standard they are drawn from.",
-  "engine_version": "0.4.0",
+  "engine_version": "0.5.0",
   "evidence": {
     "incident_fatality_bonus": {
       "citation": null,
@@ -1298,9 +1306,25 @@
     }
   },
   "route": {
+    "access_movement_window_hours": {
+      "citation": null,
+      "description": "Hours of usable movement in a relocation day - daylight on mountain roads, less the time convoys are not running. Throughput times this window is how many people the approach to a site can deliver, which is what makes ACCESS a capacity constraint rather than a yes/no.",
+      "key": "route.access_window_hours",
+      "provenance": "DEMO_CONFIG",
+      "unit": "h",
+      "value": 8.0
+    },
+    "hazard_segment_exposure_threshold": {
+      "citation": null,
+      "description": "Normalised composite hazard at or above which a road segment counts as hazard-exposed for the route's exposure tally and its longest continuous run.",
+      "key": "route.hazard_segment_threshold",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.6
+    },
     "min_reliability_threshold": {
       "citation": null,
-      "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised.",
+      "description": "Route reliability below which a site is treated as infeasible for a habitation in the optimiser, not merely penalised. A road ASTRA would not plan a relocation convoy down is not a slightly worse road. This threshold is a policy choice about acceptable risk, not a physical constant, and the weight sensitivity analysis is required to test what moves when it moves.",
       "key": "route.min_reliability",
       "provenance": "DEMO_CONFIG",
       "unit": null,
@@ -1308,19 +1332,35 @@
     },
     "p_fail_bridge_dependency": {
       "citation": null,
-      "description": "Additional failure probability for a segment dependent on a bridge or culvert.",
+      "description": "Additional failure probability for a segment carrying a bridge or culvert. Not scaled by length: a structure does not fail gradually. Kept low because the OpenStreetMap bridge tag does not distinguish a major span over the Alaknanda from a metre-wide culvert, and ASTRA does not have the structural inventory that would let it tell them apart.",
       "key": "route.p_fail.bridge_dependency",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 0.12
+      "value": 0.01
     },
     "p_fail_hazard_coefficient": {
       "citation": null,
-      "description": "Maximum per-segment failure probability contributed by hazard exposure, scaled by the segment's normalised composite hazard.",
+      "description": "Probability that one reference length of road at maximum modelled hazard susceptibility is impassable when relocation movement is required. This is a planning-horizon figure, not a per-journey one: it asks whether a road is usable across the weeks a phased relocation runs, allowing for normal clearance and restoration, which is why it is far below the chance of a road being blocked at some point during a monsoon.",
       "key": "route.p_fail.hazard_coefficient",
       "provenance": "DEMO_CONFIG",
       "unit": null,
-      "value": 0.45
+      "value": 0.015
+    },
+    "p_fail_reference_length_m": {
+      "citation": null,
+      "description": "Length of fully hazard-exposed road over which the failure coefficient applies in full. Hazard-driven failure is treated as independent per unit of exposed length, so a stretch carrying twice this exposure carries the compounded chance of failing somewhere along it. This is what makes a route's reliability a property of the road rather than of how many junctions OSM happens to have mapped along it.",
+      "key": "route.p_fail.reference_length_m",
+      "provenance": "DEMO_CONFIG",
+      "unit": "m",
+      "value": 1000.0
+    },
+    "point_of_failure_p_fail": {
+      "citation": null,
+      "description": "Segment failure probability at or above which a stretch of road is listed as a point of failure on a route. Every segment of a single-path route is technically one; this threshold, with the bridge test and the no-way-around test, picks out the ones worth an SDMA's attention. It sits near the 95th percentile of segment failure probability in this corridor, so the list names the worst of the road rather than all of it.",
+      "key": "route.point_of_failure_p_fail",
+      "provenance": "DEMO_CONFIG",
+      "unit": null,
+      "value": 0.04
     },
     "safest_risk_alpha": {
       "citation": null,
@@ -1413,5 +1453,5 @@
       "value": 1000.0
     }
   },
-  "version": "1.8.0"
+  "version": "1.9.0"
 }

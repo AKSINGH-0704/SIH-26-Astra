@@ -13,7 +13,16 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from astra.domain.enums import ConfidenceBand, HazardType, PhaseTier, ServiceType, ZoneClass
+from astra.domain.enums import (
+    ConfidenceBand,
+    HazardType,
+    PhaseTier,
+    ProvenanceClass,
+    RoadClass,
+    RouteProfile,
+    ServiceType,
+    ZoneClass,
+)
 from astra.domain.model_config import AstraModelConfig, Constant
 from astra.domain.models import (
     CandidateSite,
@@ -484,3 +493,211 @@ class SiteCapacityListResponse(BaseModel):
     limitation: str
     model_config_version: str
     engine_version: str
+
+# ---------------------------------------------------------------------------
+# Engine 5 - route reliability and survivability
+# ---------------------------------------------------------------------------
+
+
+class SegmentLegResponse(BaseModel):
+    """One stretch of road as travelled, with its own contribution to the risk."""
+
+    model_config = ConfigDict(frozen=True)
+
+    segment_id: str
+    name: str | None
+    road_class: RoadClass
+    length_m: float
+    travel_time_min: float
+    hazard_max: float
+    hazard_coverage: float = 1.0
+    is_bridge: bool
+    p_fail: float
+
+
+class PointOfFailureResponse(BaseModel):
+    """A stretch of road whose loss on its own decides whether the journey happens."""
+
+    model_config = ConfigDict(frozen=True)
+
+    segment_id: str
+    name: str | None
+    reason: str
+    p_fail: float
+    length_m: float
+    no_alternative: bool
+
+
+class RouteResponse(BaseModel):
+    """One evaluated journey under one routing objective."""
+
+    model_config = ConfigDict(frozen=True)
+
+    origin_id: str
+    destination_id: str
+    profile: RouteProfile
+    travel_time_min: float
+    distance_km: float
+    reliability: float = Field(
+        description="Product over segments of (1 - p_fail). A survivability figure, "
+        "not a confidence in the estimate."
+    )
+    risk: float
+    off_network_m: float
+    off_network_min: float
+    hazard_segment_count: int
+    hazard_exposed_km: float
+    longest_hazard_run_km: float
+    bridges_crossed: int
+    feasible: bool
+    scored_share: float = Field(
+        description="Share of this route, by length, that runs over ground ASTRA "
+        "scored. Below one, part of the road leaves the study area."
+    )
+    infeasible_reason: str | None
+    legs: list[SegmentLegResponse]
+    points_of_failure: list[PointOfFailureResponse]
+    geometry: list[list[float]] = Field(
+        description="The route drawn end to end as [lon, lat] pairs."
+    )
+    provenance: ProvenanceClass
+
+
+class RoutePairResponse(BaseModel):
+    """Fastest and safest for one habitation-site pair, with the trade stated."""
+
+    model_config = ConfigDict(frozen=True)
+
+    origin_id: str
+    destination_id: str
+    fastest: RouteResponse
+    safest: RouteResponse
+    profiles_differ: bool
+    minutes_paid: float
+    reliability_gained: float
+    tradeoff: str
+    feasible: bool
+
+
+class SiteAccessResponse(BaseModel):
+    """What the road network means for one candidate site."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    name: str
+    reachable_habitations: int
+    feasible_habitations: int
+    usable_routes: int
+    best_reliability: float
+    median_travel_time_min: float
+    access_capacity_persons: float
+    population_with_feasible_route: int
+
+
+class RouteMatrixRow(BaseModel):
+    """One habitation's options, ranked by the reliability it can actually get."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    habitation_name: str
+    population: int
+    site_id: str
+    site_name: str
+    travel_time_min: float
+    distance_km: float
+    reliability: float
+    feasible: bool
+    site_suitable: bool
+    bridges_crossed: int
+    hazard_exposed_km: float
+    points_of_failure: int
+
+
+class NetworkSummaryResponse(BaseModel):
+    """The graph itself: what was built, and how much choice it offers."""
+
+    model_config = ConfigDict(frozen=True)
+
+    nodes: int
+    segments: int
+    bridge_segments: int
+    total_length_km: float
+    segments_by_class: dict[str, int]
+    unrouted_ways: int
+    unscored_segments: int = Field(
+        description="Road segments dropped from the graph because they lie outside "
+        "the scored hazard surface. Routing over them would assume an unscored road "
+        "is a safe one."
+    )
+    independent_loops: int = Field(
+        description="Cycle rank of the network: how many genuinely alternative ways "
+        "through it exist. A tree has none."
+    )
+    segments_without_alternative: int
+    share_without_alternative: float
+    redundancy_note: str
+
+
+class RouteAssessmentResponse(BaseModel):
+    """Every habitation-to-site pair under one set of closures."""
+
+    model_config = ConfigDict(frozen=True)
+
+    network: NetworkSummaryResponse
+    closed_segments: list[str]
+    rows: list[RouteMatrixRow]
+    access: list[SiteAccessResponse]
+    pairs_evaluated: int
+    feasible_pairs: int
+    habitations_with_a_reachable_suitable_site: int
+    route_blocked_habitations: list[str]
+    reliability_threshold: float
+    profiles_differ_count: int
+    constants: list[Constant]
+    decision_authority: str
+    model_config_version: str
+    engine_version: str
+
+
+class ClosureRequest(BaseModel):
+    """Ask what the corridor looks like with these road segments shut."""
+
+    model_config = ConfigDict(frozen=True)
+
+    closed_segments: list[str] = Field(
+        default_factory=list,
+        description="Segment identifiers to close, as returned on route legs.",
+    )
+
+
+class RouteDeltaRow(BaseModel):
+    """How one pair changed between the open network and the closed one."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    site_id: str
+    reliability_before: float
+    reliability_after: float
+    travel_time_before_min: float
+    travel_time_after_min: float
+    feasible_before: bool
+    feasible_after: bool
+    became_unreachable: bool
+
+
+class ClosureImpactResponse(BaseModel):
+    """The before-and-after of a closure, as two real assessments compared."""
+
+    model_config = ConfigDict(frozen=True)
+
+    closed_segments: list[str]
+    closed_segment_detail: list[SegmentLegResponse]
+    assessment: RouteAssessmentResponse
+    changed: list[RouteDeltaRow]
+    newly_infeasible: int
+    newly_unreachable: int
+    population_losing_a_reachable_site: int
+    headline: str

@@ -7,6 +7,7 @@
  */
 
 import type {
+  ClosureImpactResponse,
   HabitationDetailResponse,
   HabitationHazardResponse,
   HabitationPriorityResponse,
@@ -17,6 +18,8 @@ import type {
   ProvenanceResponse,
   RiskCellResponse,
   RiskSummaryResponse,
+  RouteAssessmentResponse,
+  RoutePairResponse,
   ScenarioListResponse,
   SiteCapacityListResponse,
   SitesResponse,
@@ -73,11 +76,44 @@ export const api = {
     get<HabitationDetailResponse>(`/priority/habitations/${encodeURIComponent(id)}`),
   riskCell: (lon: number, lat: number) =>
     get<RiskCellResponse>(`/risk/cell?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}`),
+  routes: () => get<RouteAssessmentResponse>("/routes"),
+  routePair: (habitationId: string, siteId: string) =>
+    get<RoutePairResponse>(
+      `/routes/pair/${encodeURIComponent(habitationId)}/${encodeURIComponent(siteId)}`,
+    ),
 };
+
+/**
+ * Close roads and get back a complete second assessment beside the baseline.
+ * The only mutating call in the interface, and it mutates nothing on the server:
+ * the closure is an argument, not a state change.
+ */
+export async function evaluateClosure(
+  closedSegments: string[],
+): Promise<ClosureImpactResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/routes/evaluate`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ closed_segments: closedSegments }),
+    });
+  } catch (error) {
+    throw new ApiUnavailableError("/routes/evaluate", error);
+  }
+  if (!response.ok) {
+    throw new ApiUnavailableError("/routes/evaluate", `HTTP ${response.status}`);
+  }
+  return (await response.json()) as ClosureImpactResponse;
+}
 
 /** Served by the API so the map works with the network unplugged. */
 export const HAZARD_OVERLAY_URL = `${API_BASE}/risk/overlay/composite.png`;
 export const ROADS_GEOJSON_URL = `${API_BASE}/layers/roads.geojson`;
+
+/** The routed graph, with each segment's computed failure probability. */
+export const ROUTE_NETWORK_URL = `${API_BASE}/routes/network.geojson`;
 
 /** The API serves the terrain render; the browser fetches it straight from there. */
 export const TERRAIN_PREVIEW_URL = `${API_BASE}/study-area/terrain.jpg`;

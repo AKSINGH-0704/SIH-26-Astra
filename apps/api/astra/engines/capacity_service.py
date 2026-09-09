@@ -76,8 +76,16 @@ def _unsafe_distance_surface(run: RiskRun) -> np.ndarray:
     return np.asarray(distance, dtype="float64")
 
 
-def compute_site_capacity(run: RiskRun | None = None) -> list[SiteCapacity]:
-    """Run Engine 4 over every candidate site in the scenario."""
+def compute_site_capacity(
+    run: RiskRun | None = None, access: dict[str, float] | None = None
+) -> list[SiteCapacity]:
+    """Run Engine 4 over every candidate site in the scenario.
+
+    ``access`` maps a site id to the number of people the roads reaching it can
+    deliver, from Engine 5. Omitting it leaves access declared pending rather
+    than assumed unconstrained, which is what happens if the OSM extract is not
+    vendored.
+    """
     run = run or baseline_risk()
     surfaces = capacity_surfaces()
     engine = CapacityEngine()
@@ -139,7 +147,8 @@ def compute_site_capacity(run: RiskRun | None = None) -> list[SiteCapacity]:
             hand_m=usable.footprint_mean_hand_m,
         )
 
-        services = engine.service_capacities(site, usable.usable_m2)
+        access_capacity = access.get(site.id) if access is not None else None
+        services = engine.service_capacities(site, usable.usable_m2, access_capacity)
         effective, bottleneck = engine.effective(services)
         results.append(
             SiteCapacity(
@@ -151,7 +160,7 @@ def compute_site_capacity(run: RiskRun | None = None) -> list[SiteCapacity]:
                 effective_capacity=effective,
                 bottleneck=bottleneck,
                 interventions=engine.interventions(site, services),
-                pending_constraints=[PENDING_ACCESS],
+                pending_constraints=[] if access_capacity is not None else [PENDING_ACCESS],
             )
         )
 
@@ -188,8 +197,29 @@ def _match_shape(source: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def baseline_capacity() -> list[SiteCapacity]:
-    """The cached baseline capacity assessment, warmed at API startup."""
-    return compute_site_capacity()
+    """The cached baseline capacity assessment, warmed at API startup.
+
+    Engine 5 supplies the access constraint. If the road network is unavailable
+    the assessment still runs, with access declared pending on every site - a
+    capacity figure that says it may be optimistic beats no capacity figure and
+    beats a silently optimistic one.
+    """
+    return compute_site_capacity(access=_baseline_access())
+
+
+def _baseline_access() -> dict[str, float] | None:
+    from astra.engines.routes_service import RouteDataError
+
+    try:
+        from astra.engines.routes_service import baseline_routes
+
+        corridor = baseline_routes()
+    except RouteDataError:
+        return None
+    return {
+        site_id: entry.access_capacity_persons
+        for site_id, entry in corridor.access.items()
+    }
 
 
 def total_effective_capacity(results: list[SiteCapacity]) -> float:

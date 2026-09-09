@@ -19,6 +19,7 @@ from astra.api.capacity_router import router as capacity_router
 from astra.api.priority_router import router as priority_router
 from astra.api.risk_router import router as risk_router
 from astra.api.routers import router
+from astra.api.routes_router import router as routes_router
 from astra.data.validate import FixtureValidationError, enforce, validate_all
 from astra.domain.notices import HOW_THIS_WORKS
 from astra.settings import get_settings
@@ -73,6 +74,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             sum(1 for entry in sites if entry.suitable),
             len(sites),
         )
+        from astra.engines.routes_service import baseline_routes
+
+        corridor = baseline_routes()
+        logger.info(
+            "route engine warm: %d of %d habitation-site pairs clear the "
+            "reliability threshold over %d segments",
+            sum(1 for pair in corridor.pairs.values() if pair.feasible),
+            len(corridor.pairs),
+            len(corridor.network.segments),
+        )
         ranking = baseline_priority()
         logger.info(
             "priority engine warm: %d habitations ranked, top %s at %.1f",
@@ -109,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(risk_router)
     app.include_router(priority_router)
     app.include_router(capacity_router)
+    app.include_router(routes_router)
     return app
 
 

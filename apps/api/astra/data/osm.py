@@ -43,6 +43,10 @@ class OsmWay:
     osm_id: int
     tags: dict[str, str]
     coordinates: tuple[tuple[float, float], ...]
+    #: OSM node identifiers, positionally aligned with ``coordinates``. Two ways
+    #: that share a node meet there, which is the only thing that makes the road
+    #: network a graph rather than a pile of unconnected lines.
+    node_ids: tuple[int, ...] = ()
 
     @property
     def highway(self) -> str | None:
@@ -87,11 +91,19 @@ def load_ways(path: Path) -> list[OsmWay]:
         )
         if len(coordinates) < 2:
             continue
+        node_ids = tuple(int(node) for node in (element.get("nodes") or []))
+        if len(node_ids) != len(coordinates):
+            # ``out body geom`` returns both arrays in the same order. If a way
+            # arrives with them out of step the topology cannot be trusted, so
+            # the way keeps its geometry for display and is excluded from the
+            # routed graph rather than being wired up on a guess.
+            node_ids = ()
         ways.append(
             OsmWay(
                 osm_id=int(element["id"]),
                 tags={str(k): str(v) for k, v in (element.get("tags") or {}).items()},
                 coordinates=coordinates,
+                node_ids=node_ids,
             )
         )
     return ways

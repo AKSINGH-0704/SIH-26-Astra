@@ -22,10 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import HazardType, ProvenanceClass, ServiceType, ZoneClass
 
-MODEL_CONFIG_VERSION = "1.8.0"
+MODEL_CONFIG_VERSION = "1.9.0"
 """Bumped whenever any value below changes. Recorded on every audit record."""
 
-ENGINE_VERSION = "0.4.0"
+ENGINE_VERSION = "0.5.0"
 """Bumped whenever engine logic (not just constants) changes."""
 
 # Citations used repeatedly. Full text in docs/DECISION_MODEL.md (Slice 13).
@@ -924,6 +924,15 @@ class CapacityConfig(BaseModel):
         "acquisition adjacent to the site.",
         unit="m2",
     )
+    access_persons_per_route_day: Constant = demo(
+        "capacity.access_persons_per_route_day",
+        3200.0,
+        "People one usable approach route can deliver to a site, being the route "
+        "throughput ceiling times the daily movement window. Access capacity is the "
+        "number of approach routes times this figure - the ACCESS row on the capacity "
+        "table, supplied by the route engine.",
+        unit="persons per route",
+    )
     landcover_agreement_high_confidence: Constant = demo(
         "capacity.landcover_agreement_high",
         0.85,
@@ -985,14 +994,33 @@ class RouteConfig(BaseModel):
 
     p_fail_hazard_coefficient: Constant = demo(
         "route.p_fail.hazard_coefficient",
-        0.45,
-        "Maximum per-segment failure probability contributed by hazard exposure, "
-        "scaled by the segment's normalised composite hazard.",
+        0.015,
+        "Probability that one reference length of road at maximum modelled hazard "
+        "susceptibility is impassable when relocation movement is required. This is a "
+        "planning-horizon figure, not a per-journey one: it asks whether a road is "
+        "usable across the weeks a phased relocation runs, allowing for normal "
+        "clearance and restoration, which is why it is far below the chance of a road "
+        "being blocked at some point during a monsoon.",
+    )
+    p_fail_reference_length_m: Constant = demo(
+        "route.p_fail.reference_length_m",
+        1000.0,
+        "Length of fully hazard-exposed road over which the failure coefficient "
+        "applies in full. Hazard-driven failure is treated as independent per unit of "
+        "exposed length, so a stretch carrying twice this exposure carries the "
+        "compounded chance of failing somewhere along it. This is what makes a route's "
+        "reliability a property of the road rather than of how many junctions OSM "
+        "happens to have mapped along it.",
+        unit="m",
     )
     p_fail_bridge_dependency: Constant = demo(
         "route.p_fail.bridge_dependency",
-        0.12,
-        "Additional failure probability for a segment dependent on a bridge or culvert.",
+        0.01,
+        "Additional failure probability for a segment carrying a bridge or culvert. "
+        "Not scaled by length: a structure does not fail gradually. Kept low because "
+        "the OpenStreetMap bridge tag does not distinguish a major span over the "
+        "Alaknanda from a metre-wide culvert, and ASTRA does not have the structural "
+        "inventory that would let it tell them apart.",
     )
     safest_risk_alpha: Constant = demo(
         "route.safest_alpha",
@@ -1003,7 +1031,10 @@ class RouteConfig(BaseModel):
         "route.min_reliability",
         0.60,
         "Route reliability below which a site is treated as infeasible for a "
-        "habitation in the optimiser, not merely penalised.",
+        "habitation in the optimiser, not merely penalised. A road ASTRA would not "
+        "plan a relocation convoy down is not a slightly worse road. This threshold "
+        "is a policy choice about acceptable risk, not a physical constant, and the "
+        "weight sensitivity analysis is required to test what moves when it moves.",
     )
     throughput_persons_per_hour: Constant = demo(
         "route.throughput_persons_per_hour",
@@ -1011,6 +1042,31 @@ class RouteConfig(BaseModel):
         "Movement throughput ceiling of a single usable route, feeding the ACCESS "
         "capacity constraint.",
         unit="persons/hour",
+    )
+    access_movement_window_hours: Constant = demo(
+        "route.access_window_hours",
+        8.0,
+        "Hours of usable movement in a relocation day - daylight on mountain roads, "
+        "less the time convoys are not running. Throughput times this window is how "
+        "many people the approach to a site can deliver, which is what makes ACCESS a "
+        "capacity constraint rather than a yes/no.",
+        unit="h",
+    )
+    hazard_segment_exposure_threshold: Constant = demo(
+        "route.hazard_segment_threshold",
+        0.60,
+        "Normalised composite hazard at or above which a road segment counts as "
+        "hazard-exposed for the route's exposure tally and its longest continuous run.",
+    )
+    point_of_failure_p_fail: Constant = demo(
+        "route.point_of_failure_p_fail",
+        0.04,
+        "Segment failure probability at or above which a stretch of road is listed as "
+        "a point of failure on a route. Every segment of a single-path route is "
+        "technically one; this threshold, with the bridge test and the "
+        "no-way-around test, picks out the ones worth an SDMA's attention. It sits "
+        "near the 95th percentile of segment failure probability in this corridor, so "
+        "the list names the worst of the road rather than all of it.",
     )
 
 

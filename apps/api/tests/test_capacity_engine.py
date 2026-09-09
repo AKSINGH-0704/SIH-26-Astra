@@ -388,13 +388,28 @@ def test_some_sites_fail_a_gate_and_say_which(corridor) -> None:
             assert gate.detail
 
 
-def test_access_is_declared_pending_rather_than_assumed(corridor) -> None:
-    for entry in corridor:
+def test_access_is_a_scored_constraint_once_the_route_engine_supplies_it() -> None:
+    """The assessment the API serves takes its access figure from Engine 5."""
+    from astra.engines.capacity_service import baseline_capacity
+
+    for entry in baseline_capacity():
+        assert not entry.pending_constraints
+        access = [s for s in entry.services if s.service is ServiceType.ACCESS]
+        assert len(access) == 1, f"{entry.id} should carry exactly one access row"
+        assert access[0].capacity_persons > 0
+
+
+def test_access_is_declared_pending_when_the_route_engine_cannot_run() -> None:
+    """No road network means no access figure, not an unconstrained one."""
+    from astra.engines.capacity_service import compute_site_capacity
+
+    without_routes = compute_site_capacity(access=None)
+    for entry in without_routes:
         assert entry.pending_constraints
         assert any("Engine 5" in note for note in entry.pending_constraints)
         assert all(
             service.service is not ServiceType.ACCESS for service in entry.services
-        ), "access must not be scored before the route engine exists"
+        ), "access must never be scored without the engine that measures it"
 
 
 def test_every_site_carries_the_tenure_limitation(corridor) -> None:

@@ -27,7 +27,30 @@ export type LayerToggles = {
   habitations: boolean;
   sites: boolean;
   roads: boolean;
+  /** The routed graph, coloured by each segment's computed failure probability. */
+  network?: boolean;
 };
+
+/** A route to draw over the network, with the segments that make it fragile. */
+export type DrawnRoute = {
+  id: string;
+  geometry: number[][];
+  colour: [number, number, number, number];
+  width: number;
+  pointsOfFailure?: { segment_id: string }[];
+};
+
+/**
+ * Failure probability to colour. Teal is road ASTRA expects to hold; red is road
+ * it does not. The break points are the same ones the route panel quotes, so a
+ * segment that reads red here reads red there.
+ */
+function failureColour(p: number): [number, number, number, number] {
+  if (p >= 0.08) return [201, 66, 56, 225];
+  if (p >= 0.04) return [206, 122, 58, 210];
+  if (p >= 0.015) return [193, 165, 79, 185];
+  return [86, 158, 148, 165];
+}
 
 const ZONE_FILL: Record<string, [number, number, number, number]> = {
   CRITICAL: [192, 57, 47, 130],
@@ -78,6 +101,10 @@ export function RiskMap({
   terrainUrl,
   overlayUrl,
   roadsUrl,
+  networkUrl,
+  drawnRoutes,
+  closedSegments,
+  onSelectSegment,
   zones,
   habitations,
   sites,
@@ -88,11 +115,19 @@ export function RiskMap({
   onSelectZone,
   habitationColour,
   highlightId,
+  focusBounds,
 }: {
   studyArea: StudyArea;
   terrainUrl: string;
   overlayUrl: string;
   roadsUrl: string;
+  /** The routed graph as GeoJSON. Omitted on screens that do not route. */
+  networkUrl?: string;
+  /** Routes to draw on top of the network, in draw order. */
+  drawnRoutes?: DrawnRoute[];
+  /** Segments closed in the current scenario, drawn as struck out. */
+  closedSegments?: string[];
+  onSelectSegment?: (segmentId: string) => void;
   zones: ZoneFeature[];
   habitations: Habitation[];
   sites: CandidateSite[];
@@ -105,12 +140,19 @@ export function RiskMap({
   habitationColour?: (habitation: Habitation) => [number, number, number, number];
   /** Habitation to ring, when a list selection drives the map. */
   highlightId?: string | null;
+  /**
+   * Bounds to ease the camera to. A 4 km route inside a 40 km corridor is a
+   * thread on the screen otherwise, so a screen that selects a route says where
+   * to look. Passing null returns the camera to the study area.
+   */
+  focusBounds?: [[number, number], [number, number]] | null;
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
   const [roads, setRoads] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [network, setNetwork] = useState<GeoJSON.FeatureCollection | null>(null);
 
   const bounds = useMemo(
     () =>
@@ -133,6 +175,20 @@ export function RiskMap({
       cancelled = true;
     };
   }, [roadsUrl]);
+
+  useEffect(() => {
+    if (!networkUrl) return;
+    let cancelled = false;
+    fetch(networkUrl)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled) setNetwork(data);
+      })
+      .catch(() => setNetwork(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [networkUrl]);
 
   useEffect(() => {
     if (!container.current || mapRef.current) return;
@@ -166,12 +222,29 @@ export function RiskMap({
     };
   }, [bounds, studyArea, terrainUrl, onSelectPoint]);
 
+  const focusKey = focusBounds ? focusBounds.flat().join(",") : "";
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    map.fitBounds(focusKey ? (focusBounds as [[number, number], [number, number]]) : bounds, {
+      padding: focusKey ? 90 : 24,
+      duration: 700,
+      maxZoom: 13.5,
+    });
+  }, [ready, focusKey, focusBounds, bounds]);
+
   const handleZoneClick = useCallback(
     (info: { object?: ZoneFeature }) => {
       onSelectZone(info.object?.properties.id ?? null);
       return true;
     },
     [onSelectZone],
+  );
+
+  const closedKey = (closedSegments ?? []).join(",");
+  const closed = useMemo(
+    () => new Set(closedKey ? closedKey.split(",") : []),
+    [closedKey],
   );
 
   useEffect(() => {
@@ -204,6 +277,55 @@ export function RiskMap({
           lineWidthMaxPixels: 3,
           pickable: false,
         }),
+      toggles.network &&
+        network &&
+        new GeoJsonLayer({
+          id: "route-network",
+          data: network,
+          stroked: true,
+          filled: false,
+          getLineColor: (feature: GeoJSON.Feature) => {
+            const id = String(feature.properties?.segment_id);
+            if (closed.has(id)) return [120, 128, 142, 210];
+            return failureColour(Number(feature.properties?.p_fail ?? 0));
+          },
+          getLineWidth: (feature: GeoJSON.Feature) =>
+            feature.properties?.is_bridge ? 60 : 34,
+          lineWidthMinPixels: 1,
+          lineWidthMaxPixels: 5,
+          updateTriggers: { getLineColor: [closedKey] },
+          pickable: Boolean(onSelectSegment),
+          onClick: (info: { object?: GeoJSON.Feature }) => {
+            const id = info.object?.properties?.segment_id;
+            if (id && onSelectSegment) onSelectSegment(String(id));
+            return true;
+          },
+        }),
+      ...(drawnRoutes ?? []).map(
+        (route) =>
+          new GeoJsonLayer({
+            id: `drawn-route-${route.id}`,
+            data: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  properties: {},
+                  geometry: { type: "LineString", coordinates: route.geometry },
+                },
+              ],
+            } as GeoJSON.FeatureCollection,
+            stroked: true,
+            filled: false,
+            getLineColor: route.colour,
+            getLineWidth: route.width,
+            lineWidthMinPixels: 2,
+            lineWidthMaxPixels: 8,
+            lineCapRounded: true,
+            lineJointRounded: true,
+            pickable: false,
+          }),
+      ),
       toggles.zones &&
         new GeoJsonLayer({
           id: "red-zones",
@@ -289,6 +411,11 @@ export function RiskMap({
     overlayRef.current.setProps({ layers });
   }, [
     ready,
+    network,
+    drawnRoutes,
+    closed,
+    closedKey,
+    onSelectSegment,
     toggles,
     hazardOpacity,
     zones,
