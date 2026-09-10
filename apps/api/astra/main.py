@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
 from astra.api.capacity_router import router as capacity_router
+from astra.api.live_router import router as live_router
 from astra.api.plan_router import router as plan_router
 from astra.api.priority_router import router as priority_router
 from astra.api.risk_router import router as risk_router
@@ -138,6 +139,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_router)
     app.include_router(plan_router)
     app.include_router(scenario_router)
+    app.include_router(live_router)
     return app
 
 

@@ -770,3 +770,176 @@ test.
 - `ruff` clean, fixture gate PASS (6 checks, 18 records, 0 errors), OpenAPI
   exported and TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint
   clean, `next build` succeeds.
+
+---
+
+## Slice 9 - live event ingest, incremental re-scoring and the execution pipeline
+
+**Date:** 2026-09-10
+**Commit:** `feat(realtime): live event ingest, incremental re-scoring and execution pipeline`
+
+### What actually works end to end
+
+`POST /events` accepts observations - rainfall, incident reports, field evidence,
+road status - registers them in a process-wide log, and starts a real pipeline
+run on a worker thread. `GET /runs/{id}/stream` publishes that run's stage events
+as Server-Sent Events under the exact names CLAUDE.md section 9 specifies:
+`stage_started`, `stage_progress`, `stage_completed`, `warning`, `stage_failed`,
+closing with `run_completed`. The React Flow graph on the Live Operations screen
+renders those frames and nothing else.
+
+**The re-scoring is genuinely spatially scoped, and it is proved rather than
+claimed.** Each event carries a footprint - the ground the observation speaks for
+- with a linear taper that reaches exactly zero at the stated radius, so the
+circle drawn on the map is the ground the arithmetic used. Events are written
+into a copy of the standing input surfaces inside those footprints and nowhere
+else; the union of footprints gives a row/column window plus a one-cell margin;
+only that window is scored; the result is spliced into the standing surfaces.
+
+That splice is only legitimate because the factor stack is a **pure per-cell
+function** of its inputs once the density normalisation ceilings are pinned to
+the baseline. `normalise_by_percentile` now accepts a pinned ceiling, and
+`HazardEngine(ceilings=...)` uses it. Pinning is also correct on its own terms: a
+live system whose yardstick moved with every observation would produce a score
+this minute that could not be compared with the one on screen from last minute.
+`test_a_windowed_rescore_equals_a_full_recomputation` asserts, for all three
+surface event kinds, that the windowed result is identical - composite, zone
+class, confidence and every per-hazard score - to a full recomputation over the
+same inputs. If that test ever fails, the word "incremental" in the interface is
+a lie and the window has to go.
+
+A run re-scores 7%-23% of a 167,184-cell grid depending on the footprint, and
+says so on the HAZARD node: cells re-scored, cells in the grid, **cells that
+actually moved**, the largest movement in points, and cells that changed zone
+class. Zone polygons are re-derived in full, because cleaning and buffering are
+morphological operations that read across the whole surface - and the note on
+screen says exactly that rather than implying otherwise.
+
+Each kind enters at one surface and cascades from there: rainfall raises
+intensity and the extreme-rain-day count; an incident adds severity-weighted
+density through the *same kernel at the same bandwidth* the historical inventory
+was smoothed with; field evidence raises the terrain instability input, never the
+finished score; a road-status report touches no hazard surface at all and enters
+at the route engine. Downstream, the run re-ranks habitations, re-routes the
+corridor, re-checks suitability gates and effective capacity, re-solves the plan,
+and then checks the *standing* plan movement by movement against the new state.
+
+**Plan invalidation is specific.** The Decision Brief stage compares every
+movement in the baseline plan against what this run computed: is the destination
+still a candidate, is the route still above the reliability threshold, has the
+origin entered the immediate tier. It produces a banner naming the count of
+movements and residents affected and a list giving the reason per movement.
+Nothing is silently re-planned; the decision-authority line sits on the banner.
+
+The demonstration feed is a vendored `DEMO_CONFIG` fixture served as **data to be
+posted**. The client posts each step to the same `POST /events` an external feed
+would use, and each step triggers a real run. Its road-closure step ships a
+placeholder that resolves at replay time from `/routes/critical-segments`, so the
+feed closes whatever the *current* solved plan leans on hardest rather than an id
+that mattered when the fixture was written. Replaying it end to end takes the
+critical zone from 109.6 to 149.3 km2, moves ten habitations' hazard scores,
+moves Rauligaon from Medium-term to Short-term, drops feasible routes 49 to 36,
+and cuts the plan from 1,144 residents placed to 258 with six movements flagged
+for review.
+
+`POST /live/reset` discards the log and returns to the baseline. Live state is
+*derived* from the log rather than edited in place, so a reset is a real reset
+with no residue for the next demonstration.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. There is no model anywhere in this slice. Every stage payload is a field of the object that stage produced. |
+| 2 | Can every number on screen be traced in one hop? | Yes. Each graph node lists the payload keys of its own `stage_completed` frame, and an E2E test asserts the cells-re-scored figure on the HAZARD node equals what `/live` reports for that run. |
+| 3 | **Is anything animated that is not backed by a real backend event?** | **No, and this is the slice where that question is sharpest.** A node is idle until a `stage_started` frame arrives for it, running until its `stage_completed` does, and warning only when the backend emitted a `warning`. The graph header shows a live count of SSE frames received; an E2E test reads that counter and requires at least fifteen. With no run, the graph renders an explanation instead of an idle animation. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The feed carries a visible `DEMO CONFIG` chip and says in its own description that it is an ASTRA demonstration script, not a record of a real storm. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic? | Yes. Every ingested event carries a provenance class and shows its source; the feed's observations are `SYNTHETIC_CALIBRATED` from a `DEMO_CONFIG` script and are labelled as such. |
+| 6 | Are the same figures identical across screens? | Yes. `/live/zones` and `/live/plan` come back through the *same* serialisers the Risk and Plan screens use, so a live plan cannot drift into a parallel shape. |
+| 7 | Does the opening avoid looking like a generic dashboard? | Live Operations is map-dominant with the pipeline beneath it. The cold open is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes, and more so here than anywhere: the banner says *Plan requires review*, names what is affected, and carries the decision-authority line. ASTRA never re-plans on its own authority. |
+| 9 | Does it run with the network off? | Yes. Ingest, re-score and the stream are all local; SSE is a plain HTTP response. |
+| 10 | Can the optimiser breach capacity under a live run? | No. Post-solve validation runs on the live solve too. |
+| 11 | Any feature that looks impressive but changes no decision? | The field-evidence step was the risk - see below. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. 38,478 cells re-scored of 167,184: the union of five observation footprints, bounded to a row/column window plus one cell. 29,328 of them moved, by up to 31.1 points, and 10,283 changed zone class. Rauligaon moved tier because its footprint-sampled hazard rose enough to carry its priority past the Short-term threshold of 45. |
+
+### Red-team findings
+
+**1. An incident report was landing three orders of magnitude off scale.** The
+obvious implementation - drop the severity weight into the cell and divide by the
+cell area - put a single report at ~300 weighted incidents/km2 against a
+whole-grid historical maximum of 0.36. It did not *look* wrong on screen only
+because the incident-density factor was already clipped at its normalisation
+ceiling across that footprint, so the saturation was invisible. A new incident is
+now smoothed through the same kernel at the same bandwidth the historical
+inventory uses, so it lands in the same units on the same scale, and a test
+asserts one report cannot dwarf the entire historical record.
+
+**2. The Gaussian had no edge, and the window did.** Writing that kernel
+unclipped put a vanishing but non-zero change on cells outside the circle the map
+draws and outside the window the re-score covers - which is simultaneously a lie
+on the map and a splice that silently drops those cells. Caught by the
+windowed-equals-full test, which failed on exactly the incident case. The kernel
+is now clipped to the drawn footprint: beyond three sigmas there is under 1% of
+its mass, and the contract that nothing outside the footprint moves is worth more
+than it. The incident's stated radius is also overridden to three bandwidths, so
+what is drawn is what was used.
+
+**3. Two feed steps looked like they did nothing.** Field evidence and an
+incident report both left the critical-zone area unchanged to one decimal place,
+which reads as a step that exists to pad the demonstration. They were not inert -
+the field report raised Dungri Tok's hazard from 41.0 to 43.1 and re-classified
+34 cells - but nothing on screen said so. The run now measures and reports *what
+moved*, not only what was recomputed: cells changed, largest movement,
+re-classified cells, and the per-habitation hazard and tier movements. A small
+true effect reported precisely is worth more than a headline that leaves a viewer
+guessing.
+
+**4. "Play feed" would have stopped after one observation.** The replay loop read
+a ref mirrored from state during render, and state is not committed by the time
+the loop's second iteration runs - so the ref still read `false` and the loop
+broke. The ref is now set directly. An E2E test plays the whole feed unattended,
+clicking nothing after the first press, and requires every observation to arrive.
+
+**5. Reset visibly did not reset.** A run's completion starts a refresh at the
+same moment the user can press Reset; the in-flight refresh landed afterwards and
+put the discarded numbers back on screen. Found by an E2E test that failed with
+"12,078" where it expected "0". Refreshes now carry a generation token and drop
+their own result if a reset has happened since.
+
+**6. The map kept its first canvas size.** MapLibre sizes its canvas once, from
+the container as it was at creation, and every screen here puts the map in a CSS
+grid that settles after mount - on this screen, more than once as panels grow. A
+`ResizeObserver` now re-sizes it. This was a latent defect on every map screen,
+not just this one.
+
+**7. Two threading faults that appear once, in front of an audience.** The event
+log was iterated on the run thread while the request thread appended to it, and
+event ids were minted without a lock so two concurrent posts could collide. Both
+are now under a lock, with a `snapshot()` for every read.
+
+### Verification
+
+- **416 backend tests pass, 49 of them new.** The load-bearing one is
+  `test_a_windowed_rescore_equals_a_full_recomputation`, parameterised over all
+  three surface event kinds. Alongside it: footprints scale with the square of
+  the radius and clip at the study-area edge; an event changes its footprint and
+  provably nothing outside it; rainfall below the extreme threshold adds no
+  extreme day; an incident lands on the historical scale; field evidence touches
+  the instability input and no other surface; a road report touches no hazard
+  surface at all; the log reports the latest status per segment so a reopened
+  road does not stay shut; every stage emits with a real elapsed time and a
+  payload it computed; a closed road reaches the optimiser and costs the plan;
+  an observation far from anything says the plan still holds; the run history is
+  bounded; the stream replays from the first stage; and the full feed replay
+  escalates the corridor and ends in review.
+- **Seven Playwright tests drive the real screen against the real API**, including
+  one that plays the entire feed unattended. They read the SSE frame counter, they
+  cross-check a number on a graph node against `/live`, they require every stage
+  node to reach a terminal state, and they assert zero console errors and no
+  horizontal overflow at tablet width.
+- The fixture integrity gate now validates the demonstration feed too: every step
+  must parse, land inside the study bbox, carry a positive footprint, and say
+  what it is. `PASS: 7 checks, 18 fixture records, 11 datasets, 0 errors.`
+- `ruff` clean, OpenAPI exported (40 paths, 125 schemas) and TypeScript contracts
+  regenerated, `tsc --noEmit` clean, ESLint clean, `next build` succeeds.

@@ -64,6 +64,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest
+         * @description Accept observations and start a pipeline run over them.
+         *
+         *     Returns as soon as the run is registered, with the run's id and its first
+         *     stage events. The run itself continues on a worker thread; follow it on
+         *     ``GET /runs/{id}/stream``.
+         */
+        post: operations["ingest_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Event Feed
+         * @description The scripted observation sequence a client replays against POST /events.
+         *
+         *     Returned as *data to be posted*, not as results. Replaying it drives the same
+         *     ingest endpoint an external feed would drive, and every stage a viewer sees
+         *     afterwards is a real execution over the real engines.
+         */
+        get: operations["event_feed_events_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/habitations": {
         parameters: {
             query?: never;
@@ -136,6 +184,90 @@ export interface paths {
          * @description The OSM road network as GeoJSON, for map context and route work.
          */
         get: operations["roads_geojson_layers_roads_geojson_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live State
+         * @description The standing live picture, against the baseline it moved from.
+         */
+        get: operations["live_state_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/live/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live Plan
+         * @description The plan as it stands now, through the same serialiser the Plan screen uses.
+         */
+        get: operations["live_plan_live_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/live/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset
+         * @description Discard every ingested event and return to the baseline.
+         *
+         *     Live state is derived from the event log rather than edited in place, so
+         *     clearing the log genuinely restores the baseline - there is no accumulated
+         *     residue to leak into the next demonstration.
+         */
+        post: operations["reset_live_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/live/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live Zones
+         * @description The analytical red zones as they stand now, live or baseline.
+         */
+        get: operations["live_zones_live_zones_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -485,6 +617,71 @@ export interface paths {
          * @description Fastest and safest between one habitation and one site, with the trade.
          */
         get: operations["route_pair_routes_pair__habitation_id___site_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Runs
+         * @description The recent pipeline runs, newest first.
+         */
+        get: operations["runs_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Detail
+         * @description One run, with every stage event it has emitted so far.
+         */
+        get: operations["run_detail_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Stream
+         * @description This run's stage events, as Server-Sent Events.
+         *
+         *     Frames use the event names from CLAUDE.md section 9 - ``stage_started``,
+         *     ``stage_progress``, ``stage_completed``, ``warning``, ``stage_failed`` - and
+         *     the stream closes with a ``run_completed`` frame once the run is terminal, so
+         *     a client knows the difference between "still working" and "finished".
+         */
+        get: operations["run_stream_runs__run_id__stream_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2584,6 +2781,115 @@ export interface components {
             unit: string;
         };
         /**
+         * EventBatch
+         * @description A batch of observations. One batch triggers exactly one pipeline run.
+         */
+        EventBatch: {
+            /** Events */
+            events: components["schemas"]["EventSubmission"][];
+            /**
+             * Trigger
+             * @description Where the batch came from. Shown on the run record.
+             * @default manual
+             */
+            trigger: string;
+        };
+        /**
+         * EventFeedResponse
+         * @description A scripted observation sequence a client replays against POST /events.
+         *
+         *     The sequence is data, and it is labelled ``DEMO_CONFIG``. Replaying it posts
+         *     each step as a real event and each event triggers a real pipeline run; no
+         *     result here is pre-computed and no stage is animated on a timer.
+         */
+        EventFeedResponse: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string;
+            provenance: components["schemas"]["ProvenanceClass"];
+            /** Steps */
+            steps: components["schemas"]["FeedStepResponse"][];
+        };
+        /**
+         * EventResponse
+         * @description An ingested observation, as ASTRA recorded it.
+         */
+        EventResponse: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["EventType"];
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Note */
+            note: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            provenance: components["schemas"]["ProvenanceClass"];
+            /** Radius M */
+            radius_m: number;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string | null;
+            /** Value */
+            value: number;
+        };
+        /**
+         * EventSubmission
+         * @description One observation offered to POST /events.
+         */
+        EventSubmission: {
+            kind: components["schemas"]["EventType"];
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Observed At */
+            observed_at?: string | null;
+            /**
+             * Radius M
+             * @default 1500
+             */
+            radius_m: number;
+            /** Source */
+            source: string;
+            /** Target */
+            target?: string | null;
+            /** Value */
+            value: number;
+        };
+        /**
+         * EventType
+         * @description Real-time ingest event kinds accepted by POST /events (§5.8).
+         *
+         *     Each kind enters the pipeline at exactly one surface, the same discipline a
+         *     scenario perturbation follows. The difference is that an event is an
+         *     *observation with a place and a time* rather than a hypothesis, so it also
+         *     carries a footprint: the ground the observation actually speaks for, and the
+         *     only ground that is re-scored because of it.
+         * @enum {string}
+         */
+        EventType: "RAINFALL_OBSERVATION" | "INCIDENT_REPORT" | "FIELD_EVIDENCE" | "INFRASTRUCTURE_STATUS";
+        /**
          * EvidenceConfig
          * @description How recorded evidence is weighted and interpolated before it is scored.
          *
@@ -2700,6 +3006,31 @@ export interface components {
             unit?: string | null;
             /** Weight */
             weight: number;
+        };
+        /**
+         * FeedStepResponse
+         * @description One step of the demonstration feed, ready to be posted as a real event.
+         */
+        FeedStepResponse: {
+            /** Delay Ms */
+            delay_ms: number;
+            /** Index */
+            index: number;
+            kind: components["schemas"]["EventType"];
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Note */
+            note: string;
+            /** Radius M */
+            radius_m: number;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string | null;
+            /** Value */
+            value: number;
         };
         /**
          * FormulaSpec
@@ -3559,6 +3890,68 @@ export interface components {
             layers: components["schemas"]["LayerDescriptor"][];
         };
         /**
+         * LiveStateResponse
+         * @description The standing live picture: baseline plus every event ingested so far.
+         */
+        LiveStateResponse: {
+            /** Cells In Grid */
+            cells_in_grid: number;
+            /** Cells Rescored */
+            cells_rescored: number;
+            /** Classification Label */
+            classification_label: string;
+            /** Closed Segments */
+            closed_segments: string[];
+            /** Critical Area Km2 Baseline */
+            critical_area_km2_baseline: number;
+            /** Critical Area Km2 Now */
+            critical_area_km2_now: number;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Events */
+            events: components["schemas"]["EventResponse"][];
+            /** Events Ingested */
+            events_ingested: number;
+            /** Feasible Routes Baseline */
+            feasible_routes_baseline: number;
+            /** Feasible Routes Now */
+            feasible_routes_now: number;
+            /** Headline */
+            headline: string;
+            /** Immediate Population Baseline */
+            immediate_population_baseline: number;
+            /** Immediate Population Now */
+            immediate_population_now: number;
+            /**
+             * Live
+             * @description False when nothing has been ingested. ASTRA shows the baseline and says so rather than manufacturing a live state before anything has happened.
+             */
+            live: boolean;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Placed Baseline */
+            placed_baseline: number;
+            /** Placed Now */
+            placed_now: number;
+            /** Rescore Note */
+            rescore_note: string;
+            review: components["schemas"]["PlanReviewResponse"] | null;
+            /** Run Id */
+            run_id: string | null;
+            /** Share Rescored */
+            share_rescored: number;
+            /** Suitable Sites Baseline */
+            suitable_sites_baseline: number;
+            /** Suitable Sites Now */
+            suitable_sites_now: number;
+            /** Zones Baseline */
+            zones_baseline: number;
+            /** Zones Now */
+            zones_now: number;
+        };
+        /**
          * LivelihoodResponse
          * @description Livelihood disruption for one pairing, with its four measured components.
          */
@@ -4377,6 +4770,26 @@ export interface components {
             /** Weights */
             weights: components["schemas"]["Constant"][];
         };
+        /**
+         * PlanReviewResponse
+         * @description Which standing decisions the newest evidence has undermined.
+         */
+        PlanReviewResponse: {
+            /** Decision Authority */
+            decision_authority: string;
+            /** Headline */
+            headline: string;
+            /** Invalidated Movements */
+            invalidated_movements: {
+                [key: string]: unknown;
+            }[];
+            /** People Affected */
+            people_affected: number;
+            /** Reasons */
+            reasons: string[];
+            /** Required */
+            required: boolean;
+        };
         /** PlanTotalsResponse */
         PlanTotalsResponse: {
             /** Habitations Split */
@@ -5189,6 +5602,99 @@ export interface components {
             /** Travel Time Min */
             travel_time_min: number;
         };
+        /** RunListResponse */
+        RunListResponse: {
+            /** Closed Segments */
+            closed_segments: string[];
+            /** Events Ingested */
+            events_ingested: number;
+            /** Runs */
+            runs: components["schemas"]["RunSummary"][];
+        };
+        /**
+         * RunResponse
+         * @description One pipeline execution: what triggered it, what it emitted, what it found.
+         */
+        RunResponse: {
+            /** Cells In Grid */
+            cells_in_grid: number | null;
+            /** Cells Rescored */
+            cells_rescored: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Error */
+            error: string | null;
+            /** Events */
+            events: components["schemas"]["EventResponse"][];
+            /** Finished At */
+            finished_at: string | null;
+            /** Id */
+            id: string;
+            /** Model Config Version */
+            model_config_version: string;
+            review: components["schemas"]["PlanReviewResponse"] | null;
+            /** Stage Labels */
+            stage_labels: {
+                [key: string]: string;
+            };
+            /** Stage Order */
+            stage_order: components["schemas"]["RunStage"][];
+            /** Stages */
+            stages: components["schemas"]["StageEventResponse"][];
+            status: components["schemas"]["RunStatus"];
+            /** Total Ms */
+            total_ms: number;
+            /** Trigger */
+            trigger: string;
+        };
+        /**
+         * RunStage
+         * @description Pipeline stages emitted over SSE and rendered by the execution graph (§9).
+         * @enum {string}
+         */
+        RunStage: "INGEST" | "HAZARD" | "EXPOSURE_VULNERABILITY" | "SITE_CAPACITY" | "ROUTE_RELIABILITY" | "OPTIMISATION" | "DECISION_BRIEF";
+        /**
+         * RunStageStatus
+         * @description Lifecycle of a single pipeline stage. Drives node state in the graph.
+         * @enum {string}
+         */
+        RunStageStatus: "PENDING" | "STARTED" | "PROGRESS" | "COMPLETED" | "WARNING" | "FAILED";
+        /**
+         * RunStatus
+         * @description Where one pipeline execution has got to (§9).
+         *
+         *     A run is a real thing that starts, takes time and can fail. The interface
+         *     reads this rather than assuming a run that was requested has succeeded.
+         * @enum {string}
+         */
+        RunStatus: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
+        /**
+         * RunSummary
+         * @description A run in the history list.
+         */
+        RunSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Events */
+            events: number;
+            /** Id */
+            id: string;
+            /** Plan Requires Review */
+            plan_requires_review: boolean;
+            status: components["schemas"]["RunStatus"];
+            /** Total Ms */
+            total_ms: number;
+            /** Trigger */
+            trigger: string;
+        };
         /**
          * Scenario
          * @description A named, versioned analysis context. Scenarios are diffable objects.
@@ -5558,6 +6064,36 @@ export interface components {
          * @enum {string}
          */
         SolverStatus: "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "FALLBACK";
+        /**
+         * StageEventResponse
+         * @description One stage event, exactly as it went out over the SSE stream.
+         */
+        StageEventResponse: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /**
+             * Event
+             * @description The SSE event name this was published under.
+             */
+            event: string;
+            /** Message */
+            message: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Run Id */
+            run_id: string;
+            /** Sequence */
+            sequence: number;
+            stage: components["schemas"]["RunStage"];
+            status: components["schemas"]["RunStageStatus"];
+        };
         /**
          * StrandedCapacityResponse
          * @description Assessed capacity the people who still need it cannot reach.
@@ -6012,6 +6548,59 @@ export interface operations {
             };
         };
     };
+    ingest_events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_feed_events_feed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventFeedResponse"];
+                };
+            };
+        };
+    };
     habitations_habitations_get: {
         parameters: {
             query?: never;
@@ -6090,6 +6679,86 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    live_state_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveStateResponse"];
+                };
+            };
+        };
+    };
+    live_plan_live_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    reset_live_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveStateResponse"];
+                };
+            };
+        };
+    };
+    live_zones_live_zones_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZonesResponse"];
                 };
             };
         };
@@ -6510,6 +7179,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoutePairResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    runs_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_detail_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_stream_runs__run_id__stream_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

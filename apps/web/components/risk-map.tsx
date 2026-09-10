@@ -31,6 +31,20 @@ export type LayerToggles = {
   network?: boolean;
 };
 
+/**
+ * A circle of ground to outline: the footprint of a live observation.
+ *
+ * Drawn at the radius the engine actually used, so the circle on the map is the
+ * ground that was re-scored rather than a decorative pulse near the point.
+ */
+export type MapCircle = {
+  id: string;
+  lon: number;
+  lat: number;
+  radius_m: number;
+  colour: string;
+};
+
 /** A route to draw over the network, with the segments that make it fragile. */
 export type DrawnRoute = {
   id: string;
@@ -50,6 +64,20 @@ function failureColour(p: number): [number, number, number, number] {
   if (p >= 0.04) return [206, 122, 58, 210];
   if (p >= 0.015) return [193, 165, 79, 185];
   return [86, 158, 148, 165];
+}
+
+/** The few semantic colours a caller may name, as deck.gl RGBA. */
+const TOKEN_RGB: Record<string, [number, number, number]> = {
+  "var(--color-signal)": [104, 154, 214],
+  "var(--color-critical)": [201, 66, 56],
+  "var(--color-warning)": [206, 122, 58],
+  "var(--color-safe)": [86, 190, 172],
+  "var(--color-neutral)": [130, 142, 162],
+};
+
+function withAlpha(token: string, alpha: number): [number, number, number, number] {
+  const rgb = TOKEN_RGB[token] ?? TOKEN_RGB["var(--color-signal)"];
+  return [rgb[0], rgb[1], rgb[2], alpha];
 }
 
 const ZONE_FILL: Record<string, [number, number, number, number]> = {
@@ -104,6 +132,7 @@ export function RiskMap({
   networkUrl,
   drawnRoutes,
   closedSegments,
+  circles,
   onSelectSegment,
   zones,
   habitations,
@@ -127,6 +156,8 @@ export function RiskMap({
   drawnRoutes?: DrawnRoute[];
   /** Segments closed in the current scenario, drawn as struck out. */
   closedSegments?: string[];
+  /** Observation footprints to outline, at the radius the engine re-scored. */
+  circles?: MapCircle[];
   onSelectSegment?: (segmentId: string) => void;
   zones: ZoneFeature[];
   habitations: Habitation[];
@@ -228,6 +259,21 @@ export function RiskMap({
       overlayRef.current = null;
     };
   }, [bounds, studyArea, terrainUrl]);
+
+  // MapLibre sizes its canvas once, from the container as it was at creation.
+  // Every screen here puts the map inside a CSS grid that settles after mount -
+  // and on a screen whose panels grow as data arrives, it settles more than
+  // once. Without this the canvas keeps its first size and the terrain sits in
+  // a corner of its own container, which looks exactly like a broken map.
+  useEffect(() => {
+    const map = mapRef.current;
+    const element = container.current;
+    if (!ready || !map || !element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => map.resize());
+    observer.observe(element);
+    map.resize();
+    return () => observer.disconnect();
+  }, [ready]);
 
   const focusKey = focusBounds ? focusBounds.flat().join(",") : "";
   useEffect(() => {
@@ -399,6 +445,24 @@ export function RiskMap({
             return true;
           },
         }),
+      circles &&
+        circles.length > 0 &&
+        new ScatterplotLayer({
+          id: "observation-footprints",
+          data: circles,
+          getPosition: (circle: MapCircle) => [circle.lon, circle.lat],
+          // The radius is in metres because the footprint is a distance on the
+          // ground, not a size on the screen: zooming out must shrink it.
+          getRadius: (circle: MapCircle) => circle.radius_m,
+          radiusUnits: "meters",
+          filled: true,
+          stroked: true,
+          getFillColor: (circle: MapCircle) => withAlpha(circle.colour, 26),
+          getLineColor: (circle: MapCircle) => withAlpha(circle.colour, 190),
+          getLineWidth: 2,
+          lineWidthUnits: "pixels",
+          pickable: false,
+        }),
       selected &&
         new ScatterplotLayer({
           id: "selection",
@@ -420,6 +484,7 @@ export function RiskMap({
     ready,
     network,
     drawnRoutes,
+    circles,
     closed,
     closedKey,
     onSelectSegment,

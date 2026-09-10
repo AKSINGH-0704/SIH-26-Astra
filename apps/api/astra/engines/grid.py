@@ -168,18 +168,35 @@ def normalise_log(
     return 1.0 - scaled if invert else scaled
 
 
-def normalise_by_percentile(values: np.ndarray, percentile: float) -> np.ndarray:
+def percentile_ceiling(values: np.ndarray, percentile: float) -> float:
+    """The ceiling ``normalise_by_percentile`` would use for this surface."""
+    finite = np.asarray(values, dtype="float64")
+    valid = finite[np.isfinite(finite)]
+    if valid.size == 0:
+        return 0.0
+    return float(np.percentile(valid, percentile))
+
+
+def normalise_by_percentile(
+    values: np.ndarray, percentile: float, *, ceiling: float | None = None
+) -> np.ndarray:
     """Scale a density surface by one of its own percentiles, clipped into 0-1.
 
     Densities have no natural upper bound, so the ceiling has to come from the
     surface itself. Using a percentile rather than the maximum stops a single
     exceptional cluster from flattening everything else to near zero.
+
+    ``ceiling`` pins that scale to one computed elsewhere. Two things need this.
+    A live re-score must not silently move the yardstick every time an
+    observation arrives - a score computed this minute has to be comparable with
+    the one on screen from last minute. And pinning the ceiling is what makes
+    the whole factor stack a **pure per-cell function** of its inputs, which is
+    what allows a re-score of a handful of cells to be spliced into the standing
+    surface and still equal a full recomputation exactly (``engines/live.py``).
     """
     finite = np.asarray(values, dtype="float64")
-    valid = finite[np.isfinite(finite)]
-    if valid.size == 0:
-        return np.zeros_like(finite)
-    ceiling = float(np.percentile(valid, percentile))
+    if ceiling is None:
+        ceiling = percentile_ceiling(finite, percentile)
     if ceiling <= 0:
         return np.zeros_like(finite)
     return np.clip(finite / ceiling, 0.0, 1.0)

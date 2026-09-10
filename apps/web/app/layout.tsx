@@ -32,6 +32,7 @@ const NAV = [
   { href: "/routes", label: "Access & Routes", available: true },
   { href: "/plan", label: "Optimised Plan", available: true },
   { href: "/simulate", label: "What-If Simulation", available: true },
+  { href: "/live", label: "Live Operations", available: true },
   { href: "/study-area", label: "Study Area & Data", available: true },
   { href: "/model", label: "Model & Provenance", available: true },
   { href: "/command", label: "Command Centre", available: false },

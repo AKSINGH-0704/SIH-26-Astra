@@ -2438,6 +2438,275 @@
         "title": "DerivedLayerSummary",
         "type": "object"
       },
+      "EventBatch": {
+        "description": "A batch of observations. One batch triggers exactly one pipeline run.",
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventSubmission"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Events",
+            "type": "array"
+          },
+          "trigger": {
+            "default": "manual",
+            "description": "Where the batch came from. Shown on the run record.",
+            "maxLength": 60,
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "EventBatch",
+        "type": "object"
+      },
+      "EventFeedResponse": {
+        "description": "A scripted observation sequence a client replays against POST /events.\n\nThe sequence is data, and it is labelled ``DEMO_CONFIG``. Replaying it posts\neach step as a real event and each event triggers a real pipeline run; no\nresult here is pre-computed and no stage is animated on a timer.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/FeedStepResponse"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "note",
+          "provenance",
+          "steps"
+        ],
+        "title": "EventFeedResponse",
+        "type": "object"
+      },
+      "EventResponse": {
+        "description": "An ingested observation, as ASTRA recorded it.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "radius_m": {
+            "title": "Radius M",
+            "type": "number"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "observed_at",
+          "received_at",
+          "lon",
+          "lat",
+          "radius_m",
+          "value",
+          "target",
+          "source",
+          "provenance",
+          "note",
+          "description"
+        ],
+        "title": "EventResponse",
+        "type": "object"
+      },
+      "EventSubmission": {
+        "description": "One observation offered to POST /events.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "radius_m": {
+            "default": 1500.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 25000.0,
+            "title": "Radius M",
+            "type": "number"
+          },
+          "source": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "value",
+          "source"
+        ],
+        "title": "EventSubmission",
+        "type": "object"
+      },
+      "EventType": {
+        "description": "Real-time ingest event kinds accepted by POST /events (\u00a75.8).\n\nEach kind enters the pipeline at exactly one surface, the same discipline a\nscenario perturbation follows. The difference is that an event is an\n*observation with a place and a time* rather than a hypothesis, so it also\ncarries a footprint: the ground the observation actually speaks for, and the\nonly ground that is re-scored because of it.",
+        "enum": [
+          "RAINFALL_OBSERVATION",
+          "INCIDENT_REPORT",
+          "FIELD_EVIDENCE",
+          "INFRASTRUCTURE_STATUS"
+        ],
+        "title": "EventType",
+        "type": "string"
+      },
       "EvidenceConfig": {
         "description": "How recorded evidence is weighted and interpolated before it is scored.\n\nThe incident inventory is a record of reported events, so it carries a\nreporting bias towards roads, settlements and media attention. These\nconstants decide how much weight each record carries; they do not correct\nthat bias, and nothing here claims to.",
         "properties": {
@@ -2584,6 +2853,85 @@
           "provenance"
         ],
         "title": "FactorContribution",
+        "type": "object"
+      },
+      "FeedStepResponse": {
+        "description": "One step of the demonstration feed, ready to be posted as a real event.",
+        "properties": {
+          "delay_ms": {
+            "title": "Delay Ms",
+            "type": "integer"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "radius_m": {
+            "title": "Radius M",
+            "type": "number"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "index",
+          "delay_ms",
+          "kind",
+          "lon",
+          "lat",
+          "radius_m",
+          "value",
+          "target",
+          "source",
+          "note"
+        ],
+        "title": "FeedStepResponse",
         "type": "object"
       },
       "FormulaSpec": {
@@ -4054,6 +4402,170 @@
         "title": "LayersResponse",
         "type": "object"
       },
+      "LiveStateResponse": {
+        "description": "The standing live picture: baseline plus every event ingested so far.",
+        "properties": {
+          "cells_in_grid": {
+            "title": "Cells In Grid",
+            "type": "integer"
+          },
+          "cells_rescored": {
+            "title": "Cells Rescored",
+            "type": "integer"
+          },
+          "classification_label": {
+            "title": "Classification Label",
+            "type": "string"
+          },
+          "closed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          },
+          "critical_area_km2_baseline": {
+            "title": "Critical Area Km2 Baseline",
+            "type": "number"
+          },
+          "critical_area_km2_now": {
+            "title": "Critical Area Km2 Now",
+            "type": "number"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventResponse"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "events_ingested": {
+            "title": "Events Ingested",
+            "type": "integer"
+          },
+          "feasible_routes_baseline": {
+            "title": "Feasible Routes Baseline",
+            "type": "integer"
+          },
+          "feasible_routes_now": {
+            "title": "Feasible Routes Now",
+            "type": "integer"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "immediate_population_baseline": {
+            "title": "Immediate Population Baseline",
+            "type": "integer"
+          },
+          "immediate_population_now": {
+            "title": "Immediate Population Now",
+            "type": "integer"
+          },
+          "live": {
+            "description": "False when nothing has been ingested. ASTRA shows the baseline and says so rather than manufacturing a live state before anything has happened.",
+            "title": "Live",
+            "type": "boolean"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "placed_baseline": {
+            "title": "Placed Baseline",
+            "type": "integer"
+          },
+          "placed_now": {
+            "title": "Placed Now",
+            "type": "integer"
+          },
+          "rescore_note": {
+            "title": "Rescore Note",
+            "type": "string"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanReviewResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "share_rescored": {
+            "title": "Share Rescored",
+            "type": "number"
+          },
+          "suitable_sites_baseline": {
+            "title": "Suitable Sites Baseline",
+            "type": "integer"
+          },
+          "suitable_sites_now": {
+            "title": "Suitable Sites Now",
+            "type": "integer"
+          },
+          "zones_baseline": {
+            "title": "Zones Baseline",
+            "type": "integer"
+          },
+          "zones_now": {
+            "title": "Zones Now",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "live",
+          "run_id",
+          "events_ingested",
+          "events",
+          "closed_segments",
+          "zones_baseline",
+          "zones_now",
+          "critical_area_km2_baseline",
+          "critical_area_km2_now",
+          "immediate_population_baseline",
+          "immediate_population_now",
+          "suitable_sites_baseline",
+          "suitable_sites_now",
+          "feasible_routes_baseline",
+          "feasible_routes_now",
+          "placed_baseline",
+          "placed_now",
+          "cells_rescored",
+          "cells_in_grid",
+          "share_rescored",
+          "rescore_note",
+          "review",
+          "headline",
+          "classification_label",
+          "decision_authority",
+          "engine_version",
+          "model_config_version"
+        ],
+        "title": "LiveStateResponse",
+        "type": "object"
+      },
       "LivelihoodResponse": {
         "description": "Livelihood disruption for one pairing, with its four measured components.",
         "properties": {
@@ -5219,6 +5731,52 @@
           "engine_version"
         ],
         "title": "PlanResponse",
+        "type": "object"
+      },
+      "PlanReviewResponse": {
+        "description": "Which standing decisions the newest evidence has undermined.",
+        "properties": {
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "invalidated_movements": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Invalidated Movements",
+            "type": "array"
+          },
+          "people_affected": {
+            "title": "People Affected",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "headline",
+          "reasons",
+          "invalidated_movements",
+          "people_affected",
+          "decision_authority"
+        ],
+        "title": "PlanReviewResponse",
         "type": "object"
       },
       "PlanTotalsResponse": {
@@ -6539,6 +7097,253 @@
         "title": "RouteResponse",
         "type": "object"
       },
+      "RunListResponse": {
+        "properties": {
+          "closed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          },
+          "events_ingested": {
+            "title": "Events Ingested",
+            "type": "integer"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "title": "Runs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "runs",
+          "events_ingested",
+          "closed_segments"
+        ],
+        "title": "RunListResponse",
+        "type": "object"
+      },
+      "RunResponse": {
+        "description": "One pipeline execution: what triggered it, what it emitted, what it found.",
+        "properties": {
+          "cells_in_grid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cells In Grid"
+          },
+          "cells_rescored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cells Rescored"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventResponse"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanReviewResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Stage Labels",
+            "type": "object"
+          },
+          "stage_order": {
+            "items": {
+              "$ref": "#/components/schemas/RunStage"
+            },
+            "title": "Stage Order",
+            "type": "array"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageEventResponse"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "total_ms": {
+            "title": "Total Ms",
+            "type": "number"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "trigger",
+          "status",
+          "created_at",
+          "finished_at",
+          "total_ms",
+          "events",
+          "stages",
+          "stage_order",
+          "stage_labels",
+          "error",
+          "review",
+          "cells_rescored",
+          "cells_in_grid",
+          "engine_version",
+          "model_config_version"
+        ],
+        "title": "RunResponse",
+        "type": "object"
+      },
+      "RunStage": {
+        "description": "Pipeline stages emitted over SSE and rendered by the execution graph (\u00a79).",
+        "enum": [
+          "INGEST",
+          "HAZARD",
+          "EXPOSURE_VULNERABILITY",
+          "SITE_CAPACITY",
+          "ROUTE_RELIABILITY",
+          "OPTIMISATION",
+          "DECISION_BRIEF"
+        ],
+        "title": "RunStage",
+        "type": "string"
+      },
+      "RunStageStatus": {
+        "description": "Lifecycle of a single pipeline stage. Drives node state in the graph.",
+        "enum": [
+          "PENDING",
+          "STARTED",
+          "PROGRESS",
+          "COMPLETED",
+          "WARNING",
+          "FAILED"
+        ],
+        "title": "RunStageStatus",
+        "type": "string"
+      },
+      "RunStatus": {
+        "description": "Where one pipeline execution has got to (\u00a79).\n\nA run is a real thing that starts, takes time and can fail. The interface\nreads this rather than assuming a run that was requested has succeeded.",
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "COMPLETED",
+          "FAILED"
+        ],
+        "title": "RunStatus",
+        "type": "string"
+      },
+      "RunSummary": {
+        "description": "A run in the history list.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "events": {
+            "title": "Events",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "plan_requires_review": {
+            "title": "Plan Requires Review",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "total_ms": {
+            "title": "Total Ms",
+            "type": "number"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "trigger",
+          "status",
+          "created_at",
+          "total_ms",
+          "events",
+          "plan_requires_review"
+        ],
+        "title": "RunSummary",
+        "type": "object"
+      },
       "Scenario": {
         "description": "A named, versioned analysis context. Scenarios are diffable objects.",
         "properties": {
@@ -7456,6 +8261,61 @@
         "title": "SolverStatus",
         "type": "string"
       },
+      "StageEventResponse": {
+        "description": "One stage event, exactly as it went out over the SSE stream.",
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "event": {
+            "description": "The SSE event name this was published under.",
+            "title": "Event",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/RunStage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStageStatus"
+          }
+        },
+        "required": [
+          "sequence",
+          "run_id",
+          "stage",
+          "status",
+          "event",
+          "at",
+          "message",
+          "elapsed_ms",
+          "payload"
+        ],
+        "title": "StageEventResponse",
+        "type": "object"
+      },
       "StrandedCapacityResponse": {
         "description": "Assessed capacity the people who still need it cannot reach.",
         "properties": {
@@ -8356,6 +9216,70 @@
         ]
       }
     },
+    "/events": {
+      "post": {
+        "description": "Accept observations and start a pipeline run over them.\n\nReturns as soon as the run is registered, with the run's id and its first\nstage events. The run itself continues on a worker thread; follow it on\n``GET /runs/{id}/stream``.",
+        "operationId": "ingest_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/events/feed": {
+      "get": {
+        "description": "The scripted observation sequence a client replays against POST /events.\n\nReturned as *data to be posted*, not as results. Replaying it drives the same\ningest endpoint an external feed would drive, and every stage a viewer sees\nafterwards is a real execution over the real engines.",
+        "operationId": "event_feed_events_feed_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventFeedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Feed",
+        "tags": [
+          "live"
+        ]
+      }
+    },
     "/habitations": {
       "get": {
         "description": "The habitation layer. Synthetic, fictional, terrain-calibrated records.",
@@ -8443,6 +9367,92 @@
         "summary": "Roads Geojson",
         "tags": [
           "transparency"
+        ]
+      }
+    },
+    "/live": {
+      "get": {
+        "description": "The standing live picture, against the baseline it moved from.",
+        "operationId": "live_state_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live State",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/live/plan": {
+      "get": {
+        "description": "The plan as it stands now, through the same serialiser the Plan screen uses.",
+        "operationId": "live_plan_live_plan_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live Plan",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/live/reset": {
+      "post": {
+        "description": "Discard every ingested event and return to the baseline.\n\nLive state is derived from the event log rather than edited in place, so\nclearing the log genuinely restores the baseline - there is no accumulated\nresidue to leak into the next demonstration.",
+        "operationId": "reset_live_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reset",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/live/zones": {
+      "get": {
+        "description": "The analytical red zones as they stand now, live or baseline.",
+        "operationId": "live_zones_live_zones_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZonesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live Zones",
+        "tags": [
+          "live"
         ]
       }
     },
@@ -9013,6 +10023,134 @@
         "summary": "Route Pair",
         "tags": [
           "routes"
+        ]
+      }
+    },
+    "/runs": {
+      "get": {
+        "description": "The recent pipeline runs, newest first.",
+        "operationId": "runs_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Runs",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/runs/{run_id}": {
+      "get": {
+        "description": "One run, with every stage event it has emitted so far.",
+        "operationId": "run_detail_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Detail",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/runs/{run_id}/stream": {
+      "get": {
+        "description": "This run's stage events, as Server-Sent Events.\n\nFrames use the event names from CLAUDE.md section 9 - ``stage_started``,\n``stage_progress``, ``stage_completed``, ``warning``, ``stage_failed`` - and\nthe stream closes with a ``run_completed`` frame once the run is terminal, so\na client knows the difference between \"still working\" and \"finished\".",
+        "operationId": "run_stream_runs__run_id__stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Stream",
+        "tags": [
+          "live"
         ]
       }
     },

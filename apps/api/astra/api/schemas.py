@@ -15,12 +15,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from astra.domain.enums import (
     ConfidenceBand,
+    EventType,
     HazardType,
     PerturbationKind,
     PhaseTier,
     ProvenanceClass,
     RoadClass,
     RouteProfile,
+    RunStage,
+    RunStageStatus,
+    RunStatus,
     ServiceType,
     SolverStatus,
     ZoneClass,
@@ -1062,3 +1066,205 @@ class PlanDependencyListResponse(BaseModel):
     plan_people: int
     segments_carrying_the_plan: int
     note: str
+
+
+# ---------------------------------------------------------------------------
+# Engine 8 - live event ingest and the execution pipeline
+# ---------------------------------------------------------------------------
+
+
+class EventSubmission(BaseModel):
+    """One observation offered to POST /events."""
+
+    kind: EventType
+    value: float
+    lon: float | None = None
+    lat: float | None = None
+    radius_m: float = Field(default=1500.0, gt=0.0, le=25000.0)
+    target: str | None = None
+    source: str = Field(min_length=1, max_length=200)
+    observed_at: datetime | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
+class EventBatch(BaseModel):
+    """A batch of observations. One batch triggers exactly one pipeline run."""
+
+    events: list[EventSubmission] = Field(min_length=1, max_length=20)
+    trigger: str = Field(
+        default="manual",
+        max_length=60,
+        description="Where the batch came from. Shown on the run record.",
+    )
+
+
+class EventResponse(BaseModel):
+    """An ingested observation, as ASTRA recorded it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    kind: EventType
+    observed_at: datetime
+    received_at: datetime
+    lon: float | None
+    lat: float | None
+    radius_m: float
+    value: float
+    target: str | None
+    source: str
+    provenance: ProvenanceClass
+    note: str | None
+    description: str
+
+
+class StageEventResponse(BaseModel):
+    """One stage event, exactly as it went out over the SSE stream."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sequence: int
+    run_id: str
+    stage: RunStage
+    status: RunStageStatus
+    event: str = Field(description="The SSE event name this was published under.")
+    at: datetime
+    message: str
+    elapsed_ms: float
+    payload: dict[str, Any]
+
+
+class PlanReviewResponse(BaseModel):
+    """Which standing decisions the newest evidence has undermined."""
+
+    model_config = ConfigDict(frozen=True)
+
+    required: bool
+    headline: str
+    reasons: list[str]
+    invalidated_movements: list[dict[str, Any]]
+    people_affected: int
+    decision_authority: str
+
+
+class RunResponse(BaseModel):
+    """One pipeline execution: what triggered it, what it emitted, what it found."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    trigger: str
+    status: RunStatus
+    created_at: datetime
+    finished_at: datetime | None
+    total_ms: float
+    events: list[EventResponse]
+    stages: list[StageEventResponse]
+    stage_order: list[RunStage]
+    stage_labels: dict[str, str]
+    error: str | None
+    review: PlanReviewResponse | None
+    cells_rescored: int | None
+    cells_in_grid: int | None
+    engine_version: str
+    model_config_version: str
+
+
+class RunSummary(BaseModel):
+    """A run in the history list."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    trigger: str
+    status: RunStatus
+    created_at: datetime
+    total_ms: float
+    events: int
+    plan_requires_review: bool
+
+
+class RunListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    runs: list[RunSummary]
+    events_ingested: int
+    closed_segments: list[str]
+
+
+class LiveStateResponse(BaseModel):
+    """The standing live picture: baseline plus every event ingested so far."""
+
+    model_config = ConfigDict(frozen=True)
+
+    live: bool = Field(
+        description=(
+            "False when nothing has been ingested. ASTRA shows the baseline and "
+            "says so rather than manufacturing a live state before anything has "
+            "happened."
+        )
+    )
+    run_id: str | None
+    events_ingested: int
+    events: list[EventResponse]
+    closed_segments: list[str]
+
+    zones_baseline: int
+    zones_now: int
+    critical_area_km2_baseline: float
+    critical_area_km2_now: float
+    immediate_population_baseline: int
+    immediate_population_now: int
+    suitable_sites_baseline: int
+    suitable_sites_now: int
+    feasible_routes_baseline: int
+    feasible_routes_now: int
+    placed_baseline: int
+    placed_now: int
+
+    cells_rescored: int
+    cells_in_grid: int
+    share_rescored: float
+    rescore_note: str
+
+    review: PlanReviewResponse | None
+    headline: str
+    classification_label: str
+    decision_authority: str
+    engine_version: str
+    model_config_version: str
+
+
+class FeedStepResponse(BaseModel):
+    """One step of the demonstration feed, ready to be posted as a real event."""
+
+    model_config = ConfigDict(frozen=True)
+
+    index: int
+    delay_ms: int
+    kind: EventType
+    lon: float | None
+    lat: float | None
+    radius_m: float
+    value: float
+    target: str | None
+    source: str
+    note: str
+
+
+class EventFeedResponse(BaseModel):
+    """A scripted observation sequence a client replays against POST /events.
+
+    The sequence is data, and it is labelled ``DEMO_CONFIG``. Replaying it posts
+    each step as a real event and each event triggers a real pipeline run; no
+    result here is pre-computed and no stage is animated on a timer.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    description: str
+    note: str
+    provenance: ProvenanceClass
+    steps: list[FeedStepResponse]

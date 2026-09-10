@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from astra.domain.enums import (
     ConfidenceBand,
+    EventType,
     HazardType,
     PerturbationKind,
     PhaseTier,
@@ -553,6 +554,90 @@ class HabitationRisk(BaseModel):
     note: str = Field(
         description="Standing reminder that priority is a rank, not a probability."
     )
+
+
+
+# ---------------------------------------------------------------------------
+# Live event ingest (section 5.8)
+# ---------------------------------------------------------------------------
+
+
+class HazardEvent(BaseModel):
+    """One observation arriving while the system is running.
+
+    An event is not a scenario. A scenario asks *what if*; an event says *this
+    happened, here, at this time*. So it carries a location and a footprint - the
+    ground the observation actually speaks for - and only that ground is
+    re-scored because of it. Everything outside the footprint keeps the value it
+    already had, which is what makes a live update incremental rather than a
+    quiet full recomputation wearing a progress bar.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(description="Assigned by ASTRA on ingest.")
+    kind: EventType
+    observed_at: datetime
+    received_at: datetime
+    lon: float | None = Field(
+        default=None, description="Longitude, WGS84. Null for a road-status event."
+    )
+    lat: float | None = None
+    radius_m: float = Field(
+        default=1500.0,
+        gt=0.0,
+        description=(
+            "The footprint this observation speaks for. A rain gauge does not "
+            "measure the next valley, and ASTRA does not pretend it does: outside "
+            "this radius nothing is re-scored."
+        ),
+    )
+    value: float = Field(
+        description=(
+            "The measurement, in the units the kind defines: millimetres for "
+            "rainfall, a severity weight for an incident, a 0-1 instability "
+            "observation for field evidence, 1 for a road closed and 0 for one "
+            "reopened."
+        )
+    )
+    target: str | None = Field(
+        default=None,
+        description="Road segment id for an infrastructure-status event.",
+    )
+    source: str = Field(
+        description="Who or what reported this. Shown on the evidence trail."
+    )
+    provenance: ProvenanceClass = ProvenanceClass.SYNTHETIC_CALIBRATED
+    note: str | None = None
+
+    @property
+    def has_location(self) -> bool:
+        return self.lon is not None and self.lat is not None
+
+    def describe(self) -> str:
+        """One line an official can read, assembled from the values themselves."""
+        where = (
+            f"{self.lat:.4f}, {self.lon:.4f}"
+            if self.has_location
+            else (self.target or "the study area")
+        )
+        match self.kind:
+            case EventType.RAINFALL_OBSERVATION:
+                return (
+                    f"{self.value:g} mm rainfall observed at {where} "
+                    f"({self.radius_m / 1000:g} km footprint)"
+                )
+            case EventType.INCIDENT_REPORT:
+                return f"Incident reported at {where}, severity weight {self.value:g}"
+            case EventType.FIELD_EVIDENCE:
+                return (
+                    f"Field evidence of ground instability at {where}, "
+                    f"observed severity {self.value:.2f}"
+                )
+            case EventType.INFRASTRUCTURE_STATUS:
+                state = "impassable" if self.value >= 0.5 else "reopened"
+                return f"Road segment {self.target} reported {state}"
+        return f"{self.kind.value} {self.value:g} at {where}"
 
 
 # ---------------------------------------------------------------------------

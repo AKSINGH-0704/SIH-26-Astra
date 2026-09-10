@@ -119,6 +119,7 @@ class PerturbationKind(StrEnum):
     POPULATION_MULTIPLIER = "POPULATION_MULTIPLIER"
 
 
+
 class ConfidenceBand(StrEnum):
     """Evidence confidence — orthogonal to priority, never multiplied into it (§5.2)."""
 
@@ -160,12 +161,42 @@ class RunStageStatus(StrEnum):
     FAILED = "FAILED"
 
 
-class EventType(StrEnum):
-    """Real-time ingest event kinds accepted by POST /events (§5.8)."""
+class RunStatus(StrEnum):
+    """Where one pipeline execution has got to (§9).
 
+    A run is a real thing that starts, takes time and can fail. The interface
+    reads this rather than assuming a run that was requested has succeeded.
+    """
+
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class EventType(StrEnum):
+    """Real-time ingest event kinds accepted by POST /events (§5.8).
+
+    Each kind enters the pipeline at exactly one surface, the same discipline a
+    scenario perturbation follows. The difference is that an event is an
+    *observation with a place and a time* rather than a hypothesis, so it also
+    carries a footprint: the ground the observation actually speaks for, and the
+    only ground that is re-scored because of it.
+    """
+
+    #: Measured rainfall over a gauge or radar cell. Raises rainfall intensity
+    #: and the extreme-rain-day count inside its footprint.
     RAINFALL_OBSERVATION = "RAINFALL_OBSERVATION"
+    #: A slope failure, washout or inundation that has already happened. Adds
+    #: severity-weighted density to the incident surface.
     INCIDENT_REPORT = "INCIDENT_REPORT"
+    #: A field officer's observation of ground instability - tension cracks,
+    #: seepage, movement. Adds to the terrain instability *input*, never to the
+    #: finished score, so the factor decomposition stays an honest account.
     FIELD_EVIDENCE = "FIELD_EVIDENCE"
+    #: A road reported impassable. Enters at the route engine rather than the
+    #: hazard surface: a blocked road changes who can get where, not how steep
+    #: the hillside above it is.
     INFRASTRUCTURE_STATUS = "INFRASTRUCTURE_STATUS"
 
 

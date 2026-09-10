@@ -35,6 +35,7 @@ from astra.engines.grid import (
     normalise_by_percentile,
     normalise_linear,
     normalise_log,
+    percentile_ceiling,
 )
 
 FORMULA_HSI = "hazard.hsi"
@@ -142,8 +143,33 @@ def _ordered_hazards(result_keys: list[HazardType]) -> list[HazardType]:
 class HazardEngine:
     """Computes susceptibility surfaces, the composite and the zone classes."""
 
-    def __init__(self, config: AstraModelConfig | None = None) -> None:
+    #: Surfaces whose normalisation ceiling comes from the data rather than the
+    #: configuration, and therefore has to be pinnable.
+    DENSITY_SURFACES = ("incident_density", "confluence_density")
+
+    def __init__(
+        self,
+        config: AstraModelConfig | None = None,
+        *,
+        ceilings: dict[str, float] | None = None,
+    ) -> None:
         self.config = config or MODEL_CONFIG
+        #: Pinned percentile ceilings, by surface name. When supplied, every
+        #: density factor is scaled against these rather than against its own
+        #: percentile, which makes scoring a pure per-cell function - see
+        #: `normalise_by_percentile`.
+        self.ceilings = dict(ceilings) if ceilings else None
+
+    def _ceiling(self, name: str) -> float | None:
+        return self.ceilings.get(name) if self.ceilings else None
+
+    def measure_ceilings(self, surfaces: HazardSurfaces) -> dict[str, float]:
+        """The ceilings this engine would use for these surfaces, to pin later."""
+        percentile = self.config.normalisation.density_percentile.value
+        return {
+            name: percentile_ceiling(getattr(surfaces, name), percentile)
+            for name in self.DENSITY_SURFACES
+        }
 
     # -- factor construction -------------------------------------------------
 
@@ -175,7 +201,9 @@ class HazardEngine:
             FactorSurface(
                 name="incident_density",
                 values=normalise_by_percentile(
-                    surfaces.incident_density, norm.density_percentile.value
+                    surfaces.incident_density,
+                    norm.density_percentile.value,
+                    ceiling=self._ceiling("incident_density"),
                 ),
                 raw_values=surfaces.incident_density,
                 unit="weighted incidents/km2",
@@ -309,7 +337,9 @@ class HazardEngine:
             FactorSurface(
                 name="confluence_density",
                 values=normalise_by_percentile(
-                    surfaces.confluence_density, norm.density_percentile.value
+                    surfaces.confluence_density,
+                    norm.density_percentile.value,
+                    ceiling=self._ceiling("confluence_density"),
                 ),
                 raw_values=surfaces.confluence_density,
                 unit="confluences/km2",
@@ -470,7 +500,9 @@ class HazardEngine:
         # Terrain factors are derived from a real DEM everywhere; the evidence
         # that actually varies in space is the incident record.
         evidence = normalise_by_percentile(
-            surfaces.incident_density, self.config.normalisation.density_percentile.value
+            surfaces.incident_density,
+            self.config.normalisation.density_percentile.value,
+            ceiling=self._ceiling("incident_density"),
         )
         provenance_mix = np.full(shape, 0.70) + 0.30 * evidence
 

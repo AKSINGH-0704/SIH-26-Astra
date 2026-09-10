@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@astra/contracts": "*",
+    "@xyflow/react": "^12.11.6",
     "deck.gl": "^9.4.0",
     "maplibre-gl": "^5.24.0",
     "next": "^15.1.0",

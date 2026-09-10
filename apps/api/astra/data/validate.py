@@ -213,6 +213,51 @@ def _validate_cross_references(report: ValidationReport, bundle: FixtureBundle) 
         )
 
 
+def _validate_event_feed(report: ValidationReport, area) -> None:
+    """The demonstration feed has to be replayable, and inside the study area.
+
+    A feed step that names a place ASTRA has no ground for would ingest cleanly
+    and re-score nothing, which reads on screen as "this observation changed
+    nothing" rather than "this observation was never applied anywhere".
+    """
+    from astra.data.feed import FeedError, load_feed
+    from astra.domain.enums import EventType
+
+    report.check("demonstration event feed parses and lands inside the study area")
+    try:
+        feed = load_feed()
+    except FeedError as exc:
+        report.fail(str(exc))
+        return
+
+    located = {
+        EventType.RAINFALL_OBSERVATION,
+        EventType.INCIDENT_REPORT,
+        EventType.FIELD_EVIDENCE,
+    }
+    for index, step in enumerate(feed.steps):
+        where = f"event feed step {index} ({step.kind.value})"
+        if step.kind in located:
+            if step.lon is None or step.lat is None:
+                report.fail(f"{where} has no location")
+                continue
+            if not (
+                area.bbox.min_lon <= step.lon <= area.bbox.max_lon
+                and area.bbox.min_lat <= step.lat <= area.bbox.max_lat
+            ):
+                report.fail(f"{where} falls outside the study area bbox")
+            if step.radius_m <= 0:
+                report.fail(f"{where} has a non-positive footprint radius")
+        elif not step.target:
+            report.fail(f"{where} names no road segment")
+        if step.kind is EventType.FIELD_EVIDENCE and not 0.0 <= step.value <= 1.0:
+            report.fail(f"{where} records a severity outside 0-1")
+        if step.delay_ms < 0:
+            report.fail(f"{where} declares a negative delay")
+        if not step.note:
+            report.fail(f"{where} has no note saying what it is")
+
+
 def validate_all(fixtures_dir: Path | None = None) -> ValidationReport:
     """Run every integrity check and return the report. Never raises on findings."""
     report = ValidationReport()
@@ -234,6 +279,7 @@ def validate_all(fixtures_dir: Path | None = None) -> ValidationReport:
     _validate_sites(report, bundle, area)
     _validate_road_segments(report, bundle, area)
     _validate_cross_references(report, bundle)
+    _validate_event_feed(report, area)
     return report
 
 

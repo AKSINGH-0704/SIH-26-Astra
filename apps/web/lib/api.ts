@@ -8,6 +8,11 @@
 
 import type {
   ClosureImpactResponse,
+  EventFeedResponse,
+  EventSubmission,
+  LiveStateResponse,
+  RunListResponse,
+  RunResponse,
   CounterfactualResponse,
   HabitationDetailResponse,
   HabitationHazardResponse,
@@ -115,6 +120,12 @@ export const api = {
   plan: () => get<PlanResponse>("/plan"),
   planDependencies: () =>
     get<PlanDependencyListResponse>("/routes/critical-segments"),
+  live: () => get<LiveStateResponse>("/live"),
+  liveZones: () => get<ZonesResponse>("/live/zones"),
+  livePlan: () => get<PlanResponse>("/live/plan"),
+  eventFeed: () => get<EventFeedResponse>("/events/feed"),
+  runs: () => get<RunListResponse>("/runs"),
+  run: (id: string) => get<RunResponse>(`/runs/${encodeURIComponent(id)}`),
   whyNot: (habitationId: string, siteId: string) =>
     get<CounterfactualResponse>(
       `/plan/why-not/${encodeURIComponent(habitationId)}/${encodeURIComponent(siteId)}`,
@@ -151,6 +162,27 @@ export async function simulate(
   name?: string,
 ): Promise<ScenarioDiffResponse> {
   return post<ScenarioDiffResponse>("/simulate", { changes, name });
+}
+
+/**
+ * Post observations. The API answers as soon as the run is registered; the run
+ * itself continues on the server and is followed over SSE.
+ */
+export async function ingestEvents(
+  events: EventSubmission[],
+  trigger = "manual",
+): Promise<RunResponse> {
+  return post<RunResponse>("/events", { events, trigger });
+}
+
+/** Discard every ingested observation and return to the baseline. */
+export async function resetLive(): Promise<LiveStateResponse> {
+  return post<LiveStateResponse>("/live/reset", {});
+}
+
+/** The SSE endpoint for one run. Consumed with EventSource, not fetch. */
+export function runStreamUrl(runId: string): string {
+  return `${API_BASE}/runs/${encodeURIComponent(runId)}/stream`;
 }
 
 export async function evaluateClosure(
