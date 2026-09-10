@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
+from astra.api.brief_router import router as brief_router
 from astra.api.capacity_router import router as capacity_router
 from astra.api.intelligence_router import router as intelligence_router
 from astra.api.live_router import router as live_router
@@ -148,6 +149,7 @@ def create_app() -> FastAPI:
     app.include_router(live_router)
     app.include_router(validation_router)
     app.include_router(intelligence_router)
+    app.include_router(brief_router)
     return app
 
 

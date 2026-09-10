@@ -1811,6 +1811,1016 @@
         "title": "Body_file_evidence_evidence_post",
         "type": "object"
       },
+      "BriefAudit": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "input_summary_hash": {
+            "title": "Input Summary Hash",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "objective_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Value"
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision_id",
+          "created_at",
+          "input_summary_hash",
+          "engine_version",
+          "model_config_version",
+          "solver_status",
+          "objective_value",
+          "state"
+        ],
+        "title": "BriefAudit",
+        "type": "object"
+      },
+      "BriefCapacity": {
+        "properties": {
+          "bottlenecks": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceType"
+            },
+            "title": "Bottlenecks",
+            "type": "array"
+          },
+          "candidate_sites": {
+            "title": "Candidate Sites",
+            "type": "integer"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/BriefSite"
+            },
+            "title": "Sites",
+            "type": "array"
+          },
+          "suitable_sites": {
+            "title": "Suitable Sites",
+            "type": "integer"
+          },
+          "total_effective_capacity": {
+            "title": "Total Effective Capacity",
+            "type": "number"
+          },
+          "total_theoretical_capacity": {
+            "title": "Total Theoretical Capacity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "candidate_sites",
+          "suitable_sites",
+          "total_effective_capacity",
+          "total_theoretical_capacity",
+          "bottlenecks",
+          "sites",
+          "limitation"
+        ],
+        "title": "BriefCapacity",
+        "type": "object"
+      },
+      "BriefComparisonRow": {
+        "description": "What a static hazard map answers, beside what ASTRA's added layers answer.",
+        "properties": {
+          "astra": {
+            "title": "Astra",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "static_map": {
+            "title": "Static Map",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "static_map",
+          "astra"
+        ],
+        "title": "BriefComparisonRow",
+        "type": "object"
+      },
+      "BriefConfidence": {
+        "properties": {
+          "bands": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Bands",
+            "type": "object"
+          },
+          "modal_band": {
+            "$ref": "#/components/schemas/ConfidenceBand"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "modal_band",
+          "bands",
+          "note"
+        ],
+        "title": "BriefConfidence",
+        "type": "object"
+      },
+      "BriefListResponse": {
+        "properties": {
+          "briefs": {
+            "items": {
+              "$ref": "#/components/schemas/BriefSummary"
+            },
+            "title": "Briefs",
+            "type": "array"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "briefs",
+          "total",
+          "decision_authority"
+        ],
+        "title": "BriefListResponse",
+        "type": "object"
+      },
+      "BriefMovement": {
+        "properties": {
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "habitation_name": {
+            "title": "Habitation Name",
+            "type": "string"
+          },
+          "people": {
+            "title": "People",
+            "type": "integer"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "route_reliability": {
+            "title": "Route Reliability",
+            "type": "number"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "site_name": {
+            "title": "Site Name",
+            "type": "string"
+          },
+          "travel_time_min": {
+            "title": "Travel Time Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "habitation_name",
+          "site_id",
+          "site_name",
+          "phase",
+          "people",
+          "travel_time_min",
+          "route_reliability"
+        ],
+        "title": "BriefMovement",
+        "type": "object"
+      },
+      "BriefNarration": {
+        "properties": {
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "mode",
+          "note"
+        ],
+        "title": "BriefNarration",
+        "type": "object"
+      },
+      "BriefPhaseAction": {
+        "description": "One phase of the plan as an instruction, with the movements behind it.",
+        "properties": {
+          "habitations": {
+            "title": "Habitations",
+            "type": "integer"
+          },
+          "movements": {
+            "items": {
+              "$ref": "#/components/schemas/BriefMovement"
+            },
+            "title": "Movements",
+            "type": "array"
+          },
+          "people_moved": {
+            "title": "People Moved",
+            "type": "integer"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "sites_used": {
+            "title": "Sites Used",
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "tier_rule": {
+            "title": "Tier Rule",
+            "type": "string"
+          },
+          "travel_ceiling_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Travel Ceiling Min"
+          }
+        },
+        "required": [
+          "phase",
+          "tier_rule",
+          "steps",
+          "people_moved",
+          "habitations",
+          "sites_used",
+          "travel_ceiling_min",
+          "movements"
+        ],
+        "title": "BriefPhaseAction",
+        "type": "object"
+      },
+      "BriefPlan": {
+        "properties": {
+          "capacity_blocked": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capacity Blocked",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "objective_value": {
+            "title": "Objective Value",
+            "type": "number"
+          },
+          "solver": {
+            "title": "Solver",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SolverStatus"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PlanTotalsResponse"
+          },
+          "unmet": {
+            "items": {
+              "$ref": "#/components/schemas/UnmetReasonResponse"
+            },
+            "title": "Unmet",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "solver",
+          "objective_value",
+          "headline",
+          "totals",
+          "unmet",
+          "capacity_blocked"
+        ],
+        "title": "BriefPlan",
+        "type": "object"
+      },
+      "BriefPriorityRow": {
+        "properties": {
+          "components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Components",
+            "type": "object"
+          },
+          "confidence_band": {
+            "$ref": "#/components/schemas/ConfidenceBand"
+          },
+          "dominant_hazard": {
+            "$ref": "#/components/schemas/HazardType"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "hazard_composite": {
+            "title": "Hazard Composite",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "phase_reason": {
+            "title": "Phase Reason",
+            "type": "string"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          },
+          "priority_score": {
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "rules_applied": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rules Applied",
+            "type": "array"
+          },
+          "zone_class": {
+            "$ref": "#/components/schemas/ZoneClass"
+          }
+        },
+        "required": [
+          "rank",
+          "habitation_id",
+          "name",
+          "population",
+          "priority_score",
+          "phase",
+          "phase_reason",
+          "rules_applied",
+          "zone_class",
+          "dominant_hazard",
+          "hazard_composite",
+          "components",
+          "confidence_band"
+        ],
+        "title": "BriefPriorityRow",
+        "type": "object"
+      },
+      "BriefResponse": {
+        "description": "The Decision Brief. ``id`` and ``audit`` are null on a preview.",
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/BriefPhaseAction"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Constant"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "audit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BriefAudit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basis": {
+            "enum": [
+              "BASELINE",
+              "LIVE"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "basis_note": {
+            "title": "Basis Note",
+            "type": "string"
+          },
+          "capacity": {
+            "$ref": "#/components/schemas/BriefCapacity"
+          },
+          "classification_label": {
+            "title": "Classification Label",
+            "type": "string"
+          },
+          "comparison": {
+            "items": {
+              "$ref": "#/components/schemas/BriefComparisonRow"
+            },
+            "title": "Comparison",
+            "type": "array"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/BriefConfidence"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "events_ingested": {
+            "title": "Events Ingested",
+            "type": "integer"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "how_this_works": {
+            "title": "How This Works",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "narration": {
+            "$ref": "#/components/schemas/BriefNarration"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/BriefPlan"
+          },
+          "priorities": {
+            "items": {
+              "$ref": "#/components/schemas/BriefPriorityRow"
+            },
+            "title": "Priorities",
+            "type": "array"
+          },
+          "priority_note": {
+            "title": "Priority Note",
+            "type": "string"
+          },
+          "routes": {
+            "$ref": "#/components/schemas/BriefRoutes"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "scenario_disclaimer": {
+            "title": "Scenario Disclaimer",
+            "type": "string"
+          },
+          "scenario_id": {
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "scenario_name": {
+            "title": "Scenario Name",
+            "type": "string"
+          },
+          "situation": {
+            "$ref": "#/components/schemas/BriefSituation"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/BriefValidation"
+          }
+        },
+        "required": [
+          "id",
+          "generated_at",
+          "basis",
+          "basis_note",
+          "run_id",
+          "events_ingested",
+          "scenario_id",
+          "scenario_name",
+          "situation",
+          "priorities",
+          "capacity",
+          "plan",
+          "actions",
+          "routes",
+          "validation",
+          "confidence",
+          "comparison",
+          "narration",
+          "assumptions",
+          "limitations",
+          "audit",
+          "how_this_works",
+          "decision_authority",
+          "classification_label",
+          "scenario_disclaimer",
+          "priority_note",
+          "engine_version",
+          "model_config_version"
+        ],
+        "title": "BriefResponse",
+        "type": "object"
+      },
+      "BriefRoutes": {
+        "properties": {
+          "closed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Closed Segments",
+            "type": "array"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/PlanDependencyResponse"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "feasible_pairs": {
+            "title": "Feasible Pairs",
+            "type": "integer"
+          },
+          "habitations_without_reachable_suitable_site": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Habitations Without Reachable Suitable Site",
+            "type": "array"
+          },
+          "pairs_evaluated": {
+            "title": "Pairs Evaluated",
+            "type": "integer"
+          },
+          "reliability_threshold": {
+            "title": "Reliability Threshold",
+            "type": "number"
+          },
+          "weakest_movements": {
+            "items": {
+              "$ref": "#/components/schemas/BriefMovement"
+            },
+            "title": "Weakest Movements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "closed_segments",
+          "pairs_evaluated",
+          "feasible_pairs",
+          "reliability_threshold",
+          "habitations_without_reachable_suitable_site",
+          "dependencies",
+          "weakest_movements"
+        ],
+        "title": "BriefRoutes",
+        "type": "object"
+      },
+      "BriefSite": {
+        "properties": {
+          "assigned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned"
+          },
+          "bottleneck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effective_capacity": {
+            "title": "Effective Capacity",
+            "type": "number"
+          },
+          "failed_gates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed Gates",
+            "type": "array"
+          },
+          "marginal_headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marginal Headline"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "suitable": {
+            "title": "Suitable",
+            "type": "boolean"
+          },
+          "theoretical_capacity": {
+            "title": "Theoretical Capacity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "site_id",
+          "name",
+          "suitable",
+          "failed_gates",
+          "theoretical_capacity",
+          "effective_capacity",
+          "bottleneck",
+          "marginal_headline",
+          "assigned",
+          "remaining"
+        ],
+        "title": "BriefSite",
+        "type": "object"
+      },
+      "BriefSituation": {
+        "properties": {
+          "by_phase": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PhaseTotals"
+            },
+            "title": "By Phase",
+            "type": "object"
+          },
+          "critical_area_km2": {
+            "title": "Critical Area Km2",
+            "type": "number"
+          },
+          "habitations_assessed": {
+            "title": "Habitations Assessed",
+            "type": "integer"
+          },
+          "habitations_in_critical_or_elevated": {
+            "title": "Habitations In Critical Or Elevated",
+            "type": "integer"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "plan_requires_review": {
+            "title": "Plan Requires Review",
+            "type": "boolean"
+          },
+          "population_assessed": {
+            "title": "Population Assessed",
+            "type": "integer"
+          },
+          "review_headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Headline"
+          },
+          "zone_count": {
+            "title": "Zone Count",
+            "type": "integer"
+          },
+          "zones": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ZoneClassSummary"
+            },
+            "title": "Zones",
+            "type": "object"
+          }
+        },
+        "required": [
+          "headline",
+          "zones",
+          "zone_count",
+          "critical_area_km2",
+          "habitations_assessed",
+          "population_assessed",
+          "habitations_in_critical_or_elevated",
+          "by_phase",
+          "plan_requires_review",
+          "review_headline"
+        ],
+        "title": "BriefSituation",
+        "type": "object"
+      },
+      "BriefSummary": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "decision_id",
+          "created_at",
+          "basis",
+          "headline"
+        ],
+        "title": "BriefSummary",
+        "type": "object"
+      },
+      "BriefValidation": {
+        "properties": {
+          "auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc"
+          },
+          "auc_ci_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc Ci High"
+          },
+          "auc_ci_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc Ci Low"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "backtest_headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtest Headline"
+          },
+          "incidents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incidents"
+          },
+          "limitation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limitation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs"
+          },
+          "sensitivity_headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensitivity Headline"
+          },
+          "spearman_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spearman Median"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K"
+          },
+          "top_k_unchanged_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K Unchanged Share"
+          }
+        },
+        "required": [
+          "available",
+          "auc",
+          "auc_ci_low",
+          "auc_ci_high",
+          "incidents",
+          "runs",
+          "spearman_median",
+          "top_k",
+          "top_k_unchanged_share",
+          "backtest_headline",
+          "sensitivity_headline",
+          "limitation",
+          "stale"
+        ],
+        "title": "BriefValidation",
+        "type": "object"
+      },
       "CandidateSite": {
         "description": "A candidate relocation site.\n\nSite records in the demonstration scenario are synthetic and fictional.\nASTRA does not verify land ownership, tenure or encumbrance.",
         "properties": {
@@ -3915,6 +4925,24 @@
         "title": "GateResult",
         "type": "object"
       },
+      "GenerateBriefRequest": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "GenerateBriefRequest",
+        "type": "object"
+      },
       "GenerationConfig": {
         "description": "Assumptions behind the synthetic habitation and site records.\n\nThese are ASTRA demonstration assumptions for a Himalayan hill district, not\nmeasured statistics. They are exposed here, with a DEMO_CONFIG chip on every\nvalue, precisely so that \"where did your 12 percent elderly come from?\" has a\nvisible answer rather than a defensive one. Habitation placement and size are\ncalibrated to real terrain, land cover, road access and the WorldPop\npopulation surface; the demographic composition below is assumed.",
         "properties": {
@@ -5113,6 +6141,10 @@
             "title": "Checked At",
             "type": "string"
           },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
@@ -5128,6 +6160,11 @@
           "fixtures_valid": {
             "title": "Fixtures Valid",
             "type": "boolean"
+          },
+          "how_this_works": {
+            "description": "What is computed and what AI does. Rendered on every screen.",
+            "title": "How This Works",
+            "type": "string"
           },
           "llm_mode": {
             "description": "Template mode means no LLM key is configured. The full analysis runs identically either way; only the prose narration differs.",
@@ -5165,6 +6202,8 @@
           "fixtures_valid",
           "fixture_count",
           "llm_mode",
+          "how_this_works",
+          "decision_authority",
           "started_at",
           "checked_at"
         ],
@@ -10620,6 +11659,157 @@
         "summary": "Audit",
         "tags": [
           "intelligence"
+        ]
+      }
+    },
+    "/brief": {
+      "post": {
+        "description": "Generate a Decision Brief, record it in the ledger, and freeze it.",
+        "operationId": "generate_brief_brief_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateBriefRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Brief",
+        "tags": [
+          "brief"
+        ]
+      }
+    },
+    "/brief/preview": {
+      "get": {
+        "description": "The brief for the standing state, without writing a ledger row.",
+        "operationId": "brief_preview_brief_preview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Brief Preview",
+        "tags": [
+          "brief"
+        ]
+      }
+    },
+    "/brief/{brief_id}": {
+      "get": {
+        "description": "One generated brief, exactly as it was when it was generated.",
+        "operationId": "brief_detail_brief__brief_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brief_id",
+            "required": true,
+            "schema": {
+              "title": "Brief Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Brief Detail",
+        "tags": [
+          "brief"
+        ]
+      }
+    },
+    "/briefs": {
+      "get": {
+        "description": "Generated briefs, newest first.",
+        "operationId": "briefs_briefs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Briefs",
+        "tags": [
+          "brief"
         ]
       }
     },

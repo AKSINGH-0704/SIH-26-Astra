@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
+import { cache } from "react";
 
+import { DemoMode } from "@/components/demo-mode";
+import { NavLinks } from "@/components/nav-links";
 import { Wordmark } from "@/components/wordmark";
 import { api, tryFetch } from "@/lib/api";
 
@@ -25,22 +28,29 @@ export const metadata: Metadata = {
     "GIS decision support for multi-hazard red zones, carrying capacity assessment and phased relocation prioritisation. Decision-support output; final decisions rest with the SDMA.",
 };
 
-const NAV = [
-  { href: "/risk", label: "Risk Explorer", available: true },
-  { href: "/priority", label: "Habitation Priority", available: true },
-  { href: "/sites", label: "Relocation Sites", available: true },
-  { href: "/routes", label: "Access & Routes", available: true },
-  { href: "/plan", label: "Optimised Plan", available: true },
-  { href: "/simulate", label: "What-If Simulation", available: true },
-  { href: "/live", label: "Live Operations", available: true },
-  { href: "/evidence", label: "Evidence & Audit", available: true },
-  { href: "/study-area", label: "Study Area & Data", available: true },
-  { href: "/model", label: "Model & Provenance", available: true },
-  { href: "/command", label: "Command Centre", available: false },
-];
+/** One health read per request, shared by the status strip and the notice. */
+const getHealth = cache(() => tryFetch(api.health));
+
+async function HowThisWorks() {
+  const health = await getHealth();
+  if (!health) return null;
+  return (
+    <div className="mt-5 hidden border-t border-[var(--color-line)] px-3 pt-3 lg:block">
+      <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
+        How this works
+      </p>
+      <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-ink-muted)]">
+        {health.how_this_works}
+      </p>
+      <p className="mt-2 text-[10px] leading-relaxed text-[var(--color-ink-faint)]">
+        {health.decision_authority}
+      </p>
+    </div>
+  );
+}
 
 async function StatusStrip() {
-  const health = await tryFetch(api.health);
+  const health = await getHealth();
   if (!health) {
     return (
       <span className="numeric text-[11px] text-[var(--color-critical)]">
@@ -83,10 +93,10 @@ async function StatusStrip() {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-[var(--color-abyss)]">
-        <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[var(--color-surface)]/95 backdrop-blur">
+      <body className="min-h-screen bg-[var(--color-abyss)] print:bg-white">
+        <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[var(--color-surface)]/95 backdrop-blur print:hidden">
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3">
-            <Link href="/risk" className="rounded-sm">
+            <Link href="/" className="rounded-sm">
               <Wordmark />
             </Link>
             <StatusStrip />
@@ -95,32 +105,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="flex min-h-[calc(100vh-64px)] flex-col lg:flex-row">
           <nav
             aria-label="Operational navigation"
-            className="border-b border-[var(--color-line)] bg-[var(--color-surface-inset)] px-3 py-3 lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r"
+            className="border-b border-[var(--color-line)] bg-[var(--color-surface-inset)] px-3 py-3 lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r print:hidden"
           >
-            <ul className="flex flex-wrap gap-1 lg:flex-col">
-              {NAV.map((item) => (
-                <li key={item.href}>
-                  {item.available ? (
-                    <Link
-                      href={item.href}
-                      className="block rounded px-3 py-2 text-[12px] text-[var(--color-ink)] hover:bg-[var(--color-surface-raised)]"
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span
-                      className="block cursor-not-allowed px-3 py-2 text-[12px] text-[var(--color-ink-faint)]"
-                      title="Not yet built. ASTRA does not show a screen before the engine behind it exists."
-                    >
-                      {item.label}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <NavLinks />
+            <HowThisWorks />
           </nav>
           <main className="min-w-0 flex-1">{children}</main>
         </div>
+        <DemoMode />
       </body>
     </html>
   );

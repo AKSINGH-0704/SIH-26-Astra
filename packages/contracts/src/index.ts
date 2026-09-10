@@ -73,6 +73,14 @@ export type OverrideRequest = Schemas["OverrideRequest"];
 export type NarrationResponse = Schemas["NarrationResponse"];
 export type AskResponse = Schemas["AskResponse"];
 export type IntentResponse = Schemas["IntentResponse"];
+export type BriefResponse = Schemas["BriefResponse"];
+export type BriefListResponse = Schemas["BriefListResponse"];
+export type BriefSummary = Schemas["BriefSummary"];
+export type BriefPhaseAction = Schemas["BriefPhaseAction"];
+export type BriefMovement = Schemas["BriefMovement"];
+export type BriefPriorityRow = Schemas["BriefPriorityRow"];
+export type BriefSite = Schemas["BriefSite"];
+export type BriefComparisonRow = Schemas["BriefComparisonRow"];
 
 export type AstraModelConfig = Schemas["AstraModelConfig"];
 export type Constant = Schemas["Constant"];

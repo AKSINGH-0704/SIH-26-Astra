@@ -48,9 +48,9 @@ def test_file_and_get_evidence(client: TestClient) -> None:
 
 
 def test_decisions_list_and_record(client: TestClient) -> None:
-    res = client.get("/decisions?limit=100")
+    res = client.get("/decisions?limit=1")
     assert res.status_code == 200
-    initial_count = len(res.json()["decisions"])
+    previous = res.json()["decisions"]
 
     # Record a decision
     post_res = client.post(
@@ -63,9 +63,12 @@ def test_decisions_list_and_record(client: TestClient) -> None:
     assert rec["state"] in ("COMPUTED", "UNDER_REVIEW")
 
     # List again
-    after_res = client.get("/decisions?limit=100")
+    # The ledger lists newest first. Comparing the head rather than a count keeps
+    # this true however many rows the store already holds.
+    after_res = client.get("/decisions?limit=1")
     assert after_res.status_code == 200
-    assert len(after_res.json()["decisions"]) >= initial_count + 1
+    assert after_res.json()["decisions"][0]["id"] == rec["id"]
+    assert not previous or previous[0]["id"] != rec["id"]
 
 
 def test_ask_intents_and_query(client: TestClient) -> None:

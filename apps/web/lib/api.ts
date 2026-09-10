@@ -8,6 +8,8 @@
 
 import type {
   AskResponse,
+  BriefListResponse,
+  BriefResponse,
   ClosureImpactResponse,
   DecisionListResponse,
   DecisionResponse,
@@ -47,8 +49,11 @@ import type {
   ZonesResponse,
 } from "@astra/contracts";
 
+// The default is the IPv4 loopback rather than "localhost". The API binds IPv4;
+// on Windows "localhost" resolves to ::1 first, and each refused IPv6 attempt
+// costs ~200 ms before the fallback - on every server-side fetch of every page.
 export const API_BASE =
-  process.env.NEXT_PUBLIC_ASTRA_API_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_ASTRA_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8000";
 
 export class ApiUnavailableError extends Error {
   constructor(
@@ -119,6 +124,13 @@ export const api = {
   decision: (id: string) => get<DecisionResponse>(`/decisions/${encodeURIComponent(id)}`),
   askIntents: () => get<IntentResponse[]>("/ask/intents"),
   narratePlan: () => get<NarrationResponse>("/narrate/plan"),
+  narrateHabitation: (id: string) =>
+    get<NarrationResponse>(`/narrate/habitation/${encodeURIComponent(id)}`),
+  narrateSite: (id: string) =>
+    get<NarrationResponse>(`/narrate/site/${encodeURIComponent(id)}`),
+  briefPreview: () => get<BriefResponse>("/brief/preview"),
+  brief: (id: string) => get<BriefResponse>(`/brief/${encodeURIComponent(id)}`),
+  briefs: () => get<BriefListResponse>("/briefs"),
   habitations: () => get<HabitationsResponse>("/habitations"),
   sites: () => get<SitesResponse>("/sites"),
   studyAreaData: () => get<StudyAreaDataResponse>("/study-area/data"),
@@ -244,6 +256,14 @@ export async function overrideDecision(
     `/decisions/${encodeURIComponent(decisionId)}/override`,
     body,
   );
+}
+
+/**
+ * Generate a Decision Brief. Writes a decision-ledger row and freezes the brief
+ * under an id the printed page carries.
+ */
+export async function generateBrief(notes?: string | null): Promise<BriefResponse> {
+  return post<BriefResponse>("/brief", { notes: notes ?? null });
 }
 
 /** Ask one question from the fixed allowlist. */

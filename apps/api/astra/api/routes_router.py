@@ -212,22 +212,14 @@ def routes() -> RouteAssessmentResponse:
     return _assessment(baseline_routes())
 
 
-@router.get("/critical-segments", response_model=PlanDependencyListResponse)
-def critical_segments() -> PlanDependencyListResponse:
-    """The roads the baseline plan is standing on, ranked by residents carried.
+def plan_dependencies(plan, corridor: CorridorRoutes) -> list[PlanDependencyResponse]:
+    """Every segment a solved plan's movements cross, ranked by residents carried.
 
-    A what-if that closes a road at random mostly proves nothing. This ranks the
-    corridor by how much of the *solved plan* actually crosses each segment, so
-    the closure a user picks is the one that tests the plan rather than the
-    network. Every figure here is read off the baseline plan and the baseline
-    routes; nothing is re-solved.
+    Shared by the critical-segments endpoint and the Decision Brief, so the road a
+    brief says the plan leans on is the road the What-If screen offers to close.
     """
-    from astra.engines.optimizer_service import baseline_plan
-
-    corridor = baseline_routes()
     network = corridor.network
     no_alternative = network.critical_segments
-    plan, _ = baseline_plan()
 
     people: dict[str, int] = {}
     movements: dict[str, int] = {}
@@ -280,6 +272,25 @@ def critical_segments() -> PlanDependencyListResponse:
             row.segment_id,
         )
     )
+    return rows
+
+
+@router.get("/critical-segments", response_model=PlanDependencyListResponse)
+def critical_segments() -> PlanDependencyListResponse:
+    """The roads the baseline plan is standing on, ranked by residents carried.
+
+    A what-if that closes a road at random mostly proves nothing. This ranks the
+    corridor by how much of the *solved plan* actually crosses each segment, so
+    the closure a user picks is the one that tests the plan rather than the
+    network. Every figure here is read off the baseline plan and the baseline
+    routes; nothing is re-solved.
+    """
+    from astra.engines.optimizer_service import baseline_plan
+
+    corridor = baseline_routes()
+    network = corridor.network
+    plan, _ = baseline_plan()
+    rows = plan_dependencies(plan, corridor)
 
     return PlanDependencyListResponse(
         segments=rows[:20],

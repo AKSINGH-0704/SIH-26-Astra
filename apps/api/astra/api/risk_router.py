@@ -88,6 +88,27 @@ def risk_summary() -> RiskSummaryResponse:
     )
 
 
+#: Decimal places kept on zone vertices in the wire format. Five decimals of a
+#: degree is about a metre on the ground - two orders of magnitude finer than the
+#: 100 m cells zones are built from - and it roughly halves the payload every map
+#: screen downloads. Areas and intersections are computed on the full-precision
+#: geometry before this point; only the transport is rounded.
+COORDINATE_DECIMALS = 5
+
+
+def _rounded(coordinates):
+    if coordinates and isinstance(coordinates[0], (int, float)):
+        return [round(value, COORDINATE_DECIMALS) for value in coordinates]
+    return [_rounded(part) for part in coordinates]
+
+
+def _wire_geometry(geometry) -> Geometry:
+    shape = mapping(geometry)
+    return Geometry.model_validate(
+        {"type": shape["type"], "coordinates": _rounded(shape["coordinates"])}
+    )
+
+
 def serialise_zones(run, zone_class: str | None = None) -> ZonesResponse:
     """The zone payload for any risk run, baseline or scenario.
 
@@ -102,7 +123,7 @@ def serialise_zones(run, zone_class: str | None = None) -> ZonesResponse:
     features = [
         ZoneFeature(
             id=zone.id,
-            geometry=Geometry.model_validate(mapping(zone.geometry)),
+            geometry=_wire_geometry(zone.geometry),
             properties=ZoneFeatureProperties(
                 id=zone.id,
                 zone_class=zone.zone_class,

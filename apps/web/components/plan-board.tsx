@@ -298,6 +298,7 @@ export function PlanBoard({
                     type="button"
                     onClick={() => select(assignment)}
                     aria-pressed={active}
+                    data-testid="assignment-row"
                     className="w-full px-3 py-2.5 text-left hover:bg-[var(--color-surface-raised)]"
                     style={{
                       background: active ? "var(--color-surface-raised)" : undefined,
@@ -678,6 +679,7 @@ function AssignmentDetail({
               type="button"
               disabled={busy}
               onClick={() => onAskWhyNot(assignment.habitation_id, site.site_id)}
+              data-testid="why-not-option"
               className="numeric rounded-sm border px-1.5 py-0.5 text-[10px] disabled:opacity-40"
               style={{
                 borderColor: "var(--color-line-strong)",
@@ -700,6 +702,7 @@ function AssignmentDetail({
                 type="button"
                 disabled={busy}
                 onClick={() => onAskWhyNot(assignment.habitation_id, entry.site_id)}
+                data-testid="why-not-option"
                 className="numeric rounded-sm border border-dashed px-1.5 py-0.5 text-[10px] disabled:opacity-40"
                 style={{
                   borderColor: "var(--color-critical)",
@@ -716,6 +719,7 @@ function AssignmentDetail({
       ) : null}
       {whyNot ? (
         <div
+          data-testid="why-not-result"
           className="mt-2 rounded-sm border px-2.5 py-2"
           style={{
             borderColor: whyNot.feasible

@@ -153,7 +153,10 @@ export function RiskMap({
   habitationColour,
   highlightId,
   focusBounds,
+  onReady,
 }: {
+  /** Called once, when the terrain basemap has loaded and layers can draw. */
+  onReady?: () => void;
   studyArea: StudyArea;
   terrainUrl: string;
   overlayUrl: string;
@@ -197,6 +200,8 @@ export function RiskMap({
   // the camera resetting itself, and expensive long before you do.
   const onSelectPointRef = useRef(onSelectPoint);
   onSelectPointRef.current = onSelectPoint;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
   const [roads, setRoads] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -257,7 +262,10 @@ export function RiskMap({
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
     const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(overlay);
-    map.on("load", () => setReady(true));
+    map.on("load", () => {
+      setReady(true);
+      onReadyRef.current?.();
+    });
     map.on("click", (event) => {
       onSelectPointRef.current(event.lngLat.lng, event.lngLat.lat);
     });

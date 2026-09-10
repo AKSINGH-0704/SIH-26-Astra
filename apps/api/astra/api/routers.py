@@ -64,6 +64,8 @@ def health() -> HealthStatus:
         fixtures_valid=report.ok,
         fixture_count=report.fixture_count,
         llm_mode=settings.llm_mode,  # type: ignore[arg-type]
+        how_this_works=NOTICES.how_this_works,
+        decision_authority=NOTICES.decision_authority,
         started_at=STARTED_AT,
         checked_at=datetime.now(UTC),
     )

@@ -68,6 +68,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/brief": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Brief
+         * @description Generate a Decision Brief, record it in the ledger, and freeze it.
+         */
+        post: operations["generate_brief_brief_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/brief/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Brief Preview
+         * @description The brief for the standing state, without writing a ledger row.
+         */
+        get: operations["brief_preview_brief_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/brief/{brief_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Brief Detail
+         * @description One generated brief, exactly as it was when it was generated.
+         */
+        get: operations["brief_detail_brief__brief_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/briefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Briefs
+         * @description Generated briefs, newest first.
+         */
+        get: operations["briefs_briefs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/capacity/sites": {
         parameters: {
             query?: never;
@@ -2605,6 +2685,328 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** BriefAudit */
+        BriefAudit: {
+            /** Created At */
+            created_at: string;
+            /** Decision Id */
+            decision_id: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Input Summary Hash */
+            input_summary_hash: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Objective Value */
+            objective_value: number | null;
+            /** Solver Status */
+            solver_status: string;
+            /** State */
+            state: string;
+        };
+        /** BriefCapacity */
+        BriefCapacity: {
+            /** Bottlenecks */
+            bottlenecks: components["schemas"]["ServiceType"][];
+            /** Candidate Sites */
+            candidate_sites: number;
+            /** Limitation */
+            limitation: string;
+            /** Sites */
+            sites: components["schemas"]["BriefSite"][];
+            /** Suitable Sites */
+            suitable_sites: number;
+            /** Total Effective Capacity */
+            total_effective_capacity: number;
+            /** Total Theoretical Capacity */
+            total_theoretical_capacity: number;
+        };
+        /**
+         * BriefComparisonRow
+         * @description What a static hazard map answers, beside what ASTRA's added layers answer.
+         */
+        BriefComparisonRow: {
+            /** Astra */
+            astra: string;
+            /** Question */
+            question: string;
+            /** Static Map */
+            static_map: string;
+        };
+        /** BriefConfidence */
+        BriefConfidence: {
+            /** Bands */
+            bands: {
+                [key: string]: number;
+            };
+            modal_band: components["schemas"]["ConfidenceBand"];
+            /** Note */
+            note: string;
+        };
+        /** BriefListResponse */
+        BriefListResponse: {
+            /** Briefs */
+            briefs: components["schemas"]["BriefSummary"][];
+            /** Decision Authority */
+            decision_authority: string;
+            /** Total */
+            total: number;
+        };
+        /** BriefMovement */
+        BriefMovement: {
+            /** Habitation Id */
+            habitation_id: string;
+            /** Habitation Name */
+            habitation_name: string;
+            /** People */
+            people: number;
+            phase: components["schemas"]["PhaseTier"];
+            /** Route Reliability */
+            route_reliability: number;
+            /** Site Id */
+            site_id: string;
+            /** Site Name */
+            site_name: string;
+            /** Travel Time Min */
+            travel_time_min: number;
+        };
+        /** BriefNarration */
+        BriefNarration: {
+            /** Mode */
+            mode: string;
+            /** Note */
+            note: string;
+            /** Text */
+            text: string;
+        };
+        /**
+         * BriefPhaseAction
+         * @description One phase of the plan as an instruction, with the movements behind it.
+         */
+        BriefPhaseAction: {
+            /** Habitations */
+            habitations: number;
+            /** Movements */
+            movements: components["schemas"]["BriefMovement"][];
+            /** People Moved */
+            people_moved: number;
+            phase: components["schemas"]["PhaseTier"];
+            /** Sites Used */
+            sites_used: number;
+            /** Steps */
+            steps: string[];
+            /** Tier Rule */
+            tier_rule: string;
+            /** Travel Ceiling Min */
+            travel_ceiling_min: number | null;
+        };
+        /** BriefPlan */
+        BriefPlan: {
+            /** Capacity Blocked */
+            capacity_blocked: string[];
+            /** Headline */
+            headline: string;
+            /** Objective Value */
+            objective_value: number;
+            /** Solver */
+            solver: string;
+            status: components["schemas"]["SolverStatus"];
+            totals: components["schemas"]["PlanTotalsResponse"];
+            /** Unmet */
+            unmet: components["schemas"]["UnmetReasonResponse"][];
+        };
+        /** BriefPriorityRow */
+        BriefPriorityRow: {
+            /** Components */
+            components: {
+                [key: string]: number;
+            };
+            confidence_band: components["schemas"]["ConfidenceBand"];
+            dominant_hazard: components["schemas"]["HazardType"];
+            /** Habitation Id */
+            habitation_id: string;
+            /** Hazard Composite */
+            hazard_composite: number;
+            /** Name */
+            name: string;
+            phase: components["schemas"]["PhaseTier"];
+            /** Phase Reason */
+            phase_reason: string;
+            /** Population */
+            population: number;
+            /** Priority Score */
+            priority_score: number;
+            /** Rank */
+            rank: number;
+            /** Rules Applied */
+            rules_applied: string[];
+            zone_class: components["schemas"]["ZoneClass"];
+        };
+        /**
+         * BriefResponse
+         * @description The Decision Brief. ``id`` and ``audit`` are null on a preview.
+         */
+        BriefResponse: {
+            /** Actions */
+            actions: components["schemas"]["BriefPhaseAction"][];
+            /** Assumptions */
+            assumptions: components["schemas"]["Constant"][];
+            audit: components["schemas"]["BriefAudit"] | null;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "BASELINE" | "LIVE";
+            /** Basis Note */
+            basis_note: string;
+            capacity: components["schemas"]["BriefCapacity"];
+            /** Classification Label */
+            classification_label: string;
+            /** Comparison */
+            comparison: components["schemas"]["BriefComparisonRow"][];
+            confidence: components["schemas"]["BriefConfidence"];
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Events Ingested */
+            events_ingested: number;
+            /** Generated At */
+            generated_at: string;
+            /** How This Works */
+            how_this_works: string;
+            /** Id */
+            id: string | null;
+            /** Limitations */
+            limitations: string[];
+            /** Model Config Version */
+            model_config_version: string;
+            narration: components["schemas"]["BriefNarration"];
+            plan: components["schemas"]["BriefPlan"];
+            /** Priorities */
+            priorities: components["schemas"]["BriefPriorityRow"][];
+            /** Priority Note */
+            priority_note: string;
+            routes: components["schemas"]["BriefRoutes"];
+            /** Run Id */
+            run_id: string | null;
+            /** Scenario Disclaimer */
+            scenario_disclaimer: string;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Scenario Name */
+            scenario_name: string;
+            situation: components["schemas"]["BriefSituation"];
+            validation: components["schemas"]["BriefValidation"];
+        };
+        /** BriefRoutes */
+        BriefRoutes: {
+            /** Closed Segments */
+            closed_segments: string[];
+            /** Dependencies */
+            dependencies: components["schemas"]["PlanDependencyResponse"][];
+            /** Feasible Pairs */
+            feasible_pairs: number;
+            /** Habitations Without Reachable Suitable Site */
+            habitations_without_reachable_suitable_site: string[];
+            /** Pairs Evaluated */
+            pairs_evaluated: number;
+            /** Reliability Threshold */
+            reliability_threshold: number;
+            /** Weakest Movements */
+            weakest_movements: components["schemas"]["BriefMovement"][];
+        };
+        /** BriefSite */
+        BriefSite: {
+            /** Assigned */
+            assigned: number | null;
+            bottleneck: components["schemas"]["ServiceType"] | null;
+            /** Effective Capacity */
+            effective_capacity: number;
+            /** Failed Gates */
+            failed_gates: string[];
+            /** Marginal Headline */
+            marginal_headline: string | null;
+            /** Name */
+            name: string;
+            /** Remaining */
+            remaining: number | null;
+            /** Site Id */
+            site_id: string;
+            /** Suitable */
+            suitable: boolean;
+            /** Theoretical Capacity */
+            theoretical_capacity: number;
+        };
+        /** BriefSituation */
+        BriefSituation: {
+            /** By Phase */
+            by_phase: {
+                [key: string]: components["schemas"]["PhaseTotals"];
+            };
+            /** Critical Area Km2 */
+            critical_area_km2: number;
+            /** Habitations Assessed */
+            habitations_assessed: number;
+            /** Habitations In Critical Or Elevated */
+            habitations_in_critical_or_elevated: number;
+            /** Headline */
+            headline: string;
+            /** Plan Requires Review */
+            plan_requires_review: boolean;
+            /** Population Assessed */
+            population_assessed: number;
+            /** Review Headline */
+            review_headline: string | null;
+            /** Zone Count */
+            zone_count: number;
+            /** Zones */
+            zones: {
+                [key: string]: components["schemas"]["ZoneClassSummary"];
+            };
+        };
+        /** BriefSummary */
+        BriefSummary: {
+            /** Basis */
+            basis: string;
+            /** Created At */
+            created_at: string;
+            /** Decision Id */
+            decision_id: string;
+            /** Headline */
+            headline: string;
+            /** Id */
+            id: string;
+        };
+        /** BriefValidation */
+        BriefValidation: {
+            /** Auc */
+            auc: number | null;
+            /** Auc Ci High */
+            auc_ci_high: number | null;
+            /** Auc Ci Low */
+            auc_ci_low: number | null;
+            /** Available */
+            available: boolean;
+            /** Backtest Headline */
+            backtest_headline: string | null;
+            /** Incidents */
+            incidents: number | null;
+            /** Limitation */
+            limitation: string | null;
+            /** Runs */
+            runs: number | null;
+            /** Sensitivity Headline */
+            sensitivity_headline: string | null;
+            /** Spearman Median */
+            spearman_median: number | null;
+            /** Stale */
+            stale: boolean;
+            /** Top K */
+            top_k: number | null;
+            /** Top K Unchanged Share */
+            top_k_unchanged_share: number | null;
+        };
         /**
          * CandidateSite
          * @description A candidate relocation site.
@@ -3690,6 +4092,11 @@ export interface components {
             /** Unit */
             unit?: string | null;
         };
+        /** GenerateBriefRequest */
+        GenerateBriefRequest: {
+            /** Notes */
+            notes?: string | null;
+        };
         /**
          * GenerationConfig
          * @description Assumptions behind the synthetic habitation and site records.
@@ -4420,6 +4827,8 @@ export interface components {
              * Format: date-time
              */
             checked_at: string;
+            /** Decision Authority */
+            decision_authority: string;
             /** Engine Version */
             engine_version: string;
             /** Environment */
@@ -4428,6 +4837,11 @@ export interface components {
             fixture_count: number;
             /** Fixtures Valid */
             fixtures_valid: boolean;
+            /**
+             * How This Works
+             * @description What is computed and what AI does. Rendered on every screen.
+             */
+            how_this_works: string;
             /**
              * Llm Mode
              * @description Template mode means no LLM key is configured. The full analysis runs identically either way; only the prose narration differs.
@@ -7353,6 +7767,121 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_brief_brief_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateBriefRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    brief_preview_brief_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefResponse"];
+                };
+            };
+        };
+    };
+    brief_detail_brief__brief_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefs_briefs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefListResponse"];
                 };
             };
             /** @description Validation Error */

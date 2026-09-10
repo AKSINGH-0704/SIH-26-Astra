@@ -1602,3 +1602,234 @@ class AskResponse(BaseModel):
     follow_up: list[str]
     decision_authority: str
     note: str
+
+
+# ---------------------------------------------------------------------------
+# The Decision Brief
+# ---------------------------------------------------------------------------
+
+
+class BriefPriorityRow(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    rank: int
+    habitation_id: str
+    name: str
+    population: int
+    priority_score: float
+    phase: PhaseTier
+    phase_reason: str
+    rules_applied: list[str]
+    zone_class: ZoneClass
+    dominant_hazard: HazardType
+    hazard_composite: float
+    components: dict[str, float]
+    confidence_band: ConfidenceBand
+
+
+class BriefMovement(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    habitation_name: str
+    site_id: str
+    site_name: str
+    phase: PhaseTier
+    people: int
+    travel_time_min: float
+    route_reliability: float
+
+
+class BriefPhaseAction(BaseModel):
+    """One phase of the plan as an instruction, with the movements behind it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    phase: PhaseTier
+    tier_rule: str
+    steps: list[str]
+    people_moved: int
+    habitations: int
+    sites_used: int
+    travel_ceiling_min: float | None
+    movements: list[BriefMovement]
+
+
+class BriefSite(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    name: str
+    suitable: bool
+    failed_gates: list[str]
+    theoretical_capacity: float
+    effective_capacity: float
+    bottleneck: ServiceType | None
+    marginal_headline: str | None
+    assigned: int | None
+    remaining: int | None
+
+
+class BriefSituation(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    headline: str
+    zones: dict[str, ZoneClassSummary]
+    zone_count: int
+    critical_area_km2: float
+    habitations_assessed: int
+    population_assessed: int
+    habitations_in_critical_or_elevated: int
+    by_phase: dict[str, PhaseTotals]
+    plan_requires_review: bool
+    review_headline: str | None
+
+
+class BriefCapacity(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    candidate_sites: int
+    suitable_sites: int
+    total_effective_capacity: float
+    total_theoretical_capacity: float
+    bottlenecks: list[ServiceType]
+    sites: list[BriefSite]
+    limitation: str
+
+
+class BriefPlan(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    status: SolverStatus
+    solver: str
+    objective_value: float
+    headline: str
+    totals: PlanTotalsResponse
+    unmet: list[UnmetReasonResponse]
+    capacity_blocked: list[str]
+
+
+class BriefRoutes(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    closed_segments: list[str]
+    pairs_evaluated: int
+    feasible_pairs: int
+    reliability_threshold: float
+    habitations_without_reachable_suitable_site: list[str]
+    dependencies: list[PlanDependencyResponse]
+    weakest_movements: list[BriefMovement]
+
+
+class BriefValidation(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    available: bool
+    auc: float | None
+    auc_ci_low: float | None
+    auc_ci_high: float | None
+    incidents: int | None
+    runs: int | None
+    spearman_median: float | None
+    top_k: int | None
+    top_k_unchanged_share: float | None
+    backtest_headline: str | None
+    sensitivity_headline: str | None
+    limitation: str | None
+    stale: bool
+
+
+class BriefConfidence(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    modal_band: ConfidenceBand
+    bands: dict[str, int]
+    note: str
+
+
+class BriefComparisonRow(BaseModel):
+    """What a static hazard map answers, beside what ASTRA's added layers answer."""
+
+    model_config = ConfigDict(frozen=True)
+
+    question: str
+    static_map: str
+    astra: str
+
+
+class BriefNarration(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: str
+    mode: str
+    note: str
+
+
+class BriefAudit(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    decision_id: str
+    created_at: str
+    input_summary_hash: str
+    engine_version: str
+    model_config_version: str
+    solver_status: str
+    objective_value: float | None
+    state: str
+
+
+class BriefResponse(BaseModel):
+    """The Decision Brief. ``id`` and ``audit`` are null on a preview."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str | None
+    generated_at: str
+    basis: Literal["BASELINE", "LIVE"]
+    basis_note: str
+    run_id: str | None
+    events_ingested: int
+    scenario_id: str
+    scenario_name: str
+    situation: BriefSituation
+    priorities: list[BriefPriorityRow]
+    capacity: BriefCapacity
+    plan: BriefPlan
+    actions: list[BriefPhaseAction]
+    routes: BriefRoutes
+    validation: BriefValidation
+    confidence: BriefConfidence
+    comparison: list[BriefComparisonRow]
+    narration: BriefNarration
+    assumptions: list[Constant]
+    limitations: list[str]
+    audit: BriefAudit | None
+    how_this_works: str
+    decision_authority: str
+    classification_label: str
+    scenario_disclaimer: str
+    priority_note: str
+    engine_version: str
+    model_config_version: str
+
+
+class BriefSummary(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    decision_id: str
+    created_at: str
+    basis: str
+    headline: str
+
+
+class BriefListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    briefs: list[BriefSummary]
+    total: int
+    decision_authority: str
+
+
+class GenerateBriefRequest(BaseModel):
+    notes: str | None = Field(default=None, max_length=1000)

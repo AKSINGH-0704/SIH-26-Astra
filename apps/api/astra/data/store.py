@@ -34,7 +34,7 @@ from typing import Any
 
 from astra.settings import get_settings
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 #: Applied in order, once, on startup. Never edited after they ship - a new
 #: change is a new statement appended, so an existing database migrates forward
@@ -102,6 +102,18 @@ MIGRATIONS: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_overrides_decision ON overrides(decision_id)",
     "CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at)",
     "CREATE INDEX IF NOT EXISTS idx_evidence_received ON evidence(received_at)",
+    # v2: generated Decision Briefs, frozen as the payload that was rendered.
+    """
+    CREATE TABLE IF NOT EXISTS briefs (
+        id           TEXT PRIMARY KEY,
+        decision_id  TEXT NOT NULL REFERENCES decisions(id),
+        created_at   TEXT NOT NULL,
+        basis        TEXT NOT NULL,
+        headline     TEXT NOT NULL,
+        payload      TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_briefs_created ON briefs(created_at)",
 )
 
 _INIT_LOCK = threading.Lock()
@@ -157,7 +169,7 @@ def session(path: Path | None = None) -> Iterator[sqlite3.Connection]:
 def reset(path: Path | None = None) -> None:
     """Empty every table. Used by tests and by the demonstration reset."""
     with session(path) as connection:
-        for table in ("overrides", "decisions", "evidence"):
+        for table in ("briefs", "overrides", "decisions", "evidence"):
             connection.execute(f"DELETE FROM {table}")
 
 

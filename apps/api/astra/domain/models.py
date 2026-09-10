@@ -661,5 +661,9 @@ class HealthStatus(BaseModel):
         description="Template mode means no LLM key is configured. The full analysis "
         "runs identically either way; only the prose narration differs."
     )
+    how_this_works: str = Field(
+        description="What is computed and what AI does. Rendered on every screen."
+    )
+    decision_authority: str
     started_at: datetime
     checked_at: datetime

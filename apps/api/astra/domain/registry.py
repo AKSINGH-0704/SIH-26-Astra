@@ -77,8 +77,8 @@ FORMULAS: dict[str, FormulaSpec] = {
             version="1.0.0",
             title="Red-zone classification",
             expression=(
-                "class = CRITICAL if C >= 70 else ELEVATED if C >= 55 "
-                "else WATCH if C >= 40 else LOW"
+                "class = CRITICAL if C >= t_critical else ELEVATED if C >= t_elevated "
+                "else WATCH if C >= t_watch else LOW"
             ),
             inputs=["composite score C"],
             config_keys=[
@@ -247,12 +247,13 @@ FORMULAS: dict[str, FormulaSpec] = {
             expression=(
                 "minimise b1*unmet_demand*priority + b2*people*travel_time "
                 "+ b3*people*route_risk + b4*site_overload "
-                "+ b5*livelihood_disruption + b6*fragmentation"
+                "+ b5*livelihood_disruption + b6*fragmentation + b7*phase_delay"
             ),
             inputs=["candidate assignments x[h][s][phase]"],
             config_keys=["opt.beta1_unmet_demand", "opt.beta2_travel_time",
                          "opt.beta3_route_risk", "opt.beta4_site_overload",
-                         "opt.beta5_livelihood_disruption", "opt.beta6_fragmentation"],
+                         "opt.beta5_livelihood_disruption", "opt.beta6_fragmentation",
+                         "opt.beta7_phase_delay"],
             engine="engines.optimizer",
             notes=(
                 "Solved with CP-SAT under a fixed seed and time limit. If the limit "
