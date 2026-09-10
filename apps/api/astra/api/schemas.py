@@ -1026,6 +1026,10 @@ class ScenarioDiffResponse(BaseModel):
 
     plan_after: PlanResponse
     zones_after: ZonesResponse
+    decision_id: str | None = Field(
+        default=None,
+        description="The audit ledger row this simulation wrote, if one was written.",
+    )
     elapsed_ms: float
     stage_ms: dict[str, float]
     decision_authority: str
@@ -1166,6 +1170,10 @@ class RunResponse(BaseModel):
     review: PlanReviewResponse | None
     cells_rescored: int | None
     cells_in_grid: int | None
+    decision_id: str | None = Field(
+        default=None,
+        description="The audit ledger row this run wrote. Cited on a printed brief.",
+    )
     engine_version: str
     model_config_version: str
 
@@ -1412,3 +1420,185 @@ class ValidationResponse(BaseModel):
     stale: bool
     staleness_note: str
     decision_authority: str
+
+
+# ---------------------------------------------------------------------------
+# Section 6 and 10 - evidence, the decision ledger, narration and the ask layer
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordResponse(BaseModel):
+    """One filed field report, with what the classifier made of it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    received_at: str
+    observed_at: str
+    kind: str
+    lon: float | None
+    lat: float | None
+    habitation_id: str | None
+    site_id: str | None
+    segment_id: str | None
+    reporter: str
+    role: str | None
+    text: str
+    analyst_note: str | None
+    photo_path: str | None = Field(
+        default=None,
+        description="Server-side path. Not a URL; use photo_url to fetch it.",
+        exclude=True,
+    )
+    photo_name: str | None
+    photo_url: str | None
+    severity: float | None
+    confidence: str
+    extraction_mode: str = Field(
+        description="`rules` when the deterministic classifier decided, `model` "
+        "when a configured language model refined it and agreed on the hazard."
+    )
+    extracted: dict[str, Any]
+    provenance: ProvenanceClass
+    ingested_event_id: str | None
+
+
+class EvidenceListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    evidence: list[EvidenceRecordResponse]
+    total: int
+    kinds: list[str]
+    extraction_note: str
+    decision_authority: str
+
+
+class PromoteEvidenceRequest(BaseModel):
+    """Turn a filed report into a live observation."""
+
+    value: float | None = Field(
+        default=None,
+        description="Overrides the value the classifier suggested, if given.",
+    )
+    radius_m: float = Field(default=1500.0, gt=0.0, le=25000.0)
+
+
+class OverrideResponse(BaseModel):
+    """One thing a person did about a computed plan, and what it cost."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    decision_id: str
+    created_at: str
+    actor: str
+    action: str
+    habitation_id: str | None
+    site_id: str | None
+    people: int | None
+    reason: str
+    consequence: dict[str, Any]
+
+
+class OverrideRequest(BaseModel):
+    """What a person decided, and why. The reason is not optional."""
+
+    actor: str = Field(min_length=1, max_length=120)
+    action: Literal["APPROVE", "FORCE_ASSIGNMENT", "REJECT_ASSIGNMENT", "ANNOTATE"]
+    reason: str = Field(
+        min_length=3,
+        max_length=1000,
+        description=(
+            "Why the decision departs from, or accepts, the computed plan. "
+            "Required: an unexplained departure is the one thing an audit trail "
+            "cannot be built from."
+        ),
+    )
+    habitation_id: str | None = None
+    site_id: str | None = None
+    people: int | None = Field(default=None, ge=1)
+
+
+class RecordDecisionRequest(BaseModel):
+    trigger: str = Field(default="manual", max_length=80)
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class DecisionResponse(BaseModel):
+    """One ledger row: the computed state a decision could be taken on."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    created_at: str
+    scenario_id: str
+    trigger: str
+    run_id: str | None
+    engine_version: str
+    model_config_version: str
+    source_layer_ids: list[str]
+    input_summary_hash: str
+    score_components: dict[str, Any]
+    constraint_status: dict[str, Any]
+    solver_status: str
+    objective_value: float | None
+    confidence: str
+    state: str
+    notes: str | None
+    overrides: list[OverrideResponse]
+    decision_authority: str
+
+
+class DecisionListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    decisions: list[DecisionResponse]
+    total: int
+    engine_version: str
+    model_config_version: str
+    decision_authority: str
+
+
+class NarrationResponse(BaseModel):
+    """Prose for an official, and an honest account of where it came from."""
+
+    model_config = ConfigDict(frozen=True)
+
+    text: str
+    mode: Literal["template", "model"]
+    validated: bool
+    note: str
+    llm_configured: bool
+    decision_authority: str
+
+
+class IntentResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    question: str
+    needs: str
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=400)
+    intent_id: str | None = Field(
+        default=None,
+        description="Choose an intent from the catalogue directly, skipping matching.",
+    )
+
+
+class AskResponse(BaseModel):
+    """A structured answer, plus the prose assembled from it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    intent: str
+    question: str
+    matched_on: str
+    entity: str | None
+    data: dict[str, Any]
+    text: str
+    follow_up: list[str]
+    decision_authority: str
+    note: str

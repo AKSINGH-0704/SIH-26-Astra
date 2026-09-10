@@ -195,4 +195,26 @@ def simulate(request: SimulateRequest) -> ScenarioDiffResponse:
     # which is what makes an audit record point at something. The store is bounded:
     # a slider dragged for a minute must not become a memory leak.
     remember_scenario(scenario)
-    return _serialise(diff_runs(baseline_run(), run), run)
+
+    # A what-if is a decision point too: an officer may act on it, and a brief
+    # citing it has to be traceable to the exact perturbed state that produced
+    # it. Failing to write the row does not lose the simulation.
+    decision_id: str | None = None
+    try:
+        from astra.engines.audit import record_decision
+
+        decision_id = record_decision(
+            scenario_id=scenario.id,
+            trigger="simulate",
+            plan=run.plan,
+            plan_inputs=run.plan_inputs,
+            priority=run.priority,
+            capacity=run.capacity,
+            routes=run.routes,
+            notes=scenario.description,
+        ).id
+    except Exception:  # noqa: BLE001 - the diff stands without its ledger row
+        decision_id = None
+
+    response = _serialise(diff_runs(baseline_run(), run), run)
+    return response.model_copy(update={"decision_id": decision_id})

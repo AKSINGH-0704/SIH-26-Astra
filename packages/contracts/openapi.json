@@ -1,6 +1,98 @@
 {
   "components": {
     "schemas": {
+      "AskRequest": {
+        "properties": {
+          "intent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Choose an intent from the catalogue directly, skipping matching.",
+            "title": "Intent Id"
+          },
+          "question": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
+      "AskResponse": {
+        "description": "A structured answer, plus the prose assembled from it.",
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "entity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity"
+          },
+          "follow_up": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Follow Up",
+            "type": "array"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "string"
+          },
+          "matched_on": {
+            "title": "Matched On",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "intent",
+          "question",
+          "matched_on",
+          "entity",
+          "data",
+          "text",
+          "follow_up",
+          "decision_authority",
+          "note"
+        ],
+        "title": "AskResponse",
+        "type": "object"
+      },
       "AssignmentDeltaResponse": {
         "properties": {
           "habitation_id": {
@@ -1595,6 +1687,130 @@
         "title": "BacktestVariantResponse",
         "type": "object"
       },
+      "Body_file_evidence_evidence_post": {
+        "properties": {
+          "analyst_note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Note"
+          },
+          "habitation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitation Id"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "format": "binary",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "reporter": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reporter",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "segment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 3,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "reporter"
+        ],
+        "title": "Body_file_evidence_evidence_post",
+        "type": "object"
+      },
       "CandidateSite": {
         "description": "A candidate relocation site.\n\nSite records in the demonstration scenario are synthetic and fictional.\nASTRA does not verify land ownership, tenure or encumbrance.",
         "properties": {
@@ -2579,6 +2795,170 @@
         "title": "DatasetRecord",
         "type": "object"
       },
+      "DecisionListResponse": {
+        "properties": {
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionResponse"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decisions",
+          "total",
+          "engine_version",
+          "model_config_version",
+          "decision_authority"
+        ],
+        "title": "DecisionListResponse",
+        "type": "object"
+      },
+      "DecisionResponse": {
+        "description": "One ledger row: the computed state a decision could be taken on.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "constraint_status": {
+            "additionalProperties": true,
+            "title": "Constraint Status",
+            "type": "object"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "input_summary_hash": {
+            "title": "Input Summary Hash",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "objective_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Value"
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/OverrideResponse"
+            },
+            "title": "Overrides",
+            "type": "array"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "scenario_id": {
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "score_components": {
+            "additionalProperties": true,
+            "title": "Score Components",
+            "type": "object"
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "source_layer_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Layer Ids",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "scenario_id",
+          "trigger",
+          "run_id",
+          "engine_version",
+          "model_config_version",
+          "source_layer_ids",
+          "input_summary_hash",
+          "score_components",
+          "constraint_status",
+          "solver_status",
+          "objective_value",
+          "confidence",
+          "state",
+          "notes",
+          "overrides",
+          "decision_authority"
+        ],
+        "title": "DecisionResponse",
+        "type": "object"
+      },
       "DemographicProfile": {
         "description": "Population structure of a habitation.\n\nProportions are calibrated to published Census/SECC district figures; the\nabsolute counts they are applied to are synthetic (section 4.1).",
         "properties": {
@@ -3028,6 +3408,237 @@
           }
         },
         "title": "EvidenceConfig",
+        "type": "object"
+      },
+      "EvidenceListResponse": {
+        "properties": {
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRecordResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "extraction_note": {
+            "title": "Extraction Note",
+            "type": "string"
+          },
+          "kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Kinds",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "evidence",
+          "total",
+          "kinds",
+          "extraction_note",
+          "decision_authority"
+        ],
+        "title": "EvidenceListResponse",
+        "type": "object"
+      },
+      "EvidenceRecordResponse": {
+        "description": "One filed field report, with what the classifier made of it.",
+        "properties": {
+          "analyst_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Note"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "extracted": {
+            "additionalProperties": true,
+            "title": "Extracted",
+            "type": "object"
+          },
+          "extraction_mode": {
+            "description": "`rules` when the deterministic classifier decided, `model` when a configured language model refined it and agreed on the hazard.",
+            "title": "Extraction Mode",
+            "type": "string"
+          },
+          "habitation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitation Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ingested_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingested Event Id"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "observed_at": {
+            "title": "Observed At",
+            "type": "string"
+          },
+          "photo_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Name"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceClass"
+          },
+          "received_at": {
+            "title": "Received At",
+            "type": "string"
+          },
+          "reporter": {
+            "title": "Reporter",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "segment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "received_at",
+          "observed_at",
+          "kind",
+          "lon",
+          "lat",
+          "habitation_id",
+          "site_id",
+          "segment_id",
+          "reporter",
+          "role",
+          "text",
+          "analyst_note",
+          "photo_name",
+          "photo_url",
+          "severity",
+          "confidence",
+          "extraction_mode",
+          "extracted",
+          "provenance",
+          "ingested_event_id"
+        ],
+        "title": "EvidenceRecordResponse",
         "type": "object"
       },
       "FactorContribution": {
@@ -4560,6 +5171,29 @@
         "title": "HealthStatus",
         "type": "object"
       },
+      "IntentResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "needs": {
+            "title": "Needs",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "needs"
+        ],
+        "title": "IntentResponse",
+        "type": "object"
+      },
       "InterventionResponse": {
         "description": "One unit of investment and the capacity it actually unlocks.",
         "properties": {
@@ -4977,6 +5611,49 @@
           "notices"
         ],
         "title": "ModelConfigResponse",
+        "type": "object"
+      },
+      "NarrationResponse": {
+        "description": "Prose for an official, and an honest account of where it came from.",
+        "properties": {
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "llm_configured": {
+            "title": "Llm Configured",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "template",
+              "model"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "validated": {
+            "title": "Validated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text",
+          "mode",
+          "validated",
+          "note",
+          "llm_configured",
+          "decision_authority"
+        ],
+        "title": "NarrationResponse",
         "type": "object"
       },
       "NetworkSummaryResponse": {
@@ -5595,6 +6272,156 @@
           }
         },
         "title": "OptimiserConfig",
+        "type": "object"
+      },
+      "OverrideRequest": {
+        "description": "What a person decided, and why. The reason is not optional.",
+        "properties": {
+          "action": {
+            "enum": [
+              "APPROVE",
+              "FORCE_ASSIGNMENT",
+              "REJECT_ASSIGNMENT",
+              "ANNOTATE"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Actor",
+            "type": "string"
+          },
+          "habitation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitation Id"
+          },
+          "people": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "People"
+          },
+          "reason": {
+            "description": "Why the decision departs from, or accepts, the computed plan. Required: an unexplained departure is the one thing an audit trail cannot be built from.",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          }
+        },
+        "required": [
+          "actor",
+          "action",
+          "reason"
+        ],
+        "title": "OverrideRequest",
+        "type": "object"
+      },
+      "OverrideResponse": {
+        "description": "One thing a person did about a computed plan, and what it cost.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "consequence": {
+            "additionalProperties": true,
+            "title": "Consequence",
+            "type": "object"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "habitation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitation Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "people": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "People"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          }
+        },
+        "required": [
+          "id",
+          "decision_id",
+          "created_at",
+          "actor",
+          "action",
+          "habitation_id",
+          "site_id",
+          "people",
+          "reason",
+          "consequence"
+        ],
+        "title": "OverrideResponse",
         "type": "object"
       },
       "Perturbation": {
@@ -6523,6 +7350,32 @@
         "title": "PriorityConfig",
         "type": "object"
       },
+      "PromoteEvidenceRequest": {
+        "description": "Turn a filed report into a live observation.",
+        "properties": {
+          "radius_m": {
+            "default": 1500.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 25000.0,
+            "title": "Radius M",
+            "type": "number"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Overrides the value the classifier suggested, if given.",
+            "title": "Value"
+          }
+        },
+        "title": "PromoteEvidenceRequest",
+        "type": "object"
+      },
       "ProvenanceClass": {
         "description": "Provenance classes per CLAUDE.md \u00a74.2 \u2014 enforced in code, surfaced in UI.\n\nEvery layer, table and field carries exactly one of these.",
         "enum": [
@@ -6567,6 +7420,30 @@
           "note"
         ],
         "title": "ProvenanceResponse",
+        "type": "object"
+      },
+      "RecordDecisionRequest": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "trigger": {
+            "default": "manual",
+            "maxLength": 80,
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "title": "RecordDecisionRequest",
         "type": "object"
       },
       "RejectedOptionResponse": {
@@ -7482,6 +8359,18 @@
             "title": "Created At",
             "type": "string"
           },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The audit ledger row this run wrote. Cited on a printed brief.",
+            "title": "Decision Id"
+          },
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
@@ -7763,6 +8652,18 @@
           "decision_authority": {
             "title": "Decision Authority",
             "type": "string"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The audit ledger row this simulation wrote, if one was written.",
+            "title": "Decision Id"
           },
           "effective_capacity_after": {
             "title": "Effective Capacity After",
@@ -9611,6 +10512,117 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/ask": {
+      "post": {
+        "description": "Answer one question from the allowlist, or refuse and say what is available.\n\nThere is no query language here and no path to the filesystem, a shell or a\ndatabase. A question selects one of a fixed set of functions, each of which\nreads already-computed state.",
+        "operationId": "ask_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/ask/intents": {
+      "get": {
+        "description": "Everything ASTRA can be asked. The interface shows this list up front.",
+        "operationId": "intents_ask_intents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IntentResponse"
+                  },
+                  "title": "Response Intents Ask Intents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Intents",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/audit/{decision_id}": {
+      "get": {
+        "description": "The audit record for one decision. Same payload, the name a brief cites.",
+        "operationId": "audit_audit__decision_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Audit",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
     "/capacity/sites": {
       "get": {
         "description": "Carrying capacity for every candidate site, with the binding constraint named.",
@@ -9723,6 +10735,185 @@
         ]
       }
     },
+    "/decisions": {
+      "get": {
+        "description": "The audit ledger, newest first.",
+        "operationId": "decisions_decisions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decisions",
+        "tags": [
+          "intelligence"
+        ]
+      },
+      "post": {
+        "description": "Write the current computed plan into the ledger as a decision point.",
+        "operationId": "create_decision_decisions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Decision",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/decisions/{decision_id}": {
+      "get": {
+        "operationId": "decision_detail_decisions__decision_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decision Detail",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/decisions/{decision_id}/override": {
+      "post": {
+        "description": "Record what a person decided, with the computed consequence beside it.\n\nFor an action that changes an assignment, the consequence is not asserted -\nthe plan is re-solved with that assignment forced and the ledger records what\nit actually cost, including whether it is feasible at all.",
+        "operationId": "override_decisions__decision_id__override_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Override",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
     "/events": {
       "post": {
         "description": "Accept observations and start a pipeline run over them.\n\nReturns as soon as the run is registered, with the run's id and its first\nstage events. The run itself continues on a worker thread; follow it on\n``GET /runs/{id}/stream``.",
@@ -9784,6 +10975,223 @@
         "summary": "Event Feed",
         "tags": [
           "live"
+        ]
+      }
+    },
+    "/evidence": {
+      "get": {
+        "description": "Filed field reports, newest first.",
+        "operationId": "evidence_list_evidence_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence List",
+        "tags": [
+          "intelligence"
+        ]
+      },
+      "post": {
+        "description": "File one field report, with an optional photograph.\n\nThe report is classified by rules that run with no key configured, and the\nclassification is stored beside the text with the reasoning that produced it.\nFiling does not change any assessment: promoting a report to a live\nobservation is a separate, explicit act.",
+        "operationId": "file_evidence_evidence_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_file_evidence_evidence_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceRecordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "File Evidence",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "evidence_detail_evidence__evidence_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceRecordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence Detail",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/evidence/{evidence_id}/photo": {
+      "get": {
+        "description": "The photograph filed with one report.",
+        "operationId": "evidence_photo_evidence__evidence_id__photo_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence Photo",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/evidence/{evidence_id}/promote": {
+      "post": {
+        "description": "Turn a filed report into a live observation and run the pipeline on it.\n\nDeliberately separate from filing. A report is a record of what someone saw;\nacting on it is a decision, and the ledger records which report produced which\nevent.",
+        "operationId": "promote_evidence_evidence__evidence_id__promote_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteEvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Promote Evidence Evidence  Evidence Id  Promote Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Promote Evidence",
+        "tags": [
+          "intelligence"
         ]
       }
     },
@@ -9982,6 +11390,112 @@
         "summary": "Model Config",
         "tags": [
           "transparency"
+        ]
+      }
+    },
+    "/narrate/habitation/{habitation_id}": {
+      "get": {
+        "operationId": "narrate_habitation_narrate_habitation__habitation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habitation_id",
+            "required": true,
+            "schema": {
+              "title": "Habitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Narrate Habitation",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/narrate/plan": {
+      "get": {
+        "description": "The current plan, in prose, for an official who is not a GIS analyst.",
+        "operationId": "narrate_plan_narrate_plan_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Narrate Plan",
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/narrate/site/{site_id}": {
+      "get": {
+        "operationId": "narrate_site_narrate_site__site_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "title": "Site Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Narrate Site",
+        "tags": [
+          "intelligence"
         ]
       }
     },

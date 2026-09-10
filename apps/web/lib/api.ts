@@ -7,7 +7,15 @@
  */
 
 import type {
+  AskResponse,
   ClosureImpactResponse,
+  DecisionListResponse,
+  DecisionResponse,
+  EvidenceListResponse,
+  EvidenceRecordResponse,
+  IntentResponse,
+  NarrationResponse,
+  OverrideRequest,
   EventFeedResponse,
   EventSubmission,
   LiveStateResponse,
@@ -106,6 +114,11 @@ export const api = {
   scenarios: () => get<ScenarioListResponse>("/scenarios"),
   fixtureValidation: () => get<ValidationCheckResponse>("/validation/fixtures"),
   validation: () => get<ValidationResponse>("/validation"),
+  evidence: () => get<EvidenceListResponse>("/evidence"),
+  decisions: () => get<DecisionListResponse>("/decisions"),
+  decision: (id: string) => get<DecisionResponse>(`/decisions/${encodeURIComponent(id)}`),
+  askIntents: () => get<IntentResponse[]>("/ask/intents"),
+  narratePlan: () => get<NarrationResponse>("/narrate/plan"),
   habitations: () => get<HabitationsResponse>("/habitations"),
   sites: () => get<SitesResponse>("/sites"),
   studyAreaData: () => get<StudyAreaDataResponse>("/study-area/data"),
@@ -185,6 +198,60 @@ export async function resetLive(): Promise<LiveStateResponse> {
 /** The SSE endpoint for one run. Consumed with EventSource, not fetch. */
 export function runStreamUrl(runId: string): string {
   return `${API_BASE}/runs/${encodeURIComponent(runId)}/stream`;
+}
+
+/**
+ * File one field report, with an optional photograph. Multipart, because a
+ * photograph is part of the evidence rather than an attachment to it.
+ */
+export async function fileEvidence(form: FormData): Promise<EvidenceRecordResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/evidence`, {
+      method: "POST",
+      cache: "no-store",
+      body: form,
+    });
+  } catch (error) {
+    throw new ApiUnavailableError("/evidence", error);
+  }
+  if (!response.ok) throw await refusal("/evidence", response);
+  return (await response.json()) as EvidenceRecordResponse;
+}
+
+/** Turn a filed report into a live observation and run the pipeline on it. */
+export async function promoteEvidence(
+  evidenceId: string,
+  body: { value?: number | null; radius_m?: number } = {},
+): Promise<{ evidence_id: string; event_id: string; run_id: string }> {
+  return post(`/evidence/${encodeURIComponent(evidenceId)}/promote`, body);
+}
+
+/** Write the current computed plan into the ledger as a decision point. */
+export async function recordDecision(body: {
+  trigger?: string;
+  notes?: string | null;
+}): Promise<DecisionResponse> {
+  return post<DecisionResponse>("/decisions", body);
+}
+
+/** Record what a person decided, with the computed consequence beside it. */
+export async function overrideDecision(
+  decisionId: string,
+  body: OverrideRequest,
+): Promise<DecisionResponse> {
+  return post<DecisionResponse>(
+    `/decisions/${encodeURIComponent(decisionId)}/override`,
+    body,
+  );
+}
+
+/** Ask one question from the fixed allowlist. */
+export async function askAstra(body: {
+  question: string;
+  intent_id?: string | null;
+}): Promise<AskResponse> {
+  return post<AskResponse>("/ask", body);
 }
 
 export async function evaluateClosure(

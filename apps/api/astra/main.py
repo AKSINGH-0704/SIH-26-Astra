@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from astra import __version__
 from astra.api.capacity_router import router as capacity_router
+from astra.api.intelligence_router import router as intelligence_router
 from astra.api.live_router import router as live_router
 from astra.api.plan_router import router as plan_router
 from astra.api.priority_router import router as priority_router
@@ -45,6 +46,10 @@ designation of any real settlement.
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    from astra.data.store import initialise
+
+    initialise()
+    logger.info("decision store ready at %s", settings.db_path)
     if settings.validate_fixtures_on_startup:
         try:
             report = enforce()
@@ -142,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(scenario_router)
     app.include_router(live_router)
     app.include_router(validation_router)
+    app.include_router(intelligence_router)
     return app
 
 

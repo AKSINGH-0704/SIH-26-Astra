@@ -32,6 +32,7 @@ from astra.data.scenarios import BASELINE
 from astra.domain.enums import PhaseTier, RunStage, RunStageStatus, RunStatus
 from astra.domain.model_config import MODEL_CONFIG
 from astra.domain.models import HazardEvent
+from astra.engines.audit import record_decision
 from astra.engines.capacity import SiteCapacity
 from astra.engines.capacity_service import compute_site_capacity
 from astra.engines.live import EventLog, RescoreReport, baseline_ceilings, rescore
@@ -155,6 +156,7 @@ class Run:
     error: str | None = None
     finished_at: datetime | None = None
     total_ms: float = 0.0
+    decision_id: str | None = None
 
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
@@ -488,6 +490,41 @@ def execute(run: Run, log: EventLog) -> Run:
             closed_segments=closed,
         )
         run.review = review
+
+        # Every run that could inform a decision leaves a ledger row (section 6).
+        # A failure to write one must not lose the run, but it is reported as a
+        # warning rather than swallowed: a decision nobody can trace back is a
+        # gap in the audit trail, and the person looking at the screen should
+        # know the gap exists.
+        try:
+            record = record_decision(
+                scenario_id=BASELINE.id,
+                trigger=run.trigger,
+                plan=plan,
+                plan_inputs=inputs,
+                priority=priority,
+                capacity=capacity,
+                routes=routes,
+                run_id=run.id,
+                notes=review.headline,
+            )
+            run.decision_id = record.id
+            run.emit(
+                RunStage.DECISION_BRIEF,
+                RunStageStatus.PROGRESS,
+                f"Recorded in the decision ledger as {record.id}",
+                decision_id=record.id,
+                input_summary_hash=record.input_summary_hash,
+            )
+        except Exception as error:  # noqa: BLE001 - the run survives; the gap is said
+            run.emit(
+                RunStage.DECISION_BRIEF,
+                RunStageStatus.WARNING,
+                f"This run could not be written to the decision ledger ({error}). "
+                "The assessment stands, but it is not traceable from the audit "
+                "trail.",
+            )
+
         run.status = RunStatus.COMPLETED
     except Exception as error:  # noqa: BLE001 - the run records its own failure
         run.status = RunStatus.FAILED

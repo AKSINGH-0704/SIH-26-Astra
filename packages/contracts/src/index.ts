@@ -64,6 +64,15 @@ export type BacktestVariantResponse = Schemas["BacktestVariantResponse"];
 export type SensitivityResponse = Schemas["SensitivityResponse"];
 export type HabitationStabilityResponse = Schemas["HabitationStabilityResponse"];
 export type ConfidenceSurfaceResponse = Schemas["ConfidenceSurfaceResponse"];
+export type EvidenceRecordResponse = Schemas["EvidenceRecordResponse"];
+export type EvidenceListResponse = Schemas["EvidenceListResponse"];
+export type DecisionResponse = Schemas["DecisionResponse"];
+export type DecisionListResponse = Schemas["DecisionListResponse"];
+export type OverrideResponse = Schemas["OverrideResponse"];
+export type OverrideRequest = Schemas["OverrideRequest"];
+export type NarrationResponse = Schemas["NarrationResponse"];
+export type AskResponse = Schemas["AskResponse"];
+export type IntentResponse = Schemas["IntentResponse"];
 
 export type AstraModelConfig = Schemas["AstraModelConfig"];
 export type Constant = Schemas["Constant"];

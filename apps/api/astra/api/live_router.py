@@ -128,6 +128,7 @@ def _run(run: Run) -> RunResponse:
         review=_review(run.review),
         cells_rescored=report.cells_rescored if report else None,
         cells_in_grid=report.cells_in_grid if report else None,
+        decision_id=run.decision_id,
         engine_version=MODEL_CONFIG.engine_version,
         model_config_version=MODEL_CONFIG.version,
     )

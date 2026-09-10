@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask
+         * @description Answer one question from the allowlist, or refuse and say what is available.
+         *
+         *     There is no query language here and no path to the filesystem, a shell or a
+         *     database. A question selects one of a fixed set of functions, each of which
+         *     reads already-computed state.
+         */
+        post: operations["ask_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ask/intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Intents
+         * @description Everything ASTRA can be asked. The interface shows this list up front.
+         */
+        get: operations["intents_ask_intents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/{decision_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit
+         * @description The audit record for one decision. Same payload, the name a brief cites.
+         */
+        get: operations["audit_audit__decision_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/capacity/sites": {
         parameters: {
             query?: never;
@@ -64,6 +128,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Decisions
+         * @description The audit ledger, newest first.
+         */
+        get: operations["decisions_decisions_get"];
+        put?: never;
+        /**
+         * Create Decision
+         * @description Write the current computed plan into the ledger as a decision point.
+         */
+        post: operations["create_decision_decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decisions/{decision_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Decision Detail */
+        get: operations["decision_detail_decisions__decision_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decisions/{decision_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Override
+         * @description Record what a person decided, with the computed consequence beside it.
+         *
+         *     For an action that changes an assignment, the consequence is not asserted -
+         *     the plan is re-solved with that assignment forced and the ledger records what
+         *     it actually cost, including whether it is feasible at all.
+         */
+        post: operations["override_decisions__decision_id__override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events": {
         parameters: {
             query?: never;
@@ -106,6 +235,96 @@ export interface paths {
         get: operations["event_feed_events_feed_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evidence List
+         * @description Filed field reports, newest first.
+         */
+        get: operations["evidence_list_evidence_get"];
+        put?: never;
+        /**
+         * File Evidence
+         * @description File one field report, with an optional photograph.
+         *
+         *     The report is classified by rules that run with no key configured, and the
+         *     classification is stored beside the text with the reasoning that produced it.
+         *     Filing does not change any assessment: promoting a report to a live
+         *     observation is a separate, explicit act.
+         */
+        post: operations["file_evidence_evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence/{evidence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evidence Detail */
+        get: operations["evidence_detail_evidence__evidence_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence/{evidence_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evidence Photo
+         * @description The photograph filed with one report.
+         */
+        get: operations["evidence_photo_evidence__evidence_id__photo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence/{evidence_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Promote Evidence
+         * @description Turn a filed report into a live observation and run the pipeline on it.
+         *
+         *     Deliberately separate from filing. A report is a record of what someone saw;
+         *     acting on it is a decision, and the ledger records which report produced which
+         *     event.
+         */
+        post: operations["promote_evidence_evidence__evidence_id__promote_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -288,6 +507,60 @@ export interface paths {
          * @description Every weight, threshold, norm and formula ASTRA uses, with provenance.
          */
         get: operations["model_config_model_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/narrate/habitation/{habitation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Narrate Habitation */
+        get: operations["narrate_habitation_narrate_habitation__habitation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/narrate/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Narrate Plan
+         * @description The current plan, in prose, for an official who is not a GIS analyst.
+         */
+        get: operations["narrate_plan_narrate_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/narrate/site/{site_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Narrate Site */
+        get: operations["narrate_site_narrate_site__site_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -868,6 +1141,42 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AskRequest */
+        AskRequest: {
+            /**
+             * Intent Id
+             * @description Choose an intent from the catalogue directly, skipping matching.
+             */
+            intent_id?: string | null;
+            /** Question */
+            question: string;
+        };
+        /**
+         * AskResponse
+         * @description A structured answer, plus the prose assembled from it.
+         */
+        AskResponse: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Decision Authority */
+            decision_authority: string;
+            /** Entity */
+            entity: string | null;
+            /** Follow Up */
+            follow_up: string[];
+            /** Intent */
+            intent: string;
+            /** Matched On */
+            matched_on: string;
+            /** Note */
+            note: string;
+            /** Question */
+            question: string;
+            /** Text */
+            text: string;
+        };
         /** AssignmentDeltaResponse */
         AssignmentDeltaResponse: {
             /** Habitation Id */
@@ -2271,6 +2580,31 @@ export interface components {
             /** Top 20Pct Capture */
             top_20pct_capture: number;
         };
+        /** Body_file_evidence_evidence_post */
+        Body_file_evidence_evidence_post: {
+            /** Analyst Note */
+            analyst_note?: string | null;
+            /** Habitation Id */
+            habitation_id?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Photo */
+            photo?: string | null;
+            /** Reporter */
+            reporter: string;
+            /** Role */
+            role?: string | null;
+            /** Segment Id */
+            segment_id?: string | null;
+            /** Site Id */
+            site_id?: string | null;
+            /** Text */
+            text: string;
+        };
         /**
          * CandidateSite
          * @description A candidate relocation site.
@@ -2869,6 +3203,65 @@ export interface components {
              */
             temporal_coverage: string;
         };
+        /** DecisionListResponse */
+        DecisionListResponse: {
+            /** Decision Authority */
+            decision_authority: string;
+            /** Decisions */
+            decisions: components["schemas"]["DecisionResponse"][];
+            /** Engine Version */
+            engine_version: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Total */
+            total: number;
+        };
+        /**
+         * DecisionResponse
+         * @description One ledger row: the computed state a decision could be taken on.
+         */
+        DecisionResponse: {
+            /** Confidence */
+            confidence: string;
+            /** Constraint Status */
+            constraint_status: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Id */
+            id: string;
+            /** Input Summary Hash */
+            input_summary_hash: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Notes */
+            notes: string | null;
+            /** Objective Value */
+            objective_value: number | null;
+            /** Overrides */
+            overrides: components["schemas"]["OverrideResponse"][];
+            /** Run Id */
+            run_id: string | null;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Score Components */
+            score_components: {
+                [key: string]: unknown;
+            };
+            /** Solver Status */
+            solver_status: string;
+            /** Source Layer Ids */
+            source_layer_ids: string[];
+            /** State */
+            state: string;
+            /** Trigger */
+            trigger: string;
+        };
         /**
          * DemographicProfile
          * @description Population structure of a habitation.
@@ -3113,6 +3506,71 @@ export interface components {
              *     }
              */
             rainfall_idw_power: components["schemas"]["Constant"];
+        };
+        /** EvidenceListResponse */
+        EvidenceListResponse: {
+            /** Decision Authority */
+            decision_authority: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceRecordResponse"][];
+            /** Extraction Note */
+            extraction_note: string;
+            /** Kinds */
+            kinds: string[];
+            /** Total */
+            total: number;
+        };
+        /**
+         * EvidenceRecordResponse
+         * @description One filed field report, with what the classifier made of it.
+         */
+        EvidenceRecordResponse: {
+            /** Analyst Note */
+            analyst_note: string | null;
+            /** Confidence */
+            confidence: string;
+            /** Extracted */
+            extracted: {
+                [key: string]: unknown;
+            };
+            /**
+             * Extraction Mode
+             * @description `rules` when the deterministic classifier decided, `model` when a configured language model refined it and agreed on the hazard.
+             */
+            extraction_mode: string;
+            /** Habitation Id */
+            habitation_id: string | null;
+            /** Id */
+            id: string;
+            /** Ingested Event Id */
+            ingested_event_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Observed At */
+            observed_at: string;
+            /** Photo Name */
+            photo_name: string | null;
+            /** Photo Url */
+            photo_url: string | null;
+            provenance: components["schemas"]["ProvenanceClass"];
+            /** Received At */
+            received_at: string;
+            /** Reporter */
+            reporter: string;
+            /** Role */
+            role: string | null;
+            /** Segment Id */
+            segment_id: string | null;
+            /** Severity */
+            severity: number | null;
+            /** Site Id */
+            site_id: string | null;
+            /** Text */
+            text: string;
         };
         /**
          * FactorContribution
@@ -3989,6 +4447,15 @@ export interface components {
              */
             status: "ok" | "degraded";
         };
+        /** IntentResponse */
+        IntentResponse: {
+            /** Id */
+            id: string;
+            /** Needs */
+            needs: string;
+            /** Question */
+            question: string;
+        };
         /**
          * InterventionResponse
          * @description One unit of investment and the capacity it actually unlocks.
@@ -4161,6 +4628,27 @@ export interface components {
             formulas: components["schemas"]["FormulaSpec"][];
             /** @description Standing framing text, served so the UI never retypes it. */
             notices: components["schemas"]["Notices"];
+        };
+        /**
+         * NarrationResponse
+         * @description Prose for an official, and an honest account of where it came from.
+         */
+        NarrationResponse: {
+            /** Decision Authority */
+            decision_authority: string;
+            /** Llm Configured */
+            llm_configured: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "template" | "model";
+            /** Note */
+            note: string;
+            /** Text */
+            text: string;
+            /** Validated */
+            validated: boolean;
         };
         /**
          * NetworkSummaryResponse
@@ -4746,6 +5234,58 @@ export interface components {
             solver_time_limit_s: components["schemas"]["Constant"];
         };
         /**
+         * OverrideRequest
+         * @description What a person decided, and why. The reason is not optional.
+         */
+        OverrideRequest: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "APPROVE" | "FORCE_ASSIGNMENT" | "REJECT_ASSIGNMENT" | "ANNOTATE";
+            /** Actor */
+            actor: string;
+            /** Habitation Id */
+            habitation_id?: string | null;
+            /** People */
+            people?: number | null;
+            /**
+             * Reason
+             * @description Why the decision departs from, or accepts, the computed plan. Required: an unexplained departure is the one thing an audit trail cannot be built from.
+             */
+            reason: string;
+            /** Site Id */
+            site_id?: string | null;
+        };
+        /**
+         * OverrideResponse
+         * @description One thing a person did about a computed plan, and what it cost.
+         */
+        OverrideResponse: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string;
+            /** Consequence */
+            consequence: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Decision Id */
+            decision_id: string;
+            /** Habitation Id */
+            habitation_id: string | null;
+            /** Id */
+            id: string;
+            /** People */
+            people: number | null;
+            /** Reason */
+            reason: string;
+            /** Site Id */
+            site_id: string | null;
+        };
+        /**
          * Perturbation
          * @description One change a scenario makes to the world.
          *
@@ -5317,6 +5857,22 @@ export interface components {
             w_vulnerability: components["schemas"]["Constant"];
         };
         /**
+         * PromoteEvidenceRequest
+         * @description Turn a filed report into a live observation.
+         */
+        PromoteEvidenceRequest: {
+            /**
+             * Radius M
+             * @default 1500
+             */
+            radius_m: number;
+            /**
+             * Value
+             * @description Overrides the value the classifier suggested, if given.
+             */
+            value?: number | null;
+        };
+        /**
          * ProvenanceClass
          * @description Provenance classes per CLAUDE.md §4.2 — enforced in code, surfaced in UI.
          *
@@ -5339,6 +5895,16 @@ export interface components {
             note: string;
             /** Registry Version */
             registry_version: string;
+        };
+        /** RecordDecisionRequest */
+        RecordDecisionRequest: {
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Trigger
+             * @default manual
+             */
+            trigger: string;
         };
         /**
          * RejectedOptionResponse
@@ -5796,6 +6362,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Decision Id
+             * @description The audit ledger row this run wrote. Cited on a printed brief.
+             */
+            decision_id?: string | null;
             /** Engine Version */
             engine_version: string;
             /** Error */
@@ -5917,6 +6488,11 @@ export interface components {
             critical_area_km2_before: number;
             /** Decision Authority */
             decision_authority: string;
+            /**
+             * Decision Id
+             * @description The audit ledger row this simulation wrote, if one was written.
+             */
+            decision_id?: string | null;
             /** Effective Capacity After */
             effective_capacity_after: number;
             /** Effective Capacity Before */
@@ -6706,6 +7282,90 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ask_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intents_ask_intents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentResponse"][];
+                };
+            };
+        };
+    };
+    audit_audit__decision_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     capacity_sites_capacity_sites_get: {
         parameters: {
             query?: never;
@@ -6788,6 +7448,136 @@ export interface operations {
             };
         };
     };
+    decisions_decisions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_decision_decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decision_detail_decisions__decision_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    override_decisions__decision_id__override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     ingest_events_post: {
         parameters: {
             query?: never;
@@ -6837,6 +7627,167 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventFeedResponse"];
+                };
+            };
+        };
+    };
+    evidence_list_evidence_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_evidence_evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_file_evidence_evidence_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceRecordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_detail_evidence__evidence_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceRecordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_photo_evidence__evidence_id__photo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_evidence_evidence__evidence_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7019,6 +7970,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelConfigResponse"];
+                };
+            };
+        };
+    };
+    narrate_habitation_narrate_habitation__habitation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    narrate_plan_narrate_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrationResponse"];
+                };
+            };
+        };
+    };
+    narrate_site_narrate_site__site_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
