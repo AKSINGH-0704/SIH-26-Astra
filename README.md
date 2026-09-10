@@ -17,20 +17,33 @@ when conditions change.
 > scenario are synthetic and terrain-calibrated, and are not an official hazard
 > designation of any real settlement.
 
-Full documentation - architecture, decision model, data provenance, validation,
-limitations and the PS acceptance matrix - is written in the final slice. This
-file covers what exists and how to run it.
+## Documentation
 
-## Build state
+[Architecture](docs/ARCHITECTURE.md) · [Decision model](docs/DECISION_MODEL.md) ·
+[Data provenance](docs/DATA_PROVENANCE.md) · [Validation](docs/VALIDATION.md) ·
+[Demo script](docs/DEMO_SCRIPT.md) · [Limitations](docs/LIMITATIONS.md) ·
+[PS acceptance matrix](docs/PS_ACCEPTANCE_MATRIX.md) · [Scaling](docs/SCALING.md) ·
+[Self-audit](docs/SELF_AUDIT.md)
 
-| Slice | Capability | State |
-|---|---|---|
-| 1 | Monorepo, domain model, versioned config, provenance registry, contracts pipeline, deployment baseline | Done |
-| 2 | Study-area data ingest, derived terrain and hydrology surfaces, calibrated synthetic habitations and sites | Done |
-| 3 | Multi-hazard susceptibility engine, analytical red zones, map surface | Done |
-| 4 | Exposure, vulnerability, history and phased relocation prioritisation | Done |
-| 5 | Site suitability gates and multi-constraint carrying capacity | Next |
-| 6-13 | Routes, optimiser, scenarios, real-time ingest, validation, intelligence layer, demo flow, docs | Planned |
+## What it does
+
+| PS capability | Where to see it |
+|---|---|
+| **C1** Maps and updates hazard-based red zones in real time | Risk Explorer; Command Centre **Run monsoon escalation** with the SSE-driven execution graph; Live Operations |
+| **C2** Assesses suitability and carrying capacity of safer sites | Relocation Sites: named gates, per-service capacity, the binding bottleneck and the marginal-intervention calculator |
+| **C3** Prioritises immediate / short-term / medium-term relocation | Habitation Priority: separate hazard, exposure, vulnerability and history; three tiers with override rules; `CAPACITY_BLOCKED` |
+| **C4** Actionable insights to SDMAs | Optimised Plan (CP-SAT, counterfactual why-not), What-If Simulation, Decision Brief with audit ID, Evidence & Audit with human override |
+
+The app opens on the **Command Centre**: a short cold open with the real event
+context, then the corridor resolving layer by layer into the current situation,
+the action required, ASTRA's recommendation and a *Static hazard map vs ASTRA
+decision mode* comparison. **Demo mode** there runs an unattended walkthrough of
+every screen driven by the real API (about 85 seconds; Escape stops it).
+**Generate Decision Brief** writes a ledger row and opens a printable brief.
+
+Validation, as the Model & Provenance screen reports it: cross-validated ROC-AUC
+0.79 (95% CI 0.68-0.88) against 18 recorded incidents; median Spearman 0.993 and
+an unchanged top 5 in 85% of 1,000 runs under +/-20% weight perturbation.
 
 ### Priority and phasing
 
@@ -107,8 +120,13 @@ uvicorn astra.main:app --app-dir apps/api --port 8000
 # Frontend (second terminal)
 npm install
 npm run contracts        # regenerate TS types from the OpenAPI schema
-npm run dev:web          # http://localhost:3000
+npm run build:web && npm run start --workspace @astra/web   # http://localhost:3000
+# or, for development: npm run dev:web
 ```
+
+The web client talks to `http://127.0.0.1:8000` unless `NEXT_PUBLIC_ASTRA_API_URL`
+is set at build time. End-to-end tests run against both services:
+`ASTRA_WEB_URL=http://localhost:3000 npx playwright test`.
 
 Or the whole stack:
 
@@ -138,13 +156,16 @@ generated TypeScript types have drifted from the code.
 apps/api             FastAPI service
   astra/domain       Pydantic models, versioned model config, formula registry, notices
   astra/data         Study area, provenance registry, fixtures, integrity gate
-  astra/engines      Hazard, priority, capacity, routes, optimiser (from Slice 3)
+  astra/engines      Hazard, priority, capacity, routes, optimiser, scenarios, live
+                     pipeline, validation, evidence, audit, narration, ask, brief
   astra/api          Routers and response schemas
 apps/web             Next.js command centre
 packages/contracts   TypeScript types generated from the OpenAPI schema (committed)
 data                 raw/ derived/ fixtures/ and the provenance registry
-scripts              Integrity gate, OpenAPI export, golden snapshot
-docs                 Scaling note, self-audit log; full docs in the final slice
+scripts              Ingest, derived surfaces, seeding, integrity gate, back-test, OpenAPI export
+e2e                  Playwright tests against the real API, including the judge journey
+docs                 Architecture, decision model, provenance, validation, demo script,
+                     limitations, PS acceptance matrix, scaling, self-audit
 ```
 
 ## Design commitments

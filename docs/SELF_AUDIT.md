@@ -1088,3 +1088,98 @@ and it survives greyscale printing - which colour alone does not.
 - `ruff` clean, fixture gate PASS (7 checks), OpenAPI (42 paths, 134 schemas) and
   TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint clean, `next
   build` succeeds, 19 Playwright tests pass against the real API.
+
+---
+
+## Slices 11-13 - intelligence layer completion, judge-ready presentation, documentation
+
+**Date:** 2026-09-10
+**Commits:** `feat(demo): judge-ready presentation flow, decision brief and demo mode`;
+`docs: architecture, provenance, decision model, acceptance matrix and self-audit`
+
+### What was inspected first
+
+Slice 11's evidence intake, decision ledger, override-with-consequence, narration
+adapter and ask allowlist were already committed and working end to end. What
+was genuinely missing against CLAUDE.md: the Command Centre (the root still
+redirected to the Risk Explorer), the cold open, Demo Mode, the comparative
+panel, the Decision Brief (`POST /brief`), the judge-journey E2E, and every
+Slice 13 document except SCALING and this log.
+
+### What actually works end to end
+
+- **Command Centre at `/`.** A six-second cold open with a cited real event, then
+  the corridor resolves layer by layer, each step gated on the map actually
+  having loaded. It settles on the current situation, the action required per
+  phase, ASTRA's recommendation, the priority queue, what unlocks capacity, and
+  one primary action: **Run monsoon escalation**, which posts the real feed to
+  `POST /events` while the SSE-driven execution graph follows each run.
+- **Decision Brief.** `GET /brief/preview` builds it from the standing state
+  (live run if any, else baseline) and writes nothing; `POST /brief` writes a
+  ledger row and freezes the payload in a new `briefs` table; `/brief/{id}` is a
+  printable paper document carrying brief ID, audit decision ID, input hash,
+  phased actions, bottlenecks, route risks, confidence, the comparison,
+  assumptions, limitations and the decision's current ledger state.
+- **Static hazard map vs ASTRA decision mode**, built server-side from computed
+  values, on the Command Centre and in the brief.
+- **Demo Mode**: nine steps across every screen, each caption fetched from the
+  API at that moment, the What-If step run through the What-If screen's own
+  controls; Escape stops it.
+- **Navigation** grouped as Decide / Analyse / Stress-test / Trust, and the
+  "How this works" statement plus the decision-authority line on every screen,
+  served by `/health`.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing? | No. The brief and Command Centre are serialised engine results; the advisory paragraph is the deterministic template unless a key is configured, and then numerically validated. |
+| 2 | Can every number be traced in one hop? | Yes. Brief figures come through the same serialisers as the Plan, Sites and Routes screens, and `test_brief.py` asserts equality with those endpoints. |
+| 3 | Anything animated without a backend event? | The layer-resolve sequence is paced for legibility, but each step only switches on a layer the map genuinely draws, and it does not start until the basemap reports loaded. The execution graph remains SSE-only. The Demo Mode progress bar reflects the step index. |
+| 4 | DEMO_CONFIG presented as a rule? | No. Tier rules in the brief say `(DEMO_CONFIG)`; assumptions list each constant's provenance and citation. |
+| 5 | Provenance honest per layer? | Yes. The resolve sequence names each layer's source class; the brief carries the synthetic-scenario notice. |
+| 6 | Same figures across screens? | Yes, and now tested across endpoints for the brief. |
+| 7 | Opening avoids a generic dashboard? | Yes: cold open, then a map-dominant screen with one primary action and no KPI wall. |
+| 8 | SDMA decides, unambiguously? | Yes: decision-authority line on every screen via the layout, on the Command Centre, and as the first callout of the brief, with a signature block. |
+| 9 | Runs with the network off and no key? | Yes. The cold-open image is served by the API; narration runs in template mode. |
+| 10 | Can the optimiser breach capacity? | Unchanged and still proved by post-solve validation; the brief test additionally asserts no recommended movement uses an unsuitable site or a route below threshold. |
+| 11 | Impressive but changes no decision? | Demo Mode was the candidate. It is kept because each caption is a real API result and the What-If step runs a real scenario; it is escapable and never the only path. |
+| 12 | Survives "walk me through this number"? | Yes for the brief: every figure names its endpoint, and the printed page carries the input hash that reproduces the state. |
+
+### Red-team findings
+
+1. **The test suite was writing into the demonstration ledger.** Tests filed
+   evidence and recorded decisions in `data/astra.sqlite`, so Evidence & Audit
+   showed test rows as if an officer had filed them, and a ledger assertion
+   compared row counts under a 100-row cap, so it failed on any populated store.
+   `tests/conftest.py` now points the store at a throwaway file, and the
+   assertion compares the newest row instead of a count.
+2. **The formula registry contradicted the engine.** The zone-class expression
+   read `C >= 70 / 55 / 40` while the engine classifies at the configured 78 /
+   62 / 52, so the Model screen showed two different thresholds. The objective
+   expression also omitted the phase-delay term the solver minimises. Both
+   expressions now match the engine and name the config keys.
+3. **Every server-side fetch paid ~200 ms for `localhost`.** The API binds IPv4;
+   on Windows `localhost` tries `::1` first. Measured 208 ms against 3 ms for
+   `127.0.0.1`. The client default and `.env.example` now use `127.0.0.1`.
+4. **Zone geometry dominated map-page payloads.** 22,539 vertices at full float
+   precision. Rounding the wire format to five decimals (about 1 m on 100 m cells)
+   cut `/risk/zones` from 961 KB to 598 KB and each map page by 350-400 KB; areas
+   and intersections are still computed on full-precision geometry.
+5. **The escalation could double-count observations.** Pressing it again on an
+   already-live state would re-post the same feed. The control disables once
+   observations are ingested and offers Reset; a token stops an in-flight feed
+   on reset or navigation.
+
+### Verification
+
+- Backend: `test_brief.py` (8 new), `test_intelligence.py`, `test_api.py`,
+  `test_live_api.py`, `test_route_engine.py`, and the registry and golden-config
+  tests - all pass. `ruff` clean.
+- OpenAPI (59 paths) and TypeScript contracts regenerated; `tsc --noEmit` and
+  ESLint clean; `next build` succeeds.
+- Playwright `e2e/judge-journey.spec.ts`, against the real API and production
+  build: the full journey (load → live escalation → top habitation → site
+  bottleneck and marginal intervention → plan why-not re-solve → bridge-closure
+  what-if with assignments changed → Decision Brief with audit ID), the cold open
+  and layer resolution, and Demo Mode - 3 of 3 pass, zero console errors.
