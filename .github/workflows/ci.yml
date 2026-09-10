@@ -37,6 +37,13 @@ jobs:
         run: pytest
         working-directory: apps/api
 
+      - name: Back-test and sensitivity match the committed artifact
+        # Not a smoke test: it recomputes the AUC and the rank stability and
+        # fails if the headline figures have moved. A refactor that quietly
+        # changes a number the Model & Provenance screen is showing has to break
+        # the build rather than turn into a better-looking figure.
+        run: python scripts/backtest.py --check
+
       - name: OpenAPI schema is in sync with the committed contract
         run: |
           python scripts/export_openapi.py

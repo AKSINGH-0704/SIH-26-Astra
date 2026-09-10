@@ -1268,3 +1268,147 @@ class EventFeedResponse(BaseModel):
     note: str
     provenance: ProvenanceClass
     steps: list[FeedStepResponse]
+
+
+# ---------------------------------------------------------------------------
+# Section 7 - back-test, sensitivity and confidence
+# ---------------------------------------------------------------------------
+
+
+class SuccessRatePointResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    area_share: float
+    incident_share: float
+
+
+class BacktestVariantResponse(BaseModel):
+    """One way of scoring the hazard model against the recorded inventory."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    independent: bool = Field(
+        description=(
+            "False when the points being predicted also fed the model. Such a figure "
+            "reads high and is reported for comparison, never as evidence."
+        )
+    )
+    auc: float
+    auc_ci_low: float
+    auc_ci_high: float
+    positives: int
+    background: int
+    success_curve: list[SuccessRatePointResponse]
+    area_under_success_curve: float
+    top_10pct_capture: float
+    top_20pct_capture: float
+    note: str
+
+
+class HazardAucResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    hazard: str
+    auc: float
+    positives: int
+
+
+class BacktestResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    variants: list[BacktestVariantResponse]
+    per_hazard: list[HazardAucResponse]
+    headline: str
+    limitation: str
+    incidents_in_study_area: int
+    incidents_total: int
+    exclusion_radius_m: float
+    folds: int
+    seed: int
+    elapsed_ms: float
+
+
+class HabitationStabilityResponse(BaseModel):
+    """How far one habitation's rank moves when the weights are perturbed."""
+
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    name: str
+    baseline_rank: int
+    baseline_priority: float
+    median_rank: float
+    best_rank: int
+    worst_rank: int
+    rank_spread: int
+    priority_p05: float
+    priority_p95: float
+    stable: bool
+    note: str
+
+
+class SensitivityResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    runs: int
+    perturbation: float
+    top_k: int
+    spearman_mean: float
+    spearman_median: float
+    spearman_p05: float
+    spearman_min: float
+    top_k_unchanged_share: float
+    top_k_baseline: list[str]
+    habitations: list[HabitationStabilityResponse]
+    weights_perturbed: int
+    headline: str
+    method: str
+    seed: int
+    elapsed_ms: float
+
+
+class ConfidenceBandResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    band: str
+    cells: int
+    area_km2: float
+    share: float
+    zones: int
+    habitations: int
+
+
+class ConfidenceSurfaceResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    mean: float
+    median: float
+    p10: float
+    minimum: float
+    maximum: float
+    bands: list[ConfidenceBandResponse]
+    low_confidence_habitations: list[str]
+    note: str
+
+
+class ValidationResponse(BaseModel):
+    """Everything section 7 asks for, as the last back-test run produced it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    generated_at: str
+    model_config_version: str
+    engine_version: str
+    backtest: BacktestResponse
+    sensitivity: SensitivityResponse
+    confidence: ConfidenceSurfaceResponse
+    elapsed_ms: float
+    notes: list[str]
+
+    current_model_config_version: str
+    current_engine_version: str
+    stale: bool
+    staleness_note: str
+    decision_authority: str

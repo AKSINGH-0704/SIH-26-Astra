@@ -248,10 +248,10 @@
       "dtype": "uint16",
       "stored_scale": 1000.0,
       "unit": "index 0-1",
-      "bytes": 17691,
+      "bytes": 17651,
       "min": 0.6225,
-      "max": 0.8384665424835653,
-      "mean": 0.6734002913783524,
+      "max": 0.8384514227197923,
+      "mean": 0.6733880320870271,
       "note": "evidence confidence, computed separately and never multiplied into the score"
     },
     "hazard_composite_overlay": {
@@ -270,7 +270,7 @@
       "dtype": "GeoJSON polygons",
       "stored_scale": 1.0,
       "unit": "polygons",
-      "bytes": 1019566,
+      "bytes": 1019568,
       "min": 0.0,
       "max": 335.0,
       "mean": 335.0,
@@ -286,6 +286,17 @@
       "max": 1.0,
       "mean": 0.4721521653929061,
       "note": "Random Forest over Sentinel-2 spectral indices: a second opinion on buildable ground. ESA WorldCover remains the primary path."
+    },
+    "confidence_overlay": {
+      "file": "confidence.png",
+      "dtype": "uint8 RGBA",
+      "stored_scale": 1.0,
+      "unit": "image",
+      "bytes": 15161,
+      "min": 0.6225,
+      "max": 0.8384514227197923,
+      "mean": 0.6733880320870271,
+      "note": "evidence confidence rendered as a diagonal hatch whose density rises as confidence falls; drawn over the hazard surface rather than blended into it, because confidence is never multiplied into the score"
     }
   },
   "hazard": {
@@ -322,8 +333,8 @@
         "population_intersected": 308
       }
     },
-    "model_config_version": "1.5.0",
-    "engine_version": "0.2.0"
+    "model_config_version": "1.10.0",
+    "engine_version": "0.6.0"
   },
   "landcover_refinement": {
     "model": "landcover-refinement-rf",

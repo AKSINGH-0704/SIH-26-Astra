@@ -5,11 +5,14 @@ import { api, API_BASE, tryFetch } from "@/lib/api";
 export const dynamic = "force-dynamic";
 
 export default async function PriorityPage() {
-  const [priority, summary, zones, sites] = await Promise.all([
+  const [priority, summary, zones, sites, model] = await Promise.all([
     tryFetch(api.priorityHabitations),
     tryFetch(api.riskSummary),
     tryFetch(api.riskZones),
     tryFetch(api.sites),
+    // Rank stability from the back-test. Absent until scripts/backtest.py has
+    // run, and then no flag is shown - never an unearned "stable".
+    tryFetch(api.validation),
   ]);
 
   if (!priority || !summary || !zones || !sites) {
@@ -33,6 +36,16 @@ export default async function PriorityPage() {
       summary={summary}
       zones={zones.features}
       sites={sites.sites}
+      stability={
+        model
+          ? Object.fromEntries(
+              model.sensitivity.habitations.map((entry) => [
+                entry.habitation_id,
+                entry,
+              ]),
+            )
+          : null
+      }
     />
   );
 }

@@ -479,6 +479,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/risk/overlay/confidence.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Confidence Overlay
+         * @description The evidence-confidence surface as a hatch, drawn over the hazard layer.
+         */
+        get: operations["confidence_overlay_risk_overlay_confidence_png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/risk/summary": {
         parameters: {
             query?: never;
@@ -796,6 +816,26 @@ export interface paths {
          * @description Shaded relief rendered from the vendored DEM, georeferenced by the study bbox.
          */
         get: operations["terrain_preview_study_area_terrain_jpg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validation
+         * @description Back-test, sensitivity and confidence, as the last run produced them.
+         */
+        get: operations["validation_validation_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2173,6 +2213,64 @@ export interface components {
             /** Min Lon */
             min_lon: number;
         };
+        /** BacktestResponse */
+        BacktestResponse: {
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /** Exclusion Radius M */
+            exclusion_radius_m: number;
+            /** Folds */
+            folds: number;
+            /** Headline */
+            headline: string;
+            /** Incidents In Study Area */
+            incidents_in_study_area: number;
+            /** Incidents Total */
+            incidents_total: number;
+            /** Limitation */
+            limitation: string;
+            /** Per Hazard */
+            per_hazard: components["schemas"]["HazardAucResponse"][];
+            /** Seed */
+            seed: number;
+            /** Variants */
+            variants: components["schemas"]["BacktestVariantResponse"][];
+        };
+        /**
+         * BacktestVariantResponse
+         * @description One way of scoring the hazard model against the recorded inventory.
+         */
+        BacktestVariantResponse: {
+            /** Area Under Success Curve */
+            area_under_success_curve: number;
+            /** Auc */
+            auc: number;
+            /** Auc Ci High */
+            auc_ci_high: number;
+            /** Auc Ci Low */
+            auc_ci_low: number;
+            /** Background */
+            background: number;
+            /** Id */
+            id: string;
+            /**
+             * Independent
+             * @description False when the points being predicted also fed the model. Such a figure reads high and is reported for comparison, never as evidence.
+             */
+            independent: boolean;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string;
+            /** Positives */
+            positives: number;
+            /** Success Curve */
+            success_curve: components["schemas"]["SuccessRatePointResponse"][];
+            /** Top 10Pct Capture */
+            top_10pct_capture: number;
+            /** Top 20Pct Capture */
+            top_20pct_capture: number;
+        };
         /**
          * CandidateSite
          * @description A candidate relocation site.
@@ -2525,6 +2623,21 @@ export interface components {
          * @enum {string}
          */
         ConfidenceBand: "HIGH" | "MEDIUM" | "LOW";
+        /** ConfidenceBandResponse */
+        ConfidenceBandResponse: {
+            /** Area Km2 */
+            area_km2: number;
+            /** Band */
+            band: string;
+            /** Cells */
+            cells: number;
+            /** Habitations */
+            habitations: number;
+            /** Share */
+            share: number;
+            /** Zones */
+            zones: number;
+        };
         /**
          * ConfidenceConfig
          * @description Confidence is computed separately and never multiplied into priority.
@@ -2599,6 +2712,25 @@ export interface components {
             note?: string | null;
             /** Value */
             value: number;
+        };
+        /** ConfidenceSurfaceResponse */
+        ConfidenceSurfaceResponse: {
+            /** Bands */
+            bands: components["schemas"]["ConfidenceBandResponse"][];
+            /** Low Confidence Habitations */
+            low_confidence_habitations: string[];
+            /** Maximum */
+            maximum: number;
+            /** Mean */
+            mean: number;
+            /** Median */
+            median: number;
+            /** Minimum */
+            minimum: number;
+            /** Note */
+            note: string;
+            /** P10 */
+            p10: number;
         };
         /**
          * Constant
@@ -3523,6 +3655,36 @@ export interface components {
             zone_id: string | null;
         };
         /**
+         * HabitationStabilityResponse
+         * @description How far one habitation's rank moves when the weights are perturbed.
+         */
+        HabitationStabilityResponse: {
+            /** Baseline Priority */
+            baseline_priority: number;
+            /** Baseline Rank */
+            baseline_rank: number;
+            /** Best Rank */
+            best_rank: number;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Median Rank */
+            median_rank: number;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string;
+            /** Priority P05 */
+            priority_p05: number;
+            /** Priority P95 */
+            priority_p95: number;
+            /** Rank Spread */
+            rank_spread: number;
+            /** Stable */
+            stable: boolean;
+            /** Worst Rank */
+            worst_rank: number;
+        };
+        /**
          * HabitationsResponse
          * @description The habitation layer, with the totals a planner reads first.
          */
@@ -3538,6 +3700,15 @@ export interface components {
             total_households: number;
             /** Total Population */
             total_population: number;
+        };
+        /** HazardAucResponse */
+        HazardAucResponse: {
+            /** Auc */
+            auc: number;
+            /** Hazard */
+            hazard: string;
+            /** Positives */
+            positives: number;
         };
         /** HazardConfig */
         HazardConfig: {
@@ -5831,6 +6002,39 @@ export interface components {
             /** Travel Time Min */
             travel_time_min: number;
         };
+        /** SensitivityResponse */
+        SensitivityResponse: {
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /** Habitations */
+            habitations: components["schemas"]["HabitationStabilityResponse"][];
+            /** Headline */
+            headline: string;
+            /** Method */
+            method: string;
+            /** Perturbation */
+            perturbation: number;
+            /** Runs */
+            runs: number;
+            /** Seed */
+            seed: number;
+            /** Spearman Mean */
+            spearman_mean: number;
+            /** Spearman Median */
+            spearman_median: number;
+            /** Spearman Min */
+            spearman_min: number;
+            /** Spearman P05 */
+            spearman_p05: number;
+            /** Top K */
+            top_k: number;
+            /** Top K Baseline */
+            top_k_baseline: string[];
+            /** Top K Unchanged Share */
+            top_k_unchanged_share: number;
+            /** Weights Perturbed */
+            weights_perturbed: number;
+        };
         /**
          * ServiceCapacity
          * @description Capacity of a site as limited by one service.
@@ -6177,6 +6381,13 @@ export interface components {
             /** Terrain Preview Url */
             terrain_preview_url: string;
         };
+        /** SuccessRatePointResponse */
+        SuccessRatePointResponse: {
+            /** Area Share */
+            area_share: number;
+            /** Incident Share */
+            incident_share: number;
+        };
         /**
          * SuitabilityGate
          * @description Hard binary gates a candidate site must pass (§5.4 step 1).
@@ -6299,6 +6510,35 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * ValidationResponse
+         * @description Everything section 7 asks for, as the last back-test run produced it.
+         */
+        ValidationResponse: {
+            backtest: components["schemas"]["BacktestResponse"];
+            confidence: components["schemas"]["ConfidenceSurfaceResponse"];
+            /** Current Engine Version */
+            current_engine_version: string;
+            /** Current Model Config Version */
+            current_model_config_version: string;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /** Engine Version */
+            engine_version: string;
+            /** Generated At */
+            generated_at: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Notes */
+            notes: string[];
+            sensitivity: components["schemas"]["SensitivityResponse"];
+            /** Stale */
+            stale: boolean;
+            /** Staleness Note */
+            staleness_note: string;
         };
         /**
          * ValueExplanation
@@ -7013,6 +7253,24 @@ export interface operations {
             };
         };
     };
+    confidence_overlay_risk_overlay_confidence_png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     risk_summary_risk_summary_get: {
         parameters: {
             query?: never;
@@ -7424,6 +7682,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    validation_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResponse"];
+                };
             };
         };
     };

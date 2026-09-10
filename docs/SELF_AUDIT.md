@@ -943,3 +943,148 @@ are now under a lock, with a `snapshot()` for every read.
   what it is. `PASS: 7 checks, 18 fixture records, 11 datasets, 0 errors.`
 - `ruff` clean, OpenAPI exported (40 paths, 125 schemas) and TypeScript contracts
   regenerated, `tsc --noEmit` clean, ESLint clean, `next build` succeeds.
+
+---
+
+## Slice 10 - hazard model back-testing and weight sensitivity analysis
+
+**Date:** 2026-09-10
+**Commit:** `feat(validation): hazard model back-testing and weight sensitivity analysis`
+
+### What actually works end to end
+
+`scripts/backtest.py` computes the whole credibility layer from the vendored data
+and the committed configuration with a fixed seed, writes
+`data/derived/validation.json`, and `GET /validation` serves that artifact. The
+Model & Provenance screen renders it. Nothing is entered by hand, nothing is
+recomputed per request, and `--check` re-runs the computation in CI and fails the
+build if a headline figure has moved - so a refactor that quietly changes an AUC
+on screen breaks the build rather than turning into a better-looking number.
+
+**The numbers this produced, which are the numbers on the screen:**
+
+| Variant | Independent | ROC-AUC | 95% CI | Top 10% | Top 20% |
+|---|---|---|---|---|---|
+| As deployed | **no** | 0.88 | 0.82–0.93 | 61% | 72% |
+| Cross-validated (6-fold) | yes | **0.79** | 0.68–0.88 | 44% | 56% |
+| Terrain and rainfall only | yes | 0.66 | 0.52–0.79 | 39% | 44% |
+
+Per sub-model, as deployed: landslide 0.88, flood 0.79, cloudburst 0.68. Across
+1,000 Monte Carlo runs perturbing all 18 weights by ±20%, the habitation ranking
+holds a median Spearman correlation of **0.993** with the baseline, worst run
+0.972, and the **top-5 set is unchanged in 85%** of runs. Two habitations - H-07
+Thalgaon Sera and H-12 Sarauli Tok - are flagged weight-sensitive and say so on
+both the validation table and the priority list.
+
+**The discipline that makes those numbers worth anything.** The recorded incident
+inventory is *an input to the model*: kernel density over those points is one of
+the landslide sub-model's six weighted factors. Scoring the model against the
+same points is circular and inflates the AUC, which is why the "as deployed"
+figure reads 0.88 and is labelled **not independent** on screen. The headline is
+the 6-fold cross-validation, where the incident-density factor is rebuilt from
+the other folds only before re-scoring, and the background points are scored on
+that same fold surface so both sides of every comparison come from one model. The
+strictest variant holds the incident factor at zero weight entirely and asks
+whether the physical model alone puts past failures on dangerous ground: 0.66,
+lower than both, and shown anyway.
+
+Every AUC carries a percentile bootstrap interval and its sample count, because
+the sample inside this corridor is 18 incidents and an AUC from 18 points without
+an interval is a number pretending to be a measurement. The success-rate curve is
+assembled from each incident's *area rank on the surface it was actually scored
+on*, so the cross-validated curve is genuinely cross-validated rather than
+silently recomputed against the full-data surface.
+
+The sensitivity analysis re-derives the composite from the cached normalised
+factor surfaces - the same arithmetic `score_hazard` does, proved equal to the
+engine's own output by test - which is what makes 1,000 runs take 31 seconds
+instead of hours. Perturbed weight sets are renormalised so each still sums to
+one; a perturbation of zero leaves the ranking bit-for-bit identical, and a
+larger perturbation moves it more. Both are tests.
+
+The confidence surface is rendered as a **hatch**, not a fade, and drawn *over*
+the hazard layer rather than blended into it. Fading low-confidence ground would
+read as *less hazardous*, which is exactly the conflation §5.2 exists to prevent.
+A test asserts on the real surfaces that the most susceptible ground is not the
+best-evidenced ground - confidence is genuinely not multiplied into the score.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing? | No. There is no model in this slice; the statistics are computed from ranks in numpy. |
+| 2 | Can every number on screen be traced in one hop? | Yes. The seed, the fold count, the exclusion radius, the background count and the sample size are all on the panel beside the figures they produced. |
+| 3 | Is anything displayed that is not backed by a real value? | No. The success curve is drawn from the points the back-test computed; the dashed diagonal is labelled as the random-classification reference. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The perturbation size, run count, background count and top-k are `DEMO_CONFIG` and appear in the constants table. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic? | Yes, unchanged. The incident inventory is `REAL_OPEN` and the panel says so; its bias is stated in the limitation. |
+| 6 | Are the same figures identical across screens? | Yes. The rank-stability chip on the Priority screen is read from the same `/validation` payload the Model screen renders. |
+| 7 | Does the opening avoid looking like a generic dashboard? | Cold open is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes; the response carries the decision-authority line and the screen already closes with it. |
+| 9 | Does it run with the network off? | Yes. The artifact is on disk; the statistics need no network and no external library beyond numpy. |
+| 10 | Can the optimiser breach capacity? | Unchanged from Slice 7; still proved by post-solve validation. |
+| 11 | **Any feature that looks impressive but changes no decision?** | The confidence surface was the candidate, and the answer is honest rather than convenient: in this corridor it barely varies (0.62–0.79, no cell in the Low band), because three of its four inputs are near-uniform here. The screen says that in those words instead of implying a richer signal. |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. 0.79 is the Mann-Whitney U of 18 held-out incident scores against 12,000 background scores, both taken from the six fold surfaces; 0.68–0.88 is the 2.5th–97.5th percentile of 2,000 bootstrap resamples; 56% is the share of those 18 whose area rank on their own fold surface is within the top fifth. |
+
+### Red-team findings
+
+**1. The first cross-validated success curve was not cross-validated.** The AUC
+used held-out scores, but the curve was recomputed from the full-data surface at
+the original incident cells - so the cross-validated row's curve was byte-identical
+to the uncross-validated row's, and the top-20% capture read 72% for both. It
+looked right and was wrong in the flattering direction, which is the worst
+combination. The curve is now built from each incident's **area rank on the
+surface it was actually scored on**, and the cross-validated figure fell from 72%
+to 56%, where it belongs.
+
+**2. Background points were being scored by a different model from the
+positives.** In the first version the CV positives came from fold surfaces while
+the background came from the full-data surface. The resulting AUC would have
+measured the difference between two models as much as the model's skill. Both
+sides now come from the same fold surface, pooled across folds.
+
+**3. Removing the incident factor tripped the engine's own integrity guard, and
+that was correct.** `score_hazard` refuses to score a factor with no declared
+weight - exactly the silent discrepancy that guard exists to catch. Rather than
+weaken the guard for the convenience of the test, the terrain-only variant holds
+the factor at **zero weight** and redistributes its share proportionally, which is
+the honest way to say "this contributes nothing" and keeps the other factors'
+relative emphasis intact. A test asserts that ratio is preserved.
+
+**4. A narrow confidence surface was nearly dressed up as a rich one.** No cell in
+this corridor falls in the Low band; the whole surface lies between 0.62 and 0.79.
+Rendering it against the full 0–1 scale would have produced a uniform sheet that
+said nothing; rendering it against its own range without saying so would have
+implied more contrast than exists. It is rendered against the observed range *and*
+the observed range is printed beside it, with an explanation of why it is narrow
+here: three of the four inputs barely vary in a corridor covered by one DEM at one
+resolution.
+
+**5. The confidence overlay was almost a fade.** A fade would have made
+low-confidence ground look *safer*. It is a hatch, drawn over the hazard layer,
+and it survives greyscale printing - which colour alone does not.
+
+### Verification
+
+- **456 backend tests pass, 40 of them new.** The statistics are checked against
+  cases whose answers are known: AUC is exactly 1.0 for perfect separation, 0.0
+  for perfect inversion, 0.5 for an all-ties surface and near 0.5 for a coin
+  flip; Spearman is ±1.0 for identical and reversed orderings; a perfect model's
+  success curve captures everything in a sliver of area and a worthless one
+  traces the diagonal; a smaller sample yields a wider bootstrap interval. Then
+  the discipline: background points are provably away from every incident,
+  sampling and the whole back-test are reproducible, the uncross-validated figure
+  is asserted to read *higher* than the honest one, the terrain-only weight set
+  is asserted to contain no incident evidence while preserving the other
+  factors' ratios, the fast composite re-derivation is asserted equal to the
+  engine's own output, a zero perturbation leaves the ranking untouched, a larger
+  one moves it more, and confidence is asserted not to be folded into the score.
+- **Six Playwright tests read the panel as a judge would**, requiring the awkward
+  figures to be present: the "not independent" label on the flattering variant,
+  the terrain-only row despite it being the lowest, the sample size and interval
+  in the headline, the limitation paragraph unhidden, at least one habitation
+  actually flagged weight-sensitive, the stability chip on the Priority screen,
+  and the confidence layer toggling on the Risk Explorer. Zero console errors.
+- CI now runs `scripts/backtest.py --check`, which recomputes and fails on drift.
+- `ruff` clean, fixture gate PASS (7 checks), OpenAPI (42 paths, 134 schemas) and
+  TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint clean, `next
+  build` succeeds, 19 Playwright tests pass against the real API.

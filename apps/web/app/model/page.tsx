@@ -2,6 +2,7 @@ import type { Constant, DatasetRecord, FormulaSpec, LayerDescriptor } from "@ast
 import { PROVENANCE_ORDER } from "@astra/contracts";
 
 import { Notice, Panel, ProvenanceChip, StatValue } from "@/components/primitives";
+import { ValidationPanel } from "@/components/validation-panel";
 import { api, API_BASE, tryFetch } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -68,13 +69,18 @@ function ApiDown() {
 }
 
 export default async function ModelAndProvenancePage() {
-  const [config, provenance, layers, validation, scenarios] = await Promise.all([
-    tryFetch(api.modelConfig),
-    tryFetch(api.provenance),
-    tryFetch(api.layers),
-    tryFetch(api.fixtureValidation),
-    tryFetch(api.scenarios),
-  ]);
+  const [config, provenance, layers, validation, scenarios, model] =
+    await Promise.all([
+      tryFetch(api.modelConfig),
+      tryFetch(api.provenance),
+      tryFetch(api.layers),
+      tryFetch(api.fixtureValidation),
+      tryFetch(api.scenarios),
+      // The back-test artifact. Absent until scripts/backtest.py has been run,
+      // and the screen says so rather than leaving a gap where evidence should
+      // be.
+      tryFetch(api.validation),
+    ]);
 
   if (!config || !provenance || !layers || !validation || !scenarios) {
     return <ApiDown />;
@@ -125,6 +131,25 @@ export default async function ModelAndProvenancePage() {
           <Notice>{notices.decision_authority}</Notice>
         </div>
       </section>
+
+      {model ? (
+        <ValidationPanel validation={model} />
+      ) : (
+        <Panel
+          title="Model validation"
+          subtitle="Back-test, weight sensitivity and the confidence surface."
+        >
+          <div className="px-4 py-4 text-[12px] leading-relaxed text-[var(--color-ink-muted)]">
+            The validation artifact has not been built in this deployment. ASTRA
+            shows no back-test figures rather than plausible ones. Produce them
+            with{" "}
+            <code className="rounded border border-[var(--color-line)] bg-[var(--color-surface-inset)] px-1.5 py-0.5 text-[var(--color-ink)]">
+              python scripts/backtest.py
+            </code>
+            .
+          </div>
+        </Panel>
+      )}
 
       <Panel
         title="Fixture integrity gate"

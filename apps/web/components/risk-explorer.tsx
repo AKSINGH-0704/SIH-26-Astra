@@ -14,7 +14,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProvenanceChip } from "@/components/primitives";
 import { RiskMap, type LayerToggles } from "@/components/risk-map";
-import { api, HAZARD_OVERLAY_URL, ROADS_GEOJSON_URL, API_BASE } from "@/lib/api";
+import {
+  api,
+  API_BASE,
+  CONFIDENCE_OVERLAY_URL,
+  HAZARD_OVERLAY_URL,
+  ROADS_GEOJSON_URL,
+} from "@/lib/api";
 
 const SEVERITY_COLOUR: Record<string, string> = {
   CRITICAL: "var(--color-severity-critical)",
@@ -219,6 +225,7 @@ export function RiskExplorer({
     habitations: true,
     sites: true,
     roads: true,
+    confidence: false,
   });
   const [hazardOpacity, setHazardOpacity] = useState(0.55);
   const [selected, setSelected] = useState<{ lon: number; lat: number } | null>(null);
@@ -286,6 +293,7 @@ export function RiskExplorer({
                 ["habitations", "Habitations"],
                 ["sites", "Candidate sites"],
                 ["roads", "Roads and waterways"],
+                ["confidence", "Evidence confidence (hatched)"],
               ] as [keyof LayerToggles, string][]
             ).map(([key, label]) => (
               <li key={key}>
@@ -381,6 +389,7 @@ export function RiskExplorer({
           terrainUrl={`${API_BASE}${summary.terrain_url}`}
           overlayUrl={HAZARD_OVERLAY_URL}
           roadsUrl={ROADS_GEOJSON_URL}
+          confidenceUrl={CONFIDENCE_OVERLAY_URL}
           zones={toggles.zones ? zones : []}
           habitations={habitations as never}
           sites={sites}

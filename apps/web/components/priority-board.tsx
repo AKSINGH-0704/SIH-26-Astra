@@ -6,6 +6,7 @@ import type {
   FactorContribution,
   HabitationPriorityResponse,
   HabitationPriorityRow,
+  HabitationStabilityResponse,
   RiskSummaryResponse,
   ZoneFeature,
 } from "@astra/contracts";
@@ -132,9 +133,11 @@ function ComponentBlock({
 function ReasoningDrawer({
   row,
   weights,
+  stability,
 }: {
   row: HabitationPriorityRow;
   weights: Record<string, number>;
+  stability: HabitationStabilityResponse | null;
 }) {
   const maximum = Math.max(
     ...row.priority_factors.map((factor) => factor.contribution),
@@ -184,6 +187,24 @@ function ReasoningDrawer({
           <span className="numeric rounded-sm border border-[var(--color-line-strong)] px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">
             confidence {row.confidence.band} {fixed(row.confidence.value, 2)}
           </span>
+          {stability ? (
+            <span
+              className="numeric rounded-sm border px-2 py-1 text-[10px] uppercase tracking-[0.1em]"
+              data-testid="rank-stability"
+              style={{
+                borderColor: stability.stable
+                  ? "var(--color-safe)"
+                  : "var(--color-warning)",
+                color: stability.stable
+                  ? "var(--color-safe)"
+                  : "var(--color-warning)",
+              }}
+              title={stability.note}
+            >
+              rank {stability.best_rank}&ndash;{stability.worst_rank} under &plusmn;20%
+              weights
+            </span>
+          ) : null}
         </div>
 
         <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-ink-muted)]">
@@ -290,11 +311,18 @@ export function PriorityBoard({
   summary,
   zones,
   sites,
+  stability,
 }: {
   priority: HabitationPriorityResponse;
   summary: RiskSummaryResponse;
   zones: ZoneFeature[];
   sites: CandidateSite[];
+  /**
+   * Rank stability from the Monte Carlo back-test, by habitation id. Absent
+   * until scripts/backtest.py has been run - in which case no flag is shown at
+   * all, rather than an unearned "stable".
+   */
+  stability: Record<string, HabitationStabilityResponse> | null;
 }) {
   const [selectedId, setSelectedId] = useState<string>(
     priority.habitations[0]?.habitation_id ?? "",
@@ -303,6 +331,11 @@ export function PriorityBoard({
   const selected = useMemo(
     () => priority.habitations.find((row) => row.habitation_id === selectedId) ?? null,
     [priority.habitations, selectedId],
+  );
+
+  const stabilityOf = useCallback(
+    (habitationId: string) => stability?.[habitationId] ?? null,
+    [stability],
   );
 
   const phaseById = useMemo(() => {
@@ -424,6 +457,18 @@ export function PriorityBoard({
                         {row.zone_class.toLowerCase()}
                       </span>
                     </span>
+                    {stabilityOf(row.habitation_id)?.stable === false ? (
+                      <span
+                        className="numeric shrink-0 rounded-sm border px-1 text-[9px] uppercase"
+                        style={{
+                          borderColor: "var(--color-warning)",
+                          color: "var(--color-warning)",
+                        }}
+                        title={stabilityOf(row.habitation_id)?.note}
+                      >
+                        sensitive
+                      </span>
+                    ) : null}
                     {(row.phase.rules_applied ?? []).length > 0 ? (
                       <span
                         className="numeric shrink-0 rounded-sm border px-1 text-[9px] uppercase"
@@ -480,7 +525,11 @@ export function PriorityBoard({
 
       <aside className="w-full shrink-0 overflow-y-auto border-t border-[var(--color-line)] bg-[var(--color-surface)] xl:w-[440px] xl:border-l xl:border-t-0">
         {selected ? (
-          <ReasoningDrawer row={selected} weights={priority.weights} />
+          <ReasoningDrawer
+            row={selected}
+            weights={priority.weights}
+            stability={stabilityOf(selected.habitation_id)}
+          />
         ) : (
           <p className="px-4 py-4 text-[12px] text-[var(--color-ink-muted)]">
             Select a habitation to see why it is ranked where it is.

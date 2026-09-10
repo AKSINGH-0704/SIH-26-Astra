@@ -35,6 +35,7 @@ import type {
   SitesResponse,
   StudyAreaDataResponse,
   ValidationCheckResponse,
+  ValidationResponse,
   ZonesResponse,
 } from "@astra/contracts";
 
@@ -104,6 +105,7 @@ export const api = {
   layers: () => get<LayersResponse>("/layers"),
   scenarios: () => get<ScenarioListResponse>("/scenarios"),
   fixtureValidation: () => get<ValidationCheckResponse>("/validation/fixtures"),
+  validation: () => get<ValidationResponse>("/validation"),
   habitations: () => get<HabitationsResponse>("/habitations"),
   sites: () => get<SitesResponse>("/sites"),
   studyAreaData: () => get<StudyAreaDataResponse>("/study-area/data"),
@@ -213,6 +215,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 /** Served by the API so the map works with the network unplugged. */
 export const HAZARD_OVERLAY_URL = `${API_BASE}/risk/overlay/composite.png`;
+
+/** The evidence-confidence surface, hatched. Drawn over the hazard layer. */
+export const CONFIDENCE_OVERLAY_URL = `${API_BASE}/risk/overlay/confidence.png`;
 export const ROADS_GEOJSON_URL = `${API_BASE}/layers/roads.geojson`;
 
 /** The routed graph, with each segment's computed failure probability. */

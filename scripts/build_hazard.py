@@ -60,6 +60,61 @@ def _colourise(composite: np.ndarray, alpha_floor: float = 0.0) -> np.ndarray:
     return rgba
 
 
+def _confidence_veil(confidence: np.ndarray) -> np.ndarray:
+    """Render the confidence surface as a hatch, not as a fade.
+
+    Fading low-confidence ground would read as *less hazardous*, which is exactly
+    the conflation section 5.2 exists to prevent: a cell can be highly
+    susceptible on thin evidence. A hatch says "we are less sure here" without
+    touching how severe the ground looks, and it survives being printed in
+    greyscale - which colour alone does not.
+
+    The hatch is drawn at the surface's own observed range rather than 0-1. In a
+    corridor where every cell scores between 0.62 and 0.79, stretching the ramp
+    over the full theoretical scale would render a uniform sheet and say nothing.
+    The Model & Provenance screen states the observed range beside the legend so
+    nobody reads the contrast as wider than it is.
+    """
+    from astra.domain.model_config import MODEL_CONFIG
+
+    values = np.asarray(confidence, dtype="float64")
+    finite = values[np.isfinite(values)]
+    rows, cols = values.shape
+    image = np.zeros((rows, cols, 4), dtype="uint8")
+    if finite.size == 0:
+        return image
+
+    low, high = float(finite.min()), float(finite.max())
+    span = max(high - low, 1e-6)
+    # 0 where confidence is highest observed, 1 where it is lowest observed.
+    doubt = np.clip((high - np.nan_to_num(values, nan=high)) / span, 0.0, 1.0)
+
+    row_index, col_index = np.indices((rows, cols))
+    # Two hatch pitches: the coarse one appears as soon as confidence dips, the
+    # fine one only on the least-supported ground, so the pattern reads as a
+    # gradient rather than as a single on/off texture.
+    coarse = ((row_index + col_index) % 10) == 0
+    fine = ((row_index - col_index) % 10) == 0
+    hatch = (coarse & (doubt > 0.25)) | (fine & (doubt > 0.6))
+
+    band_low = MODEL_CONFIG.confidence.band_medium_min.value
+    below_band = np.isfinite(values) & (values < band_low)
+
+    alpha = np.zeros((rows, cols), dtype="float64")
+    alpha[hatch] = 110.0 + 90.0 * doubt[hatch]
+    # Ground below the published Medium band is hatched everywhere, not only on
+    # the stripes: "we have almost nothing here" is a different statement from
+    # "we are less sure here".
+    alpha[below_band] = np.maximum(alpha[below_band], 70.0)
+
+    image[..., 0] = 226
+    image[..., 1] = 232
+    image[..., 2] = 240
+    image[..., 3] = np.clip(alpha, 0, 255).astype("uint8")
+    image[~np.isfinite(values)] = 0
+    return image
+
+
 def main() -> int:
     settings = get_settings()
     derived = settings.derived_dir
@@ -130,6 +185,25 @@ def main() -> int:
     )
 
     from PIL import Image
+
+    confidence_overlay = Image.fromarray(_confidence_veil(result.confidence), mode="RGBA")
+    confidence_path = derived / "confidence.png"
+    confidence_overlay.save(confidence_path, format="PNG", optimize=True)
+    outputs["confidence_overlay"] = {
+        "file": "confidence.png",
+        "dtype": "uint8 RGBA",
+        "stored_scale": 1.0,
+        "unit": "image",
+        "bytes": confidence_path.stat().st_size,
+        "min": float(np.nanmin(result.confidence)),
+        "max": float(np.nanmax(result.confidence)),
+        "mean": float(np.nanmean(result.confidence)),
+        "note": (
+            "evidence confidence rendered as a diagonal hatch whose density rises as "
+            "confidence falls; drawn over the hazard surface rather than blended into "
+            "it, because confidence is never multiplied into the score"
+        ),
+    }
 
     overlay = Image.fromarray(_colourise(result.composite), mode="RGBA")
     overlay_path = derived / "hazard_composite.png"

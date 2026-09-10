@@ -1084,3 +1084,57 @@ def test_simulated_scenarios_are_stored_but_the_store_is_bounded(
     assert len(simulated) <= SIMULATED_HISTORY
     listed = client.get("/scenarios").json()["scenarios"]
     assert listed[0]["id"] == "baseline", "the baseline is never evicted or reordered"
+
+
+# ---------------------------------------------------------------------------
+# Section 7 - the validation artifact
+# ---------------------------------------------------------------------------
+
+
+def test_validation_serves_the_backtest_artifact(client: TestClient) -> None:
+    payload = client.get("/validation").json()
+    assert payload["backtest"]["headline"]
+    assert payload["sensitivity"]["headline"]
+    assert payload["confidence"]["bands"]
+    assert payload["decision_authority"]
+    assert payload["generated_at"]
+
+
+def test_validation_says_whether_it_matches_the_running_configuration(
+    client: TestClient,
+) -> None:
+    """A stale figure presented as current is worse than no figure at all."""
+    payload = client.get("/validation").json()
+    config = client.get("/model/config").json()
+    assert payload["current_model_config_version"] == config["config"]["version"]
+    assert payload["stale"] == (
+        payload["model_config_version"] != payload["current_model_config_version"]
+        or payload["engine_version"] != payload["current_engine_version"]
+    )
+    assert payload["staleness_note"]
+
+
+def test_the_leaky_backtest_variant_is_labelled_as_such(client: TestClient) -> None:
+    variants = {v["id"]: v for v in client.get("/validation").json()["backtest"]["variants"]}
+    assert variants["as_deployed"]["independent"] is False
+    assert variants["spatial_cv"]["independent"] is True
+    assert variants["as_deployed"]["auc"] > variants["spatial_cv"]["auc"]
+
+
+def test_every_habitation_carries_a_rank_stability_verdict(
+    client: TestClient,
+) -> None:
+    stability = client.get("/validation").json()["sensitivity"]["habitations"]
+    ranked = client.get("/priority/habitations").json()["habitations"]
+    assert {entry["habitation_id"] for entry in stability} == {
+        row["habitation_id"] for row in ranked
+    }
+    for entry in stability:
+        assert entry["best_rank"] <= entry["worst_rank"]
+        assert entry["note"]
+
+
+def test_the_confidence_overlay_is_served(client: TestClient) -> None:
+    response = client.get("/risk/overlay/confidence.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"

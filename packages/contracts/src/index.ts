@@ -58,6 +58,12 @@ export type EventType = Schemas["EventType"];
 export type RunStage = Schemas["RunStage"];
 export type RunStageStatus = Schemas["RunStageStatus"];
 export type RunStatus = Schemas["RunStatus"];
+export type ValidationResponse = Schemas["ValidationResponse"];
+export type BacktestResponse = Schemas["BacktestResponse"];
+export type BacktestVariantResponse = Schemas["BacktestVariantResponse"];
+export type SensitivityResponse = Schemas["SensitivityResponse"];
+export type HabitationStabilityResponse = Schemas["HabitationStabilityResponse"];
+export type ConfidenceSurfaceResponse = Schemas["ConfidenceSurfaceResponse"];
 
 export type AstraModelConfig = Schemas["AstraModelConfig"];
 export type Constant = Schemas["Constant"];

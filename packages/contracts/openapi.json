@@ -1453,6 +1453,148 @@
         "title": "BBox",
         "type": "object"
       },
+      "BacktestResponse": {
+        "properties": {
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "exclusion_radius_m": {
+            "title": "Exclusion Radius M",
+            "type": "number"
+          },
+          "folds": {
+            "title": "Folds",
+            "type": "integer"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "incidents_in_study_area": {
+            "title": "Incidents In Study Area",
+            "type": "integer"
+          },
+          "incidents_total": {
+            "title": "Incidents Total",
+            "type": "integer"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "per_hazard": {
+            "items": {
+              "$ref": "#/components/schemas/HazardAucResponse"
+            },
+            "title": "Per Hazard",
+            "type": "array"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/BacktestVariantResponse"
+            },
+            "title": "Variants",
+            "type": "array"
+          }
+        },
+        "required": [
+          "variants",
+          "per_hazard",
+          "headline",
+          "limitation",
+          "incidents_in_study_area",
+          "incidents_total",
+          "exclusion_radius_m",
+          "folds",
+          "seed",
+          "elapsed_ms"
+        ],
+        "title": "BacktestResponse",
+        "type": "object"
+      },
+      "BacktestVariantResponse": {
+        "description": "One way of scoring the hazard model against the recorded inventory.",
+        "properties": {
+          "area_under_success_curve": {
+            "title": "Area Under Success Curve",
+            "type": "number"
+          },
+          "auc": {
+            "title": "Auc",
+            "type": "number"
+          },
+          "auc_ci_high": {
+            "title": "Auc Ci High",
+            "type": "number"
+          },
+          "auc_ci_low": {
+            "title": "Auc Ci Low",
+            "type": "number"
+          },
+          "background": {
+            "title": "Background",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "independent": {
+            "description": "False when the points being predicted also fed the model. Such a figure reads high and is reported for comparison, never as evidence.",
+            "title": "Independent",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "positives": {
+            "title": "Positives",
+            "type": "integer"
+          },
+          "success_curve": {
+            "items": {
+              "$ref": "#/components/schemas/SuccessRatePointResponse"
+            },
+            "title": "Success Curve",
+            "type": "array"
+          },
+          "top_10pct_capture": {
+            "title": "Top 10Pct Capture",
+            "type": "number"
+          },
+          "top_20pct_capture": {
+            "title": "Top 20Pct Capture",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "independent",
+          "auc",
+          "auc_ci_low",
+          "auc_ci_high",
+          "positives",
+          "background",
+          "success_curve",
+          "area_under_success_curve",
+          "top_10pct_capture",
+          "top_20pct_capture",
+          "note"
+        ],
+        "title": "BacktestVariantResponse",
+        "type": "object"
+      },
       "CandidateSite": {
         "description": "A candidate relocation site.\n\nSite records in the demonstration scenario are synthetic and fictional.\nASTRA does not verify land ownership, tenure or encumbrance.",
         "properties": {
@@ -1967,6 +2109,44 @@
         "title": "ConfidenceBand",
         "type": "string"
       },
+      "ConfidenceBandResponse": {
+        "properties": {
+          "area_km2": {
+            "title": "Area Km2",
+            "type": "number"
+          },
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "cells": {
+            "title": "Cells",
+            "type": "integer"
+          },
+          "habitations": {
+            "title": "Habitations",
+            "type": "integer"
+          },
+          "share": {
+            "title": "Share",
+            "type": "number"
+          },
+          "zones": {
+            "title": "Zones",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "band",
+          "cells",
+          "area_km2",
+          "share",
+          "zones",
+          "habitations"
+        ],
+        "title": "ConfidenceBandResponse",
+        "type": "object"
+      },
       "ConfidenceConfig": {
         "description": "Confidence is computed separately and never multiplied into priority.",
         "properties": {
@@ -2075,6 +2255,60 @@
           "band"
         ],
         "title": "ConfidenceReport",
+        "type": "object"
+      },
+      "ConfidenceSurfaceResponse": {
+        "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/ConfidenceBandResponse"
+            },
+            "title": "Bands",
+            "type": "array"
+          },
+          "low_confidence_habitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Low Confidence Habitations",
+            "type": "array"
+          },
+          "maximum": {
+            "title": "Maximum",
+            "type": "number"
+          },
+          "mean": {
+            "title": "Mean",
+            "type": "number"
+          },
+          "median": {
+            "title": "Median",
+            "type": "number"
+          },
+          "minimum": {
+            "title": "Minimum",
+            "type": "number"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "p10": {
+            "title": "P10",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mean",
+          "median",
+          "p10",
+          "minimum",
+          "maximum",
+          "bands",
+          "low_confidence_habitations",
+          "note"
+        ],
+        "title": "ConfidenceSurfaceResponse",
         "type": "object"
       },
       "Constant": {
@@ -3866,6 +4100,75 @@
         "title": "HabitationPriorityRow",
         "type": "object"
       },
+      "HabitationStabilityResponse": {
+        "description": "How far one habitation's rank moves when the weights are perturbed.",
+        "properties": {
+          "baseline_priority": {
+            "title": "Baseline Priority",
+            "type": "number"
+          },
+          "baseline_rank": {
+            "title": "Baseline Rank",
+            "type": "integer"
+          },
+          "best_rank": {
+            "title": "Best Rank",
+            "type": "integer"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "median_rank": {
+            "title": "Median Rank",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "priority_p05": {
+            "title": "Priority P05",
+            "type": "number"
+          },
+          "priority_p95": {
+            "title": "Priority P95",
+            "type": "number"
+          },
+          "rank_spread": {
+            "title": "Rank Spread",
+            "type": "integer"
+          },
+          "stable": {
+            "title": "Stable",
+            "type": "boolean"
+          },
+          "worst_rank": {
+            "title": "Worst Rank",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "name",
+          "baseline_rank",
+          "baseline_priority",
+          "median_rank",
+          "best_rank",
+          "worst_rank",
+          "rank_spread",
+          "priority_p05",
+          "priority_p95",
+          "stable",
+          "note"
+        ],
+        "title": "HabitationStabilityResponse",
+        "type": "object"
+      },
       "HabitationsResponse": {
         "description": "The habitation layer, with the totals a planner reads first.",
         "properties": {
@@ -3897,6 +4200,29 @@
           "disclaimer"
         ],
         "title": "HabitationsResponse",
+        "type": "object"
+      },
+      "HazardAucResponse": {
+        "properties": {
+          "auc": {
+            "title": "Auc",
+            "type": "number"
+          },
+          "hazard": {
+            "title": "Hazard",
+            "type": "string"
+          },
+          "positives": {
+            "title": "Positives",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hazard",
+          "auc",
+          "positives"
+        ],
+        "title": "HazardAucResponse",
         "type": "object"
       },
       "HazardConfig": {
@@ -7675,6 +8001,95 @@
         "title": "SegmentLegResponse",
         "type": "object"
       },
+      "SensitivityResponse": {
+        "properties": {
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "habitations": {
+            "items": {
+              "$ref": "#/components/schemas/HabitationStabilityResponse"
+            },
+            "title": "Habitations",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "perturbation": {
+            "title": "Perturbation",
+            "type": "number"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "spearman_mean": {
+            "title": "Spearman Mean",
+            "type": "number"
+          },
+          "spearman_median": {
+            "title": "Spearman Median",
+            "type": "number"
+          },
+          "spearman_min": {
+            "title": "Spearman Min",
+            "type": "number"
+          },
+          "spearman_p05": {
+            "title": "Spearman P05",
+            "type": "number"
+          },
+          "top_k": {
+            "title": "Top K",
+            "type": "integer"
+          },
+          "top_k_baseline": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top K Baseline",
+            "type": "array"
+          },
+          "top_k_unchanged_share": {
+            "title": "Top K Unchanged Share",
+            "type": "number"
+          },
+          "weights_perturbed": {
+            "title": "Weights Perturbed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "perturbation",
+          "top_k",
+          "spearman_mean",
+          "spearman_median",
+          "spearman_p05",
+          "spearman_min",
+          "top_k_unchanged_share",
+          "top_k_baseline",
+          "habitations",
+          "weights_perturbed",
+          "headline",
+          "method",
+          "seed",
+          "elapsed_ms"
+        ],
+        "title": "SensitivityResponse",
+        "type": "object"
+      },
       "ServiceCapacity": {
         "description": "Capacity of a site as limited by one service.",
         "properties": {
@@ -8491,6 +8906,24 @@
         "title": "StudyAreaDataResponse",
         "type": "object"
       },
+      "SuccessRatePointResponse": {
+        "properties": {
+          "area_share": {
+            "title": "Area Share",
+            "type": "number"
+          },
+          "incident_share": {
+            "title": "Incident Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "area_share",
+          "incident_share"
+        ],
+        "title": "SuccessRatePointResponse",
+        "type": "object"
+      },
       "SuitabilityGate": {
         "description": "Hard binary gates a candidate site must pass (\u00a75.4 step 1).\n\nA gate failure is reported as a named gate, never folded into a low score.",
         "enum": [
@@ -8748,6 +9181,80 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValidationResponse": {
+        "description": "Everything section 7 asks for, as the last back-test run produced it.",
+        "properties": {
+          "backtest": {
+            "$ref": "#/components/schemas/BacktestResponse"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ConfidenceSurfaceResponse"
+          },
+          "current_engine_version": {
+            "title": "Current Engine Version",
+            "type": "string"
+          },
+          "current_model_config_version": {
+            "title": "Current Model Config Version",
+            "type": "string"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "sensitivity": {
+            "$ref": "#/components/schemas/SensitivityResponse"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "staleness_note": {
+            "title": "Staleness Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "model_config_version",
+          "engine_version",
+          "backtest",
+          "sensitivity",
+          "confidence",
+          "elapsed_ms",
+          "notes",
+          "current_model_config_version",
+          "current_engine_version",
+          "stale",
+          "staleness_note",
+          "decision_authority"
+        ],
+        "title": "ValidationResponse",
         "type": "object"
       },
       "ValueExplanation": {
@@ -9790,6 +10297,21 @@
         ]
       }
     },
+    "/risk/overlay/confidence.png": {
+      "get": {
+        "description": "The evidence-confidence surface as a hatch, drawn over the hazard layer.",
+        "operationId": "confidence_overlay_risk_overlay_confidence_png_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Confidence Overlay",
+        "tags": [
+          "validation"
+        ]
+      }
+    },
     "/risk/summary": {
       "get": {
         "description": "What Engine 1 computed for the baseline scenario, and over what inputs.",
@@ -10315,6 +10837,28 @@
         "summary": "Terrain Preview",
         "tags": [
           "transparency"
+        ]
+      }
+    },
+    "/validation": {
+      "get": {
+        "description": "Back-test, sensitivity and confidence, as the last run produced them.",
+        "operationId": "validation_validation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Validation",
+        "tags": [
+          "validation"
         ]
       }
     },

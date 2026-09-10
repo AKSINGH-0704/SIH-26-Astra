@@ -29,6 +29,13 @@ export type LayerToggles = {
   roads: boolean;
   /** The routed graph, coloured by each segment's computed failure probability. */
   network?: boolean;
+  /**
+   * The evidence-confidence surface, hatched. Drawn *over* the hazard layer
+   * rather than blended into it: confidence is never multiplied into
+   * susceptibility, and a layer that faded the hazard where evidence is thin
+   * would read as "less dangerous here" when it means "less certain here".
+   */
+  confidence?: boolean;
 };
 
 /**
@@ -128,6 +135,7 @@ export function RiskMap({
   studyArea,
   terrainUrl,
   overlayUrl,
+  confidenceUrl,
   roadsUrl,
   networkUrl,
   drawnRoutes,
@@ -149,6 +157,8 @@ export function RiskMap({
   studyArea: StudyArea;
   terrainUrl: string;
   overlayUrl: string;
+  /** The hatched confidence surface, aligned to the same bounding box. */
+  confidenceUrl?: string;
   roadsUrl: string;
   /** The routed graph as GeoJSON. Omitted on screens that do not route. */
   networkUrl?: string;
@@ -463,6 +473,14 @@ export function RiskMap({
           lineWidthUnits: "pixels",
           pickable: false,
         }),
+      Boolean(toggles.confidence && confidenceUrl) &&
+        new BitmapLayer({
+          id: "confidence-hatch",
+          image: confidenceUrl as string,
+          bounds: [min_lon, min_lat, max_lon, max_lat],
+          opacity: 1,
+          pickable: false,
+        }),
       selected &&
         new ScatterplotLayer({
           id: "selection",
@@ -490,6 +508,7 @@ export function RiskMap({
     onSelectSegment,
     toggles,
     hazardOpacity,
+    confidenceUrl,
     zones,
     habitations,
     sites,
