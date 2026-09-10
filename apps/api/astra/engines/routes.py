@@ -22,13 +22,21 @@ Two profiles are returned whenever they differ:
   asserting one route is better.
 
 That objective is a property of the whole route, not a sum over its edges, so no
-single shortest-path search optimises it. Rather than pretend otherwise, three
-candidate paths are generated - the quickest, the most reliable, and one under an
-edge-level risk-weighted cost - and each is scored against the stated objective.
-The best wins. Three Dijkstra runs buy a guarantee worth having: **the safest
-route is never less reliable than the fastest one.** An edge-weighted search
-alone does not give that, and a "safest" route that is more dangerous than the
-quick one is not a defensible thing to put in front of an official.
+single shortest-path search optimises it. Three candidate paths are generated -
+the quickest, the most reliable, and one under an edge-level risk-weighted cost -
+and SAFEST is chosen from them by **reliability first**, with the stated
+time-and-risk objective breaking ties between candidates that are equally
+survivable.
+
+Reliability first, rather than the objective alone, and the reason is not
+aesthetic. Feasibility hangs on the safest route: a site is reachable if a route
+to it clears the threshold. Letting the objective prefer a quicker, less reliable
+candidate meant ASTRA computed a usable road, discarded it, and then declared the
+site unreachable - and, worse, *closing* a road could then raise a pair above the
+threshold by removing the quick option that was hiding the safe one. A what-if
+in which shutting a bridge improves access is not a model anyone should trust.
+Reliability-first restores the property that closing a road can never make a
+journey more survivable, and a test asserts exactly that.
 
 A route below the configured reliability threshold does not get a penalty. It
 makes the destination **infeasible** for that origin, and the optimiser in the
@@ -145,8 +153,13 @@ class RoutePair:
 
     @property
     def feasible(self) -> bool:
-        """A pair is usable if the best route ASTRA can find clears the threshold."""
-        return self.fastest.feasible or self.safest.feasible
+        """A pair is usable if the most survivable route ASTRA found clears the bar.
+
+        Judged on SAFEST, which is by construction the most reliable route the
+        search found. Judging it on anything less would mean declaring a site
+        unreachable while holding a road that reaches it.
+        """
+        return self.best.feasible
 
     @property
     def best(self) -> Route:
@@ -386,12 +399,18 @@ class RouteEngine:
         alpha = self.config.route.safest_risk_alpha.value
 
         def objective(route: Route) -> tuple[float, float, float]:
-            """time x (1 + alpha x risk), then reliability, then time as tie-breaks."""
+            """Reliability first; the stated time-and-risk objective breaks ties.
+
+            Reliability is bucketed to nine decimals so two paths that are the
+            same road within floating-point noise are treated as tied and the
+            quicker one wins, rather than one of them being chosen on a rounding
+            difference.
+            """
             if not route.legs:
                 return (math.inf, math.inf, math.inf)
             return (
+                -round(route.reliability, 9),
                 route.travel_time_min * (1.0 + alpha * route.risk),
-                -route.reliability,
                 route.travel_time_min,
             )
 
@@ -405,11 +424,6 @@ class RouteEngine:
             ),
         ]
         safest = min(candidates, key=objective)
-        if safest.reliability < fastest.reliability:
-            # The most-reliable path is always among the candidates, so this
-            # cannot fire. The guarantee is the whole point of searching a
-            # candidate set, so it is enforced rather than assumed.
-            safest = max(candidates, key=lambda route: route.reliability)
         return RoutePair(
             origin_id=origin_id,
             destination_id=destination_id,

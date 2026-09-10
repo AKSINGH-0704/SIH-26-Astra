@@ -475,8 +475,12 @@ the kind of choice the Slice 10 sensitivity analysis has to test rather than
 accept.
 
 **A finding worth stating plainly:** the fastest and safest routes are the same
-road for every pair in this corridor, and that is not a shortcoming of the
-router. The valley network has 15 independent loops across 529 segments, and 76%
+road for almost every pair in this corridor, and that is not a shortcoming of the
+router. *(Corrected in Slice 8: at the time of writing this was true for every
+pair, because the safest route was chosen on the time-and-risk objective and that
+objective preferred speed. With SAFEST now chosen reliability-first, twelve of
+the seventy-two pairs show a real trade. The redundancy finding below is
+unchanged and is still the reason the number is twelve rather than seventy-two.)* The valley network has 15 independent loops across 529 segments, and 76%
 of segments have no alternative at all - removing one disconnects the network.
 There is rarely a second road to choose. The screen says this in its own computed
 numbers rather than leaving a feature looking broken, and a test asserts the
@@ -622,3 +626,147 @@ thing, but it is a proxy, and the constant says so.
   regenerated, `tsc --noEmit` clean, ESLint clean, `next build` succeeds, and the
   Plan screen was driven in a real browser - selecting a movement, watching the
   camera hold, and running a counterfactual re-solve - with zero console errors.
+
+---
+
+## Slice 8 - what-if recalculation engine with structured impact diff
+
+**Date:** 2026-09-10
+**Commit:** `feat(scenarios): what-if recalculation engine with structured impact diff`
+
+### What actually works end to end
+
+A scenario is a first-class, versioned, stored object carrying a list of typed
+perturbations, not a state the interface happens to be in. `POST /simulate`
+applies those perturbations to a **copy** of the engine context and then runs the
+entire chain a second time - hazard surface, red-zone polygonisation, exposure
+and vulnerability, phase tiering, road network, route reliability, site capacity,
+CP-SAT optimisation - and returns a structured diff against the baseline the rest
+of the product is already showing. The baseline is read from the warmed caches
+and is never recomputed and never replaced, so before and after are two complete
+assessments of the same corridor rather than one assessment rendered twice.
+
+Each perturbation enters the chain at exactly one stage, and the stage decides how
+far it propagates:
+
+| Perturbation | Enters at | Cascades to |
+|---|---|---|
+| `RAINFALL_MULTIPLIER`, `LANDSLIDE_SHIFT` | Engine 1, the factor surfaces | zones, priority, phases, the road graph's own hazard exposure, suitability gates, the plan |
+| `POPULATION_MULTIPLIER` | Engine 2, the habitation records | exposure, vulnerability counts, priority, demand, the plan |
+| `SITE_CAPACITY_LOSS`, `SERVICE_UPGRADE`, `SITE_DISABLED` | Engine 4, the candidate set and its supplies | effective capacity, the binding bottleneck, the plan |
+| `ROAD_CLOSURE` | Engine 5, the routed graph | route reliability and travel time, feasible pairs, access capacity, the plan |
+
+Rainfall scales both the intensity surface and the count of extreme-rain days,
+because a wetter monsoon is not only heavier on its worst day - it has more of
+them. The landslide shift moves the *terrain instability inputs*, never the
+finished score, so the factor decomposition on the risk drawer stays an honest
+account of how the number was produced. A hazard scenario rebuilds the road graph
+rather than reusing the baseline one, because segment failure probability is
+sampled from the composite surface: reusing it would leave every road as
+survivable as it was before the storm, which is exactly the assumption a what-if
+exists to test. A withdrawn site is removed from the candidate set rather than
+zeroed, because a site with zero capacity would still appear on the capacity
+screen with a bottleneck and an intervention that would "unlock" it.
+
+The diff is field by field and nothing in it is recomputed: zone area and
+population by class, per-habitation priority, rank, phase and hazard, per-site
+suitability, effective capacity, binding bottleneck and the hard gates each side
+fails, per-pair route reliability and travel time, per-movement people before and
+after, newly-immediate population, and totals for placed, unmet, capacity and
+feasible routes. The headline sentence is assembled from those computed deltas.
+
+The What-If screen puts the controls on the left, the map in the centre with an
+explicit **Baseline / Scenario** toggle, and the diff on the right. Every control
+maps to exactly one typed perturbation and says which engine it enters at. The
+map redraws on the scenario's own zone geometry and the scenario plan's own route
+geometry, and can be flipped back to the baseline's. Three presets fill the
+controls and simulate nothing until the scenario is run.
+
+`GET /routes/critical-segments` is new and makes the closure control honest: it
+ranks the corridor by the residents of the *solved plan* whose assigned journey
+crosses each segment, so the road a user closes is the one that tests the plan
+rather than an arbitrary edge of the network.
+
+### Gate answers
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Is any part of this an LLM guessing, dressed as a computed score? | No. The whole chain re-runs. The headline sentence is assembled from the computed deltas by a function with no model in it. |
+| 2 | Can every number on screen be traced in one hop? | Yes. Each row of the diff carries both sides, and both sides are values the engines returned. The per-stage millisecond breakdown says where the time went. |
+| 3 | Is anything displayed that is not backed by a real value? | No. The map's scenario view is `zones_after` and `plan_after` from the response. There is no scenario animation and no synthetic delta anywhere in the component. |
+| 4 | Is any DEMO_CONFIG constant presented as a government rule? | No. The sliders are scenario inputs, not model constants; the model constants they feed are unchanged and still served on `/model/config`. The response carries the engine and model-config versions. |
+| 5 | Does the provenance panel distinguish real / derived / synthetic? | Yes, unchanged. A scenario perturbs inputs; it does not reclassify them. |
+| 6 | Are the same figures identical across screens? | Yes. `plan_after` and `zones_after` come back through the *same* serialisers the Plan and Risk screens use, so a simulated plan cannot drift into a parallel shape. The baseline half of every comparison is read from the same caches those screens read. |
+| 7 | Does the opening avoid looking like a generic dashboard? | The What-If screen is map-dominant with a comparison toggle. The cold open is Slice 12. |
+| 8 | Is it unambiguous that the SDMA decides? | Yes; the scenario disclaimer and the decision-authority line close the diff panel. |
+| 9 | Does it run with the network off? | Yes. Every input is vendored and the whole chain is local. |
+| 10 | Can the optimiser breach capacity under a scenario? | No. Post-solve validation runs on the scenario solve too, and a test re-checks a scenario plan against the scenario's own capacity and route engines. |
+| 11 | Any feature that looks impressive but changes no decision? | The presets were the risk. They are labelled as filling the controls and nothing else, and the "Monsoon escalation" preset was retuned (see below). |
+| 12 | Would this survive "walk me through exactly how you got this number"? | Yes. Rainfall x1.5: critical zone 109.6 -> 328.8 km2, three habitations move to Immediate, 561 residents newly requiring immediate action, and the plan places 561 instead of 1,144 - because S-02 and S-06 keep every unit of their service capacity but stop clearing the `OUTSIDE_HAZARD_ZONES` gate, which the site panel says in those words. |
+
+### Red-team findings
+
+**1. A site could lose its gates and the diff would read as calm.** Suitability
+is a hard yes-or-no, so when the expanded red zones swallowed S-02 and S-06 their
+*effective capacity numbers did not move at all* - the sites simply stopped being
+candidates. The first version of the site table showed "455 -> 455 (+0)" beside a
+plan that had just lost half its destinations, which is the most misleading thing
+on the screen precisely because every number in it was true. `SiteDelta` now
+carries the failed gates on each side, and the panel says: *still has capacity,
+but no longer a candidate: now fails OUTSIDE_HAZARD_ZONES. A gate is a yes or no,
+so the capacity figure beside it does not fall.*
+
+**2. The monsoon preset produced a degenerate comparison.** At rainfall x1.8 with
+a +0.10 landslide shift, every candidate site fails a gate, total effective
+capacity goes to zero and the plan places nobody. That is a real model output and
+an interesting finding, but as the headline preset it produces a "before and
+after" whose after is empty. The preset is now rainfall x1.5 - three suitable
+sites down to one, 1,144 residents placed down to 561, three phase changes - and
+the extreme case remains reachable by dragging the slider. The comment in the code
+says exactly why.
+
+**3. The scenario store was unbounded.** Every run wrote a scenario into a module
+dict that `GET /scenarios` lists. A user dragging a slider for a minute would have
+turned the scenario list into a junk drawer and the process into a slow leak.
+Scenarios are still stored - that is what lets a result be traced back to the
+changes that produced it - but through `remember_scenario`, which keeps the last
+50 and never evicts the baseline. Scenario ids also carry a random suffix now:
+two simulations can land in the same millisecond, and a colliding id would have
+silently overwritten the scenario an earlier result was traced to.
+
+**4. Perturbations outside the range they mean anything in were accepted.** A
+capacity loss of 5.0 clamped to "everything", and a landslide shift of 4 was
+applied to surfaces that only understand -1..1. Both are now refused with a reason
+that names the quantity, and the interface shows the engine's own words rather
+than a friendlier sentence nothing checked. Land and access upgrades are refused
+too: land capacity is measured off the buildable ground and access capacity off
+the road network, and neither is a supply anyone can deliver to a site.
+
+**5. `127.0.0.1` was not an allowed CORS origin.** The same machine, a different
+origin to a browser - so a developer or a deployment reaching the frontend on the
+loopback address got a page whose every API call failed silently and a blank map.
+Found by the browser test, fixed in the default origin list rather than in the
+test.
+
+### Verification
+
+- **367 backend tests pass, 43 of them new.** Beyond the scenario engine's own
+  unit tests, the causality of each perturbation is asserted at its boundary: a
+  service upgrade moves one site's capacity and leaves the zone areas, the route
+  set and every priority score untouched; a road closure moves routes and leaves
+  every habitation's hazard score untouched; a population change moves exposure
+  and the plan and leaves the hazard surface untouched. Plus: the baseline plan is
+  identical after a simulation; deltas reconcile with the before-and-after totals;
+  a null scenario produces an empty diff; the same scenario run twice gives the
+  same answer; a scenario that withdraws every site is refused; every resident is
+  still accounted for under a scenario and the scenario plan respects every hard
+  constraint.
+- **Six Playwright tests drive the real screen in a real browser against the real
+  API.** They assert on *change*, not presence - each reads a metric before and
+  after and requires it to move in the direction the perturbed engine says it
+  should - and they assert zero console errors and no horizontal overflow at
+  tablet width. A screen that rendered a baseline twice would pass a smoke test
+  and fails these.
+- `ruff` clean, fixture gate PASS (6 checks, 18 records, 0 errors), OpenAPI
+  exported and TypeScript contracts regenerated, `tsc --noEmit` clean, ESLint
+  clean, `next build` succeeds.

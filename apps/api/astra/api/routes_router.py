@@ -14,6 +14,8 @@ from astra.api.schemas import (
     ClosureImpactResponse,
     ClosureRequest,
     NetworkSummaryResponse,
+    PlanDependencyListResponse,
+    PlanDependencyResponse,
     PointOfFailureResponse,
     RouteAssessmentResponse,
     RouteDeltaRow,
@@ -208,6 +210,87 @@ def _assessment(corridor: CorridorRoutes) -> RouteAssessmentResponse:
 def routes() -> RouteAssessmentResponse:
     """Every habitation-to-site pair on the open network."""
     return _assessment(baseline_routes())
+
+
+@router.get("/critical-segments", response_model=PlanDependencyListResponse)
+def critical_segments() -> PlanDependencyListResponse:
+    """The roads the baseline plan is standing on, ranked by residents carried.
+
+    A what-if that closes a road at random mostly proves nothing. This ranks the
+    corridor by how much of the *solved plan* actually crosses each segment, so
+    the closure a user picks is the one that tests the plan rather than the
+    network. Every figure here is read off the baseline plan and the baseline
+    routes; nothing is re-solved.
+    """
+    from astra.engines.optimizer_service import baseline_plan
+
+    corridor = baseline_routes()
+    network = corridor.network
+    no_alternative = network.critical_segments
+    plan, _ = baseline_plan()
+
+    people: dict[str, int] = {}
+    movements: dict[str, int] = {}
+    for assignment in plan.assignments:
+        pair = corridor.pair(assignment.habitation_id, assignment.site_id)
+        if pair is None:
+            continue
+        for leg in pair.best.legs:
+            people[leg.segment_id] = people.get(leg.segment_id, 0) + assignment.people
+            movements[leg.segment_id] = movements.get(leg.segment_id, 0) + 1
+
+    rows: list[PlanDependencyResponse] = []
+    for segment_id, carried in people.items():
+        segment = network.by_id[segment_id]
+        alone = segment_id in no_alternative
+        rows.append(
+            PlanDependencyResponse(
+                segment_id=segment_id,
+                name=segment.name,
+                road_class=segment.road_class,
+                length_m=round(segment.length_m, 1),
+                is_bridge=segment.is_bridge,
+                p_fail=round(segment.p_fail(), 5),
+                no_alternative=alone,
+                people_dependent=carried,
+                movements=movements[segment_id],
+                consequence=(
+                    f"{carried:,} of the {plan.totals.population_assigned:,} residents "
+                    f"the plan moves cross this "
+                    + ("bridge" if segment.is_bridge else "stretch of road")
+                    + (
+                        "; the network offers no alternative around it."
+                        if alone
+                        else "; an alternative exists, so closing it re-routes rather "
+                        "than disconnects."
+                    )
+                ),
+            )
+        )
+    # Ties on residents carried are common - a corridor with one road through it
+    # puts the same people on every segment of it. Break the tie towards the
+    # segments whose loss is hardest to work around, so the top of the list is
+    # the set of closures actually worth simulating.
+    rows.sort(
+        key=lambda row: (
+            -row.people_dependent,
+            0 if row.is_bridge else 1,
+            0 if row.no_alternative else 1,
+            -row.p_fail,
+            row.segment_id,
+        )
+    )
+
+    return PlanDependencyListResponse(
+        segments=rows[:20],
+        plan_people=plan.totals.population_assigned,
+        segments_carrying_the_plan=len(rows),
+        note=(
+            f"{len(rows)} of {len(network.segments)} mapped segments carry at least "
+            "one planned movement. Ranked by residents whose assigned journey crosses "
+            "them, read off the baseline plan."
+        ),
+    )
 
 
 @router.get("/network.geojson")

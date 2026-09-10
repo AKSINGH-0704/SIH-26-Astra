@@ -120,14 +120,26 @@ def _market_access_minutes() -> dict[str, float]:
     return minutes
 
 
-def build_inputs(corridor: CorridorRoutes | None = None) -> PlanInputs:
-    """Assemble the solver's inputs from the five engines that precede it."""
+def build_inputs(
+    corridor: CorridorRoutes | None = None,
+    *,
+    priority=None,
+    capacity=None,
+) -> PlanInputs:
+    """Assemble the solver's inputs from the five engines that precede it.
+
+    ``priority`` and ``capacity`` are supplied by a scenario run, which computes
+    its own. Omitting them uses the cached baseline, which is what the ordinary
+    plan endpoint wants.
+    """
     from astra.api.priority_router import baseline_priority
 
     corridor = corridor or baseline_routes()
-    priority = baseline_priority()
-    capacity = {entry.site.id: entry for entry in baseline_capacity()}
+    priority = priority if priority is not None else baseline_priority()
+    entries = capacity if capacity is not None else baseline_capacity()
+    capacity = {entry.site.id: entry for entry in entries}
     market_access = _market_access_minutes()
+    scenario_sites = {entry.site.id: entry.site for entry in entries}
     settings = MODEL_CONFIG.optimiser
     soft_share = settings.site_soft_capacity_share.value
 
@@ -262,6 +274,7 @@ def build_inputs(corridor: CorridorRoutes | None = None) -> PlanInputs:
                 market_access_min=market_access.get(site_id, 0.0),
                 corridor=corridor,
                 habitation=habitation,
+                sites_by_id=scenario_sites,
             )
             livelihood[(habitation.id, site_id)] = disruption
             for phase in phases:
@@ -320,10 +333,11 @@ def _disruption_for(
     market_access_min: float,
     corridor: CorridorRoutes,
     habitation,
+    sites_by_id: dict,
 ) -> LivelihoodDisruption:
     """Route the site back to where these residents work, then score it."""
     centre = habitation.livelihood_centre or habitation.centroid
-    site = _sites_by_id().get(site_id)
+    site = sites_by_id.get(site_id) or _sites_by_id().get(site_id)
     if site is None:
         return livelihood_disruption(
             habitation_id=habitation_id,

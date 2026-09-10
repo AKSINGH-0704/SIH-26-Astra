@@ -90,7 +90,7 @@ def _headline(plan: Plan, inputs: PlanInputs, stranded) -> str:
     return lead + tail
 
 
-def _serialise(plan: Plan, inputs: PlanInputs, corridor) -> PlanResponse:
+def serialise_plan(plan: Plan, inputs: PlanInputs, corridor) -> PlanResponse:
     run = baseline_risk()
     habitations = {h.id: h for h in run.context.habitations}
     sites = {s.id: s for s in run.context.sites}
@@ -271,7 +271,7 @@ def _serialise(plan: Plan, inputs: PlanInputs, corridor) -> PlanResponse:
 def plan() -> PlanResponse:
     """The baseline optimised relocation plan."""
     solved, inputs = baseline_plan()
-    return _serialise(solved, inputs, baseline_routes())
+    return serialise_plan(solved, inputs, baseline_routes())
 
 
 @router.post("/optimize", response_model=PlanResponse)
@@ -295,7 +295,7 @@ def optimize(request: OptimiseRequest) -> PlanResponse:
 
     if not request.closed_segments and not request.use_fallback:
         solved, inputs = baseline_plan()
-        return _serialise(solved, inputs, baseline_routes())
+        return serialise_plan(solved, inputs, baseline_routes())
 
     corridor = (
         evaluate_corridor(closed_segments=frozenset(request.closed_segments))
@@ -309,7 +309,7 @@ def optimize(request: OptimiseRequest) -> PlanResponse:
         )
     else:
         solved, inputs = solve_plan(inputs)
-    return _serialise(solved, inputs, corridor)
+    return serialise_plan(solved, inputs, corridor)
 
 
 @router.get(

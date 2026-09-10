@@ -21,6 +21,7 @@ from astra.api.priority_router import router as priority_router
 from astra.api.risk_router import router as risk_router
 from astra.api.routers import router
 from astra.api.routes_router import router as routes_router
+from astra.api.scenario_router import router as scenario_router
 from astra.data.validate import FixtureValidationError, enforce, validate_all
 from astra.domain.notices import HOW_THIS_WORKS
 from astra.settings import get_settings
@@ -136,6 +137,7 @@ def create_app() -> FastAPI:
     app.include_router(capacity_router)
     app.include_router(routes_router)
     app.include_router(plan_router)
+    app.include_router(scenario_router)
     return app
 
 

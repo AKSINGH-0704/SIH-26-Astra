@@ -16,12 +16,15 @@ import type {
   HealthStatus,
   LayersResponse,
   ModelConfigResponse,
+  PlanDependencyListResponse,
   PlanResponse,
+  Perturbation,
   ProvenanceResponse,
   RiskCellResponse,
   RiskSummaryResponse,
   RouteAssessmentResponse,
   RoutePairResponse,
+  ScenarioDiffResponse,
   ScenarioListResponse,
   SiteCapacityListResponse,
   SitesResponse,
@@ -41,6 +44,36 @@ export class ApiUnavailableError extends Error {
     super(`ASTRA API did not respond at ${path}`);
     this.name = "ApiUnavailableError";
   }
+}
+
+/**
+ * The API answered, and refused. Its reason is carried verbatim: a refusal that
+ * names the perturbation it would not apply is more useful to the person who
+ * built the scenario than a generic failure, and inventing a friendlier reason
+ * here would be inventing a fact about the engine.
+ */
+export class ApiRefusedError extends Error {
+  constructor(
+    readonly path: string,
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(detail);
+    this.name = "ApiRefusedError";
+  }
+}
+
+/** Pull the API's own explanation out of an error response, if it gave one. */
+async function refusal(path: string, response: Response): Promise<Error> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string" && body.detail) {
+      return new ApiRefusedError(path, response.status, body.detail);
+    }
+  } catch {
+    // No JSON body: fall through to the transport-level error.
+  }
+  return new ApiUnavailableError(path, `HTTP ${response.status}`);
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -80,6 +113,8 @@ export const api = {
     get<RiskCellResponse>(`/risk/cell?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}`),
   routes: () => get<RouteAssessmentResponse>("/routes"),
   plan: () => get<PlanResponse>("/plan"),
+  planDependencies: () =>
+    get<PlanDependencyListResponse>("/routes/critical-segments"),
   whyNot: (habitationId: string, siteId: string) =>
     get<CounterfactualResponse>(
       `/plan/why-not/${encodeURIComponent(habitationId)}/${encodeURIComponent(siteId)}`,
@@ -107,6 +142,17 @@ export async function optimisePlan(body: {
   return post<PlanResponse>("/plan/optimize", body);
 }
 
+/**
+ * Run the whole chain under a set of perturbations and get back a structured
+ * diff against the baseline. The baseline is not replaced.
+ */
+export async function simulate(
+  changes: Perturbation[],
+  name?: string,
+): Promise<ScenarioDiffResponse> {
+  return post<ScenarioDiffResponse>("/simulate", { changes, name });
+}
+
 export async function evaluateClosure(
   closedSegments: string[],
 ): Promise<ClosureImpactResponse> {
@@ -128,7 +174,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     throw new ApiUnavailableError(path, error);
   }
   if (!response.ok) {
-    throw new ApiUnavailableError(path, `HTTP ${response.status}`);
+    throw await refusal(path, response);
   }
   return (await response.json()) as T;
 }

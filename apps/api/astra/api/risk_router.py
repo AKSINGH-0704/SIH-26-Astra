@@ -88,14 +88,12 @@ def risk_summary() -> RiskSummaryResponse:
     )
 
 
-@router.get("/zones", response_model=ZonesResponse)
-def risk_zones(
-    zone_class: str | None = Query(
-        default=None, description="Filter to one class: CRITICAL, ELEVATED or WATCH."
-    ),
-) -> ZonesResponse:
-    """The analytical red zones, each carrying the arithmetic behind it."""
-    run = baseline_risk()
+def serialise_zones(run, zone_class: str | None = None) -> ZonesResponse:
+    """The zone payload for any risk run, baseline or scenario.
+
+    Shared so a simulated red-zone map is byte-for-byte the same shape as the
+    baseline one, and a screen that renders one renders the other.
+    """
     zones = run.zones
     if zone_class:
         wanted = zone_class.upper()
@@ -135,6 +133,16 @@ def risk_zones(
         engine_version=run.result.engine_version,
         computed_ms=round(run.computed_ms, 1),
     )
+
+
+@router.get("/zones", response_model=ZonesResponse)
+def risk_zones(
+    zone_class: str | None = Query(
+        default=None, description="Filter to one class: CRITICAL, ELEVATED or WATCH."
+    ),
+) -> ZonesResponse:
+    """The analytical red zones, each carrying the arithmetic behind it."""
+    return serialise_zones(baseline_risk(), zone_class)
 
 
 @router.get("/cell", response_model=RiskCellResponse)

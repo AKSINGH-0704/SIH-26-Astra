@@ -1,6 +1,43 @@
 {
   "components": {
     "schemas": {
+      "AssignmentDeltaResponse": {
+        "properties": {
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "people_after": {
+            "title": "People After",
+            "type": "integer"
+          },
+          "people_before": {
+            "title": "People Before",
+            "type": "integer"
+          },
+          "people_delta": {
+            "title": "People Delta",
+            "type": "integer"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "site_id",
+          "phase",
+          "people_before",
+          "people_after",
+          "people_delta"
+        ],
+        "title": "AssignmentDeltaResponse",
+        "type": "object"
+      },
       "AssignmentResponse": {
         "description": "One movement in the plan, with everything that justifies it.",
         "properties": {
@@ -3041,6 +3078,77 @@
         "title": "Habitation",
         "type": "object"
       },
+      "HabitationDeltaResponse": {
+        "properties": {
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "hazard_after": {
+            "title": "Hazard After",
+            "type": "number"
+          },
+          "hazard_before": {
+            "title": "Hazard Before",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase_after": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "phase_before": {
+            "$ref": "#/components/schemas/PhaseTier"
+          },
+          "phase_changed": {
+            "title": "Phase Changed",
+            "type": "boolean"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          },
+          "priority_after": {
+            "title": "Priority After",
+            "type": "number"
+          },
+          "priority_before": {
+            "title": "Priority Before",
+            "type": "number"
+          },
+          "priority_delta": {
+            "title": "Priority Delta",
+            "type": "number"
+          },
+          "rank_after": {
+            "title": "Rank After",
+            "type": "integer"
+          },
+          "rank_before": {
+            "title": "Rank Before",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "name",
+          "population",
+          "priority_before",
+          "priority_after",
+          "priority_delta",
+          "phase_before",
+          "phase_after",
+          "phase_changed",
+          "rank_before",
+          "rank_after",
+          "hazard_before",
+          "hazard_after"
+        ],
+        "title": "HabitationDeltaResponse",
+        "type": "object"
+      },
       "HabitationDetailResponse": {
         "description": "Everything behind one habitation's ranking, for the reasoning drawer.",
         "properties": {
@@ -4651,6 +4759,109 @@
         "title": "OptimiserConfig",
         "type": "object"
       },
+      "Perturbation": {
+        "description": "One change a scenario makes to the world.\n\nA perturbation is data, not a UI toggle: it is stored on the scenario, echoed\non every result computed under it, and is what makes a what-if reproducible\nrather than a state the interface happened to be in.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PerturbationKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the change applies to - a site id, habitation id, road segment id or service name. Null means it applies across the study area.",
+            "title": "Target"
+          },
+          "value": {
+            "description": "The magnitude, in the units the kind defines. A multiplier of 1.0, a shift of 0.0 or a loss of 0.0 changes nothing.",
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "Perturbation",
+        "type": "object"
+      },
+      "PerturbationKind": {
+        "description": "What a scenario changes about the world (\u00a75.7).\n\nEach kind enters the pipeline at exactly one stage, and the stage decides how\nfar the change propagates. A rainfall multiplier re-scores hazard and\ntherefore everything downstream of it; a site capacity loss changes nothing\nabout the hazard surface and only re-plans. Keeping that explicit is what\nmakes a scenario diff readable rather than a wall of changed numbers.",
+        "enum": [
+          "RAINFALL_MULTIPLIER",
+          "LANDSLIDE_SHIFT",
+          "ROAD_CLOSURE",
+          "SITE_CAPACITY_LOSS",
+          "SERVICE_UPGRADE",
+          "SITE_DISABLED",
+          "POPULATION_MULTIPLIER"
+        ],
+        "title": "PerturbationKind",
+        "type": "string"
+      },
+      "PerturbationResponse": {
+        "description": "One change a scenario makes, with the line an official reads.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PerturbationKind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "target",
+          "value",
+          "note",
+          "description"
+        ],
+        "title": "PerturbationResponse",
+        "type": "object"
+      },
       "PhaseDecision": {
         "description": "Which relocation phase a habitation falls in, and exactly why.",
         "properties": {
@@ -4766,6 +4977,103 @@
           "households"
         ],
         "title": "PhaseTotals",
+        "type": "object"
+      },
+      "PlanDependencyListResponse": {
+        "description": "The roads the baseline plan is standing on.",
+        "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "plan_people": {
+            "title": "Plan People",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/PlanDependencyResponse"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "segments_carrying_the_plan": {
+            "title": "Segments Carrying The Plan",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segments",
+          "plan_people",
+          "segments_carrying_the_plan",
+          "note"
+        ],
+        "title": "PlanDependencyListResponse",
+        "type": "object"
+      },
+      "PlanDependencyResponse": {
+        "description": "One stretch of road the current plan depends on.\n\nRanked by the number of residents whose planned movement crosses it, which\nis what makes closing it a question worth asking rather than an arbitrary\nperturbation of the network.",
+        "properties": {
+          "consequence": {
+            "title": "Consequence",
+            "type": "string"
+          },
+          "is_bridge": {
+            "title": "Is Bridge",
+            "type": "boolean"
+          },
+          "length_m": {
+            "title": "Length M",
+            "type": "number"
+          },
+          "movements": {
+            "title": "Movements",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "no_alternative": {
+            "title": "No Alternative",
+            "type": "boolean"
+          },
+          "p_fail": {
+            "title": "P Fail",
+            "type": "number"
+          },
+          "people_dependent": {
+            "title": "People Dependent",
+            "type": "integer"
+          },
+          "road_class": {
+            "$ref": "#/components/schemas/RoadClass"
+          },
+          "segment_id": {
+            "title": "Segment Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "segment_id",
+          "name",
+          "road_class",
+          "length_m",
+          "is_bridge",
+          "p_fail",
+          "no_alternative",
+          "people_dependent",
+          "movements",
+          "consequence"
+        ],
+        "title": "PlanDependencyResponse",
         "type": "object"
       },
       "PlanResponse": {
@@ -5865,6 +6173,54 @@
         "title": "RouteConfig",
         "type": "object"
       },
+      "RouteDeltaResponse": {
+        "properties": {
+          "feasible_after": {
+            "title": "Feasible After",
+            "type": "boolean"
+          },
+          "feasible_before": {
+            "title": "Feasible Before",
+            "type": "boolean"
+          },
+          "habitation_id": {
+            "title": "Habitation Id",
+            "type": "string"
+          },
+          "reliability_after": {
+            "title": "Reliability After",
+            "type": "number"
+          },
+          "reliability_before": {
+            "title": "Reliability Before",
+            "type": "number"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "travel_after_min": {
+            "title": "Travel After Min",
+            "type": "number"
+          },
+          "travel_before_min": {
+            "title": "Travel Before Min",
+            "type": "number"
+          }
+        },
+        "required": [
+          "habitation_id",
+          "site_id",
+          "reliability_before",
+          "reliability_after",
+          "travel_before_min",
+          "travel_after_min",
+          "feasible_before",
+          "feasible_after"
+        ],
+        "title": "RouteDeltaResponse",
+        "type": "object"
+      },
       "RouteDeltaRow": {
         "description": "How one pair changed between the open network and the closed one.",
         "properties": {
@@ -6186,10 +6542,30 @@
       "Scenario": {
         "description": "A named, versioned analysis context. Scenarios are diffable objects.",
         "properties": {
+          "changes": {
+            "description": "Perturbations applied against the baseline scenario.",
+            "items": {
+              "$ref": "#/components/schemas/Perturbation"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "derived_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Scenario this one perturbs, when it is not the baseline.",
+            "title": "Derived From"
           },
           "description": {
             "title": "Description",
@@ -6212,14 +6588,6 @@
             "title": "Name",
             "type": "string"
           },
-          "perturbations": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "description": "Named perturbations applied against the baseline scenario.",
-            "title": "Perturbations",
-            "type": "object"
-          },
           "study_area_id": {
             "title": "Study Area Id",
             "type": "string"
@@ -6234,6 +6602,171 @@
           "disclaimer"
         ],
         "title": "Scenario",
+        "type": "object"
+      },
+      "ScenarioDiffResponse": {
+        "description": "Before and after as two complete assessments, compared field by field.",
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentDeltaResponse"
+            },
+            "title": "Assignments",
+            "type": "array"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/PerturbationResponse"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "critical_area_km2_after": {
+            "title": "Critical Area Km2 After",
+            "type": "number"
+          },
+          "critical_area_km2_before": {
+            "title": "Critical Area Km2 Before",
+            "type": "number"
+          },
+          "decision_authority": {
+            "title": "Decision Authority",
+            "type": "string"
+          },
+          "effective_capacity_after": {
+            "title": "Effective Capacity After",
+            "type": "number"
+          },
+          "effective_capacity_before": {
+            "title": "Effective Capacity Before",
+            "type": "number"
+          },
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "feasible_routes_after": {
+            "title": "Feasible Routes After",
+            "type": "integer"
+          },
+          "feasible_routes_before": {
+            "title": "Feasible Routes Before",
+            "type": "integer"
+          },
+          "habitations": {
+            "items": {
+              "$ref": "#/components/schemas/HabitationDeltaResponse"
+            },
+            "title": "Habitations",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "model_config_version": {
+            "title": "Model Config Version",
+            "type": "string"
+          },
+          "newly_immediate_population": {
+            "title": "Newly Immediate Population",
+            "type": "integer"
+          },
+          "placed_after": {
+            "title": "Placed After",
+            "type": "integer"
+          },
+          "placed_before": {
+            "title": "Placed Before",
+            "type": "integer"
+          },
+          "plan_after": {
+            "$ref": "#/components/schemas/PlanResponse"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/RouteDeltaResponse"
+            },
+            "title": "Routes",
+            "type": "array"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/Scenario"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteDeltaResponse"
+            },
+            "title": "Sites",
+            "type": "array"
+          },
+          "stage_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Stage Ms",
+            "type": "object"
+          },
+          "tier_changes": {
+            "items": {
+              "$ref": "#/components/schemas/HabitationDeltaResponse"
+            },
+            "title": "Tier Changes",
+            "type": "array"
+          },
+          "unmet_after": {
+            "title": "Unmet After",
+            "type": "integer"
+          },
+          "unmet_before": {
+            "title": "Unmet Before",
+            "type": "integer"
+          },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/ZoneDeltaResponse"
+            },
+            "title": "Zones",
+            "type": "array"
+          },
+          "zones_after": {
+            "$ref": "#/components/schemas/ZonesResponse"
+          }
+        },
+        "required": [
+          "scenario",
+          "changes",
+          "headline",
+          "zones",
+          "habitations",
+          "sites",
+          "routes",
+          "assignments",
+          "tier_changes",
+          "newly_immediate_population",
+          "placed_before",
+          "placed_after",
+          "unmet_before",
+          "unmet_after",
+          "effective_capacity_before",
+          "effective_capacity_after",
+          "feasible_routes_before",
+          "feasible_routes_after",
+          "critical_area_km2_before",
+          "critical_area_km2_after",
+          "plan_after",
+          "zones_after",
+          "elapsed_ms",
+          "stage_ms",
+          "decision_authority",
+          "model_config_version",
+          "engine_version"
+        ],
+        "title": "ScenarioDiffResponse",
         "type": "object"
       },
       "ScenarioListResponse": {
@@ -6444,6 +6977,43 @@
         ],
         "title": "ServiceType",
         "type": "string"
+      },
+      "SimulateRequest": {
+        "description": "Ask what the corridor looks like under these changes.",
+        "properties": {
+          "changes": {
+            "description": "Perturbations to apply to the baseline.",
+            "items": {
+              "$ref": "#/components/schemas/Perturbation"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "SimulateRequest",
+        "type": "object"
       },
       "SiteAccessResponse": {
         "description": "What the road network means for one candidate site.",
@@ -6700,6 +7270,94 @@
           "limitation"
         ],
         "title": "SiteCapacityResponse",
+        "type": "object"
+      },
+      "SiteDeltaResponse": {
+        "properties": {
+          "bottleneck_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bottleneck After"
+          },
+          "bottleneck_before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bottleneck Before"
+          },
+          "effective_after": {
+            "title": "Effective After",
+            "type": "number"
+          },
+          "effective_before": {
+            "title": "Effective Before",
+            "type": "number"
+          },
+          "effective_delta": {
+            "title": "Effective Delta",
+            "type": "number"
+          },
+          "failed_gates_after": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed Gates After",
+            "type": "array"
+          },
+          "failed_gates_before": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed Gates Before",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "site_id": {
+            "title": "Site Id",
+            "type": "string"
+          },
+          "suitable_after": {
+            "title": "Suitable After",
+            "type": "boolean"
+          },
+          "suitable_before": {
+            "title": "Suitable Before",
+            "type": "boolean"
+          },
+          "withdrawn": {
+            "title": "Withdrawn",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "site_id",
+          "name",
+          "suitable_before",
+          "suitable_after",
+          "effective_before",
+          "effective_after",
+          "effective_delta",
+          "bottleneck_before",
+          "bottleneck_after",
+          "withdrawn"
+        ],
+        "title": "SiteDeltaResponse",
         "type": "object"
       },
       "SiteLoadResponse": {
@@ -7375,6 +8033,44 @@
           "population_intersected"
         ],
         "title": "ZoneClassSummary",
+        "type": "object"
+      },
+      "ZoneDeltaResponse": {
+        "properties": {
+          "area_km2_after": {
+            "title": "Area Km2 After",
+            "type": "number"
+          },
+          "area_km2_before": {
+            "title": "Area Km2 Before",
+            "type": "number"
+          },
+          "area_km2_delta": {
+            "title": "Area Km2 Delta",
+            "type": "number"
+          },
+          "population_after": {
+            "title": "Population After",
+            "type": "integer"
+          },
+          "population_before": {
+            "title": "Population Before",
+            "type": "integer"
+          },
+          "zone_class": {
+            "title": "Zone Class",
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_class",
+          "area_km2_before",
+          "area_km2_after",
+          "area_km2_delta",
+          "population_before",
+          "population_after"
+        ],
+        "title": "ZoneDeltaResponse",
         "type": "object"
       },
       "ZoneFeature": {
@@ -8180,6 +8876,28 @@
         ]
       }
     },
+    "/routes/critical-segments": {
+      "get": {
+        "description": "The roads the baseline plan is standing on, ranked by residents carried.\n\nA what-if that closes a road at random mostly proves nothing. This ranks the\ncorridor by how much of the *solved plan* actually crosses each segment, so\nthe closure a user picks is the one that tests the plan rather than the\nnetwork. Every figure here is read off the baseline plan and the baseline\nroutes; nothing is re-solved.",
+        "operationId": "critical_segments_routes_critical_segments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDependencyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Critical Segments",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
     "/routes/evaluate": {
       "post": {
         "description": "Re-route the corridor with the given segments closed, against the baseline.",
@@ -8356,6 +9074,48 @@
           }
         },
         "summary": "Scenario Detail",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/simulate": {
+      "post": {
+        "description": "Run the full chain under these changes and diff it against the baseline.",
+        "operationId": "simulate_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioDiffResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate",
         "tags": [
           "scenarios"
         ]

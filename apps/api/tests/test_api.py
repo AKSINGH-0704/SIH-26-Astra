@@ -771,3 +771,316 @@ def test_plan_weights_and_constraints_are_served_with_their_provenance(
     assert "route.min_reliability" in keys
     for constant in payload["weights"] + payload["constraints"]:
         assert constant["description"]
+
+
+# ---------------------------------------------------------------------------
+# Engine 7 - simulate
+# ---------------------------------------------------------------------------
+
+
+def test_simulating_a_wetter_monsoon_returns_a_structured_diff(
+    client: TestClient,
+) -> None:
+    payload = client.post(
+        "/simulate", json={"changes": [{"kind": "RAINFALL_MULTIPLIER", "value": 1.6}]}
+    ).json()
+    assert payload["headline"]
+    assert payload["scenario"]["derived_from"] == "baseline"
+    assert payload["changes"][0]["description"]
+    assert payload["critical_area_km2_after"] > payload["critical_area_km2_before"]
+    assert payload["tier_changes"]
+    assert payload["elapsed_ms"] > 0
+    assert set(payload["stage_ms"]) >= {"hazard", "priority", "routes", "capacity"}
+
+
+def test_a_simulation_returns_a_full_plan_and_zone_set_in_the_usual_shape(
+    client: TestClient,
+) -> None:
+    payload = client.post(
+        "/simulate", json={"changes": [{"kind": "RAINFALL_MULTIPLIER", "value": 1.4}]}
+    ).json()
+    plan = payload["plan_after"]
+    assert plan["status"] in ("OPTIMAL", "FEASIBLE", "FALLBACK")
+    assert (
+        plan["totals"]["population_assigned"] + plan["totals"]["population_unmet"]
+        == plan["totals"]["population_assessed"]
+    )
+    assert plan["totals"]["population_assigned"] == payload["placed_after"]
+    assert payload["zones_after"]["features"]
+
+
+def test_a_simulation_does_not_move_the_baseline(client: TestClient) -> None:
+    before = client.get("/plan").json()
+    client.post(
+        "/simulate", json={"changes": [{"kind": "RAINFALL_MULTIPLIER", "value": 2.0}]}
+    )
+    after = client.get("/plan").json()
+    assert after["objective_value"] == before["objective_value"]
+    assert after["totals"] == before["totals"]
+
+
+def test_deltas_reconcile_with_the_before_and_after_totals(client: TestClient) -> None:
+    payload = client.post(
+        "/simulate",
+        json={"changes": [{"kind": "SITE_DISABLED", "target": "S-05", "value": 1}]},
+    ).json()
+    moved = sum(entry["people_delta"] for entry in payload["assignments"])
+    assert moved == payload["placed_after"] - payload["placed_before"]
+    withdrawn = [entry for entry in payload["sites"] if entry["withdrawn"]]
+    assert [entry["site_id"] for entry in withdrawn] == ["S-05"]
+
+
+def test_a_null_scenario_changes_nothing(client: TestClient) -> None:
+    payload = client.post("/simulate", json={"changes": []}).json()
+    assert payload["assignments"] == []
+    assert payload["tier_changes"] == []
+    assert payload["placed_after"] == payload["placed_before"]
+
+
+def test_a_simulation_naming_something_that_does_not_exist_is_refused(
+    client: TestClient,
+) -> None:
+    for body in (
+        {"changes": [{"kind": "SITE_DISABLED", "target": "S-99", "value": 1}]},
+        {"changes": [{"kind": "ROAD_CLOSURE", "target": "nope", "value": 1}]},
+        {"changes": [{"kind": "POPULATION_MULTIPLIER", "target": "H-99", "value": 2}]},
+        {"changes": [{"kind": "RAINFALL_MULTIPLIER", "value": 0}]},
+    ):
+        assert client.post("/simulate", json=body).status_code == 422
+
+
+def test_a_simulation_cannot_withdraw_every_site(client: TestClient) -> None:
+    sites = [s["id"] for s in client.get("/sites").json()["sites"]]
+    response = client.post(
+        "/simulate",
+        json={
+            "changes": [
+                {"kind": "SITE_DISABLED", "target": site_id, "value": 1}
+                for site_id in sites
+            ]
+        },
+    )
+    assert response.status_code == 422
+    assert "nothing to plan against" in response.json()["detail"]
+
+
+def test_closing_a_road_in_a_simulation_degrades_routes(client: TestClient) -> None:
+    row = max(client.get("/routes").json()["rows"], key=lambda r: r["bridges_crossed"])
+    pair = client.get(f"/routes/pair/{row['habitation_id']}/{row['site_id']}").json()
+    bridge = next(leg for leg in pair["safest"]["legs"] if leg["is_bridge"])
+    payload = client.post(
+        "/simulate",
+        json={
+            "changes": [
+                {"kind": "ROAD_CLOSURE", "target": bridge["segment_id"], "value": 1}
+            ]
+        },
+    ).json()
+    assert payload["routes"], "closing a used bridge must change routes"
+    assert payload["feasible_routes_after"] <= payload["feasible_routes_before"]
+
+
+# ---------------------------------------------------------------------------
+# Engine 7 - each perturbation enters at one stage and propagates no further
+# ---------------------------------------------------------------------------
+
+
+def _zone_signature(payload: dict) -> list[tuple[str, float]]:
+    return [(z["zone_class"], z["area_km2_after"]) for z in payload["zones"]]
+
+
+def test_a_service_upgrade_moves_capacity_and_leaves_the_hazard_surface_alone(
+    client: TestClient,
+) -> None:
+    """A tap at a site cannot make the mountain above it safer."""
+    payload = client.post(
+        "/simulate",
+        json={
+            "changes": [
+                {
+                    "kind": "SERVICE_UPGRADE",
+                    "target": "S-05",
+                    "value": 15000,
+                    "note": "WATER",
+                }
+            ]
+        },
+    ).json()
+    for zone in payload["zones"]:
+        assert zone["area_km2_before"] == zone["area_km2_after"]
+    assert payload["routes"] == []
+    assert all(entry["priority_delta"] == 0.0 for entry in payload["habitations"])
+    changed = [s for s in payload["sites"] if s["effective_delta"] != 0.0]
+    assert [s["site_id"] for s in changed] == ["S-05"]
+    assert payload["effective_capacity_after"] > payload["effective_capacity_before"]
+
+
+def test_a_road_closure_moves_routes_and_leaves_the_hazard_surface_alone(
+    client: TestClient,
+) -> None:
+    dependency = client.get("/routes/critical-segments").json()["segments"][0]
+    payload = client.post(
+        "/simulate",
+        json={
+            "changes": [
+                {"kind": "ROAD_CLOSURE", "target": dependency["segment_id"], "value": 1}
+            ]
+        },
+    ).json()
+    for zone in payload["zones"]:
+        assert zone["area_km2_before"] == zone["area_km2_after"]
+    assert all(entry["hazard_before"] == entry["hazard_after"] for entry in payload["habitations"])
+    assert payload["routes"], "closing a segment the plan uses must change routes"
+
+
+def test_a_population_change_moves_priority_and_leaves_the_hazard_surface_alone(
+    client: TestClient,
+) -> None:
+    payload = client.post(
+        "/simulate",
+        json={"changes": [{"kind": "POPULATION_MULTIPLIER", "value": 1.5}]},
+    ).json()
+    for zone in payload["zones"]:
+        assert zone["area_km2_before"] == zone["area_km2_after"]
+    assert all(
+        entry["hazard_before"] == entry["hazard_after"] for entry in payload["habitations"]
+    ), "population is exposure, not hazard"
+    assert payload["routes"] == []
+    assert payload["assignments"], "more people to move must change the plan"
+
+
+def test_a_site_that_loses_a_gate_says_which_gate(client: TestClient) -> None:
+    """Suitability is a yes or no, so an unchanged capacity must not read as calm."""
+    payload = client.post(
+        "/simulate", json={"changes": [{"kind": "RAINFALL_MULTIPLIER", "value": 1.6}]}
+    ).json()
+    lost = [
+        entry
+        for entry in payload["sites"]
+        if entry["suitable_before"] and not entry["suitable_after"]
+    ]
+    assert lost, "a much wetter monsoon should cost at least one site its gates"
+    for entry in lost:
+        assert entry["failed_gates_after"], "a failed site must name the gate it fails"
+        assert not entry["failed_gates_before"]
+
+
+def test_land_and_access_cannot_be_delivered_to_a_site(client: TestClient) -> None:
+    for service in ("LAND", "ACCESS"):
+        response = client.post(
+            "/simulate",
+            json={
+                "changes": [
+                    {
+                        "kind": "SERVICE_UPGRADE",
+                        "target": "S-02",
+                        "value": 10000,
+                        "note": service,
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 422
+        assert "not a supply" in response.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# The roads the plan is standing on
+# ---------------------------------------------------------------------------
+
+
+def test_critical_segments_are_ranked_by_the_residents_they_carry(
+    client: TestClient,
+) -> None:
+    payload = client.get("/routes/critical-segments").json()
+    segments = payload["segments"]
+    assert segments, "the plan moves people, so some road must carry them"
+    assert segments == sorted(
+        segments, key=lambda row: -row["people_dependent"]
+    ), "the list must lead with the road the most residents depend on"
+    plan_people = client.get("/plan").json()["totals"]["population_assigned"]
+    assert payload["plan_people"] == plan_people
+    for row in segments:
+        assert 0 < row["people_dependent"] <= plan_people
+        assert row["movements"] >= 1
+        assert row["consequence"]
+
+
+def test_every_listed_critical_segment_is_a_segment_a_scenario_can_close(
+    client: TestClient,
+) -> None:
+    known = {
+        feature["properties"]["segment_id"]
+        for feature in client.get("/routes/network.geojson").json()["features"]
+    }
+    for row in client.get("/routes/critical-segments").json()["segments"]:
+        assert row["segment_id"] in known
+    top = client.get("/routes/critical-segments").json()["segments"][0]
+    response = client.post(
+        "/simulate",
+        json={"changes": [{"kind": "ROAD_CLOSURE", "target": top["segment_id"], "value": 1}]},
+    )
+    assert response.status_code == 200
+
+
+def test_a_perturbation_outside_the_range_it_means_something_in_is_refused(
+    client: TestClient,
+) -> None:
+    for body, fragment in (
+        (
+            {"changes": [{"kind": "SITE_CAPACITY_LOSS", "target": "S-05", "value": 5}]},
+            "share of the site's supply",
+        ),
+        (
+            {"changes": [{"kind": "SITE_CAPACITY_LOSS", "target": "S-05", "value": 0}]},
+            "share of the site's supply",
+        ),
+        (
+            {
+                "changes": [
+                    {
+                        "kind": "SERVICE_UPGRADE",
+                        "target": "S-05",
+                        "value": -1,
+                        "note": "WATER",
+                    }
+                ]
+            },
+            "positive quantity",
+        ),
+        (
+            {"changes": [{"kind": "LANDSLIDE_SHIFT", "value": 4}]},
+            "between -1 and 1",
+        ),
+    ):
+        response = client.post("/simulate", json=body)
+        assert response.status_code == 422, body
+        assert fragment in response.json()["detail"]
+
+
+def test_simulated_scenarios_are_stored_but_the_store_is_bounded(
+    client: TestClient,
+) -> None:
+    """A slider dragged for a minute must not become an unbounded store."""
+    from astra.data.scenarios import SCENARIOS, SIMULATED_HISTORY
+
+    ids = set()
+    for step in range(4):
+        payload = client.post(
+            "/simulate",
+            json={
+                "changes": [
+                    {"kind": "RAINFALL_MULTIPLIER", "value": 1.05 + step * 0.01}
+                ]
+            },
+        ).json()
+        ids.add(payload["scenario"]["id"])
+    assert len(ids) == 4, "each run must be its own scenario, not overwrite the last"
+
+    for scenario_id in ids:
+        assert client.get(f"/scenarios/{scenario_id}").status_code == 200
+
+    simulated = [s for s in SCENARIOS.values() if not s.is_baseline]
+    assert len(simulated) <= SIMULATED_HISTORY
+    listed = client.get("/scenarios").json()["scenarios"]
+    assert listed[0]["id"] == "baseline", "the baseline is never evicted or reordered"

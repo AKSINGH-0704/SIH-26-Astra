@@ -503,3 +503,40 @@ def test_a_route_reports_how_much_of_it_was_actually_scored(corridor) -> None:
             if not route.legs:
                 continue
             assert 0.0 < route.scored_share <= 1.0
+
+
+def test_closing_a_road_can_never_make_a_journey_more_survivable(corridor) -> None:
+    """Monotonicity, and the reason the safest route is chosen reliability-first.
+
+    Removing an edge cannot create a better path, so no pair may come back more
+    reliable after a closure. It did, once: the objective preferred a quicker,
+    less reliable candidate, so closing the quick road revealed the safe one that
+    had been computed and discarded. A what-if in which shutting a bridge
+    improves access is not a model anyone should trust.
+    """
+    from astra.engines.routes_service import evaluate_corridor
+
+    bridges = [segment.id for segment in corridor.network.bridges][:10]
+    assert bridges
+    for segment_id in bridges:
+        after = evaluate_corridor(closed_segments=frozenset({segment_id}))
+        for key, pair in after.pairs.items():
+            assert pair.best.reliability <= corridor.pairs[key].best.reliability + 1e-9
+            assert pair.feasible <= corridor.pairs[key].feasible
+
+
+def test_the_safest_route_is_the_most_reliable_candidate_found(corridor) -> None:
+    for pair in corridor.pairs.values():
+        assert pair.safest.reliability >= pair.fastest.reliability - 1e-9
+        assert pair.best is pair.safest or pair.safest.reliability == pytest.approx(
+            pair.fastest.reliability
+        )
+
+
+def test_the_corridor_does_show_a_real_fastest_versus_safest_trade(corridor) -> None:
+    """Rare in this valley, but not absent - and where it happens it is priced."""
+    differing = [pair for pair in corridor.pairs.values() if pair.profiles_differ]
+    assert differing, "at least one pair should have a genuine alternative"
+    for pair in differing:
+        assert pair.safest.reliability > pair.fastest.reliability
+        assert "buys" in pair.tradeoff_sentence() or "no slower" in pair.tradeoff_sentence()

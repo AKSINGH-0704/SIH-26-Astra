@@ -93,6 +93,32 @@ class RouteProfile(StrEnum):
     SAFEST = "SAFEST"
 
 
+class PerturbationKind(StrEnum):
+    """What a scenario changes about the world (§5.7).
+
+    Each kind enters the pipeline at exactly one stage, and the stage decides how
+    far the change propagates. A rainfall multiplier re-scores hazard and
+    therefore everything downstream of it; a site capacity loss changes nothing
+    about the hazard surface and only re-plans. Keeping that explicit is what
+    makes a scenario diff readable rather than a wall of changed numbers.
+    """
+
+    #: Multiplies rainfall intensity and extreme-rain days. Enters at Engine 1.
+    RAINFALL_MULTIPLIER = "RAINFALL_MULTIPLIER"
+    #: Adds to the normalised landslide susceptibility. Enters at Engine 1.
+    LANDSLIDE_SHIFT = "LANDSLIDE_SHIFT"
+    #: Closes one road segment. Enters at Engine 5.
+    ROAD_CLOSURE = "ROAD_CLOSURE"
+    #: Removes a share of one site's service supply. Enters at Engine 4.
+    SITE_CAPACITY_LOSS = "SITE_CAPACITY_LOSS"
+    #: Adds supply of one service at one site. Enters at Engine 4.
+    SERVICE_UPGRADE = "SERVICE_UPGRADE"
+    #: Takes a candidate site out of consideration entirely. Enters at Engine 4.
+    SITE_DISABLED = "SITE_DISABLED"
+    #: Multiplies one habitation's population, or all of them. Enters at Engine 2.
+    POPULATION_MULTIPLIER = "POPULATION_MULTIPLIER"
+
+
 class ConfidenceBand(StrEnum):
     """Evidence confidence — orthogonal to priority, never multiplied into it (§5.2)."""
 

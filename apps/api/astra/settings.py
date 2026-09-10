@@ -28,12 +28,16 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default=REPO_ROOT / "data")
     db_path: Path = Field(default=REPO_ROOT / "data" / "astra.sqlite")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3100",
+        default=(
+            "http://localhost:3000,http://127.0.0.1:3000,"
+            "http://localhost:3100,http://127.0.0.1:3100"
+        ),
         description=(
             "Comma-separated origins allowed to call the API. The deployed frontend "
             "origin is set here per environment; the map fetches its terrain, overlay "
             "and road layers directly from the API, so an unlisted origin means a "
-            "blank map rather than a wrong one."
+            "blank map rather than a wrong one. localhost and 127.0.0.1 are the "
+            "same machine but different origins to a browser, so both are listed."
         ),
     )
     validate_fixtures_on_startup: bool = Field(default=True)

@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from astra.domain.enums import (
     ConfidenceBand,
     HazardType,
+    PerturbationKind,
     PhaseTier,
     ProvenanceClass,
     RoadClass,
@@ -36,6 +37,7 @@ from astra.domain.models import (
     GeoPoint,
     Habitation,
     LayerDescriptor,
+    Perturbation,
     Scenario,
     ServiceCapacity,
     StudyArea,
@@ -890,3 +892,173 @@ class CounterfactualResponse(BaseModel):
     assigned_elsewhere_after: int
     displaced: list[list[str]]
     headline: str
+
+# ---------------------------------------------------------------------------
+# Engine 7 - scenarios and what-if
+# ---------------------------------------------------------------------------
+
+
+class PerturbationResponse(BaseModel):
+    """One change a scenario makes, with the line an official reads."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: PerturbationKind
+    target: str | None
+    value: float
+    note: str | None
+    description: str
+
+
+class SimulateRequest(BaseModel):
+    """Ask what the corridor looks like under these changes."""
+
+    model_config = ConfigDict(frozen=True)
+
+    changes: list[Perturbation] = Field(
+        default_factory=list, description="Perturbations to apply to the baseline."
+    )
+    name: str | None = None
+    description: str | None = None
+
+
+class ZoneDeltaResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    zone_class: str
+    area_km2_before: float
+    area_km2_after: float
+    area_km2_delta: float
+    population_before: int
+    population_after: int
+
+
+class HabitationDeltaResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    name: str
+    population: int
+    priority_before: float
+    priority_after: float
+    priority_delta: float
+    phase_before: PhaseTier
+    phase_after: PhaseTier
+    phase_changed: bool
+    rank_before: int
+    rank_after: int
+    hazard_before: float
+    hazard_after: float
+
+
+class SiteDeltaResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    name: str
+    suitable_before: bool
+    suitable_after: bool
+    effective_before: float
+    effective_after: float
+    effective_delta: float
+    bottleneck_before: str | None
+    bottleneck_after: str | None
+    withdrawn: bool
+    failed_gates_before: list[str] = []
+    failed_gates_after: list[str] = []
+
+
+class RouteDeltaResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    site_id: str
+    reliability_before: float
+    reliability_after: float
+    travel_before_min: float
+    travel_after_min: float
+    feasible_before: bool
+    feasible_after: bool
+
+
+class AssignmentDeltaResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    habitation_id: str
+    site_id: str
+    phase: PhaseTier
+    people_before: int
+    people_after: int
+    people_delta: int
+
+
+class ScenarioDiffResponse(BaseModel):
+    """Before and after as two complete assessments, compared field by field."""
+
+    model_config = ConfigDict(frozen=True)
+
+    scenario: Scenario
+    changes: list[PerturbationResponse]
+    headline: str
+
+    zones: list[ZoneDeltaResponse]
+    habitations: list[HabitationDeltaResponse]
+    sites: list[SiteDeltaResponse]
+    routes: list[RouteDeltaResponse]
+    assignments: list[AssignmentDeltaResponse]
+    tier_changes: list[HabitationDeltaResponse]
+
+    newly_immediate_population: int
+    placed_before: int
+    placed_after: int
+    unmet_before: int
+    unmet_after: int
+    effective_capacity_before: float
+    effective_capacity_after: float
+    feasible_routes_before: int
+    feasible_routes_after: int
+    critical_area_km2_before: float
+    critical_area_km2_after: float
+
+    plan_after: PlanResponse
+    zones_after: ZonesResponse
+    elapsed_ms: float
+    stage_ms: dict[str, float]
+    decision_authority: str
+    model_config_version: str
+    engine_version: str
+
+
+class PlanDependencyResponse(BaseModel):
+    """One stretch of road the current plan depends on.
+
+    Ranked by the number of residents whose planned movement crosses it, which
+    is what makes closing it a question worth asking rather than an arbitrary
+    perturbation of the network.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    segment_id: str
+    name: str | None
+    road_class: RoadClass
+    length_m: float
+    is_bridge: bool
+    p_fail: float
+    no_alternative: bool
+    #: Residents whose assigned movement in the baseline plan crosses this road.
+    people_dependent: int
+    #: Habitation-to-site movements in the baseline plan that cross it.
+    movements: int
+    consequence: str
+
+
+class PlanDependencyListResponse(BaseModel):
+    """The roads the baseline plan is standing on."""
+
+    model_config = ConfigDict(frozen=True)
+
+    segments: list[PlanDependencyResponse]
+    plan_people: int
+    segments_carrying_the_plan: int
+    note: str

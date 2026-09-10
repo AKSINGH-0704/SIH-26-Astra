@@ -45,3 +45,10 @@ Thumbs.db
 
 # local screenshot/debug scratch
 shot.tmp.mjs
+_shot.mjs
+
+# playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/

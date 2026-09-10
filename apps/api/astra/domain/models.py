@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from astra.domain.enums import (
     ConfidenceBand,
     HazardType,
+    PerturbationKind,
     PhaseTier,
     ProvenanceClass,
     RoadClass,
@@ -461,6 +462,51 @@ class StudyArea(BaseModel):
     description: str
 
 
+class Perturbation(BaseModel):
+    """One change a scenario makes to the world.
+
+    A perturbation is data, not a UI toggle: it is stored on the scenario, echoed
+    on every result computed under it, and is what makes a what-if reproducible
+    rather than a state the interface happened to be in.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: PerturbationKind
+    target: str | None = Field(
+        default=None,
+        description=(
+            "What the change applies to - a site id, habitation id, road segment "
+            "id or service name. Null means it applies across the study area."
+        ),
+    )
+    value: float = Field(
+        description="The magnitude, in the units the kind defines. A multiplier "
+        "of 1.0, a shift of 0.0 or a loss of 0.0 changes nothing."
+    )
+    note: str | None = None
+
+    def describe(self) -> str:
+        """One line an official can read, assembled from the values themselves."""
+        where = self.target or "the whole study area"
+        match self.kind:
+            case PerturbationKind.RAINFALL_MULTIPLIER:
+                return f"Rainfall intensity x{self.value:g} across {where}"
+            case PerturbationKind.LANDSLIDE_SHIFT:
+                return f"Landslide susceptibility shifted by {self.value:+.2f}"
+            case PerturbationKind.ROAD_CLOSURE:
+                return f"Road segment {where} closed"
+            case PerturbationKind.SITE_CAPACITY_LOSS:
+                return f"{where} loses {self.value * 100:.0f}% of its service supply"
+            case PerturbationKind.SERVICE_UPGRADE:
+                return f"{where} gains {self.value:g} units of service supply"
+            case PerturbationKind.SITE_DISABLED:
+                return f"{where} withdrawn from consideration"
+            case PerturbationKind.POPULATION_MULTIPLIER:
+                return f"Population of {where} x{self.value:g}"
+        return f"{self.kind.value} {self.value:g} at {where}"
+
+
 class Scenario(BaseModel):
     """A named, versioned analysis context. Scenarios are diffable objects."""
 
@@ -473,9 +519,12 @@ class Scenario(BaseModel):
     is_baseline: bool = False
     created_at: datetime
     disclaimer: str
-    perturbations: dict[str, float] = Field(
-        default_factory=dict,
-        description="Named perturbations applied against the baseline scenario.",
+    changes: list[Perturbation] = Field(
+        default_factory=list,
+        description="Perturbations applied against the baseline scenario.",
+    )
+    derived_from: str | None = Field(
+        default=None, description="Scenario this one perturbs, when it is not the baseline."
     )
 
 

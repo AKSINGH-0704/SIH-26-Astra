@@ -88,9 +88,16 @@ def evaluate_corridor(
     closed_segments: frozenset[str] = frozenset(),
     habitations: list[Habitation] | None = None,
     sites: list[CandidateSite] | None = None,
+    network: RoadNetwork | None = None,
 ) -> CorridorRoutes:
-    """Route every habitation to every site under the given closures."""
-    network = corridor_network()
+    """Route every habitation to every site under the given closures.
+
+    ``network`` is supplied by a scenario whose perturbation moved the hazard
+    surface: segment failure probability is sampled from that surface, so a
+    rainfall scenario must be routed over a graph rebuilt against it rather than
+    the baseline one.
+    """
+    network = network or corridor_network()
     run = baseline_risk()
     habitations = habitations if habitations is not None else list(run.context.habitations)
     sites = sites if sites is not None else list(run.context.sites)

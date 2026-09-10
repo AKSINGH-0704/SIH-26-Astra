@@ -407,6 +407,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/routes/critical-segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Critical Segments
+         * @description The roads the baseline plan is standing on, ranked by residents carried.
+         *
+         *     A what-if that closes a road at random mostly proves nothing. This ranks the
+         *     corridor by how much of the *solved plan* actually crosses each segment, so
+         *     the closure a user picks is the one that tests the plan rather than the
+         *     network. Every figure here is read off the baseline plan and the baseline
+         *     routes; nothing is re-solved.
+         */
+        get: operations["critical_segments_routes_critical_segments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/routes/evaluate": {
         parameters: {
             query?: never;
@@ -501,6 +527,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Simulate
+         * @description Run the full chain under these changes and diff it against the baseline.
+         */
+        post: operations["simulate_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites": {
         parameters: {
             query?: never;
@@ -585,6 +631,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssignmentDeltaResponse */
+        AssignmentDeltaResponse: {
+            /** Habitation Id */
+            habitation_id: string;
+            /** People After */
+            people_after: number;
+            /** People Before */
+            people_before: number;
+            /** People Delta */
+            people_delta: number;
+            phase: components["schemas"]["PhaseTier"];
+            /** Site Id */
+            site_id: string;
+        };
         /**
          * AssignmentResponse
          * @description One movement in the plan, with everything that justifies it.
@@ -2966,6 +3026,33 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** HabitationDeltaResponse */
+        HabitationDeltaResponse: {
+            /** Habitation Id */
+            habitation_id: string;
+            /** Hazard After */
+            hazard_after: number;
+            /** Hazard Before */
+            hazard_before: number;
+            /** Name */
+            name: string;
+            phase_after: components["schemas"]["PhaseTier"];
+            phase_before: components["schemas"]["PhaseTier"];
+            /** Phase Changed */
+            phase_changed: boolean;
+            /** Population */
+            population: number;
+            /** Priority After */
+            priority_after: number;
+            /** Priority Before */
+            priority_before: number;
+            /** Priority Delta */
+            priority_delta: number;
+            /** Rank After */
+            rank_after: number;
+            /** Rank Before */
+            rank_before: number;
+        };
         /**
          * HabitationDetailResponse
          * @description Everything behind one habitation's ranking, for the reasoning drawer.
@@ -4095,6 +4182,56 @@ export interface components {
             solver_time_limit_s: components["schemas"]["Constant"];
         };
         /**
+         * Perturbation
+         * @description One change a scenario makes to the world.
+         *
+         *     A perturbation is data, not a UI toggle: it is stored on the scenario, echoed
+         *     on every result computed under it, and is what makes a what-if reproducible
+         *     rather than a state the interface happened to be in.
+         */
+        Perturbation: {
+            kind: components["schemas"]["PerturbationKind"];
+            /** Note */
+            note?: string | null;
+            /**
+             * Target
+             * @description What the change applies to - a site id, habitation id, road segment id or service name. Null means it applies across the study area.
+             */
+            target?: string | null;
+            /**
+             * Value
+             * @description The magnitude, in the units the kind defines. A multiplier of 1.0, a shift of 0.0 or a loss of 0.0 changes nothing.
+             */
+            value: number;
+        };
+        /**
+         * PerturbationKind
+         * @description What a scenario changes about the world (§5.7).
+         *
+         *     Each kind enters the pipeline at exactly one stage, and the stage decides how
+         *     far the change propagates. A rainfall multiplier re-scores hazard and
+         *     therefore everything downstream of it; a site capacity loss changes nothing
+         *     about the hazard surface and only re-plans. Keeping that explicit is what
+         *     makes a scenario diff readable rather than a wall of changed numbers.
+         * @enum {string}
+         */
+        PerturbationKind: "RAINFALL_MULTIPLIER" | "LANDSLIDE_SHIFT" | "ROAD_CLOSURE" | "SITE_CAPACITY_LOSS" | "SERVICE_UPGRADE" | "SITE_DISABLED" | "POPULATION_MULTIPLIER";
+        /**
+         * PerturbationResponse
+         * @description One change a scenario makes, with the line an official reads.
+         */
+        PerturbationResponse: {
+            /** Description */
+            description: string;
+            kind: components["schemas"]["PerturbationKind"];
+            /** Note */
+            note: string | null;
+            /** Target */
+            target: string | null;
+            /** Value */
+            value: number;
+        };
+        /**
          * PhaseDecision
          * @description Which relocation phase a habitation falls in, and exactly why.
          */
@@ -4148,6 +4285,49 @@ export interface components {
             households: number;
             /** Population */
             population: number;
+        };
+        /**
+         * PlanDependencyListResponse
+         * @description The roads the baseline plan is standing on.
+         */
+        PlanDependencyListResponse: {
+            /** Note */
+            note: string;
+            /** Plan People */
+            plan_people: number;
+            /** Segments */
+            segments: components["schemas"]["PlanDependencyResponse"][];
+            /** Segments Carrying The Plan */
+            segments_carrying_the_plan: number;
+        };
+        /**
+         * PlanDependencyResponse
+         * @description One stretch of road the current plan depends on.
+         *
+         *     Ranked by the number of residents whose planned movement crosses it, which
+         *     is what makes closing it a question worth asking rather than an arbitrary
+         *     perturbation of the network.
+         */
+        PlanDependencyResponse: {
+            /** Consequence */
+            consequence: string;
+            /** Is Bridge */
+            is_bridge: boolean;
+            /** Length M */
+            length_m: number;
+            /** Movements */
+            movements: number;
+            /** Name */
+            name: string | null;
+            /** No Alternative */
+            no_alternative: boolean;
+            /** P Fail */
+            p_fail: number;
+            /** People Dependent */
+            people_dependent: number;
+            road_class: components["schemas"]["RoadClass"];
+            /** Segment Id */
+            segment_id: string;
         };
         /**
          * PlanResponse
@@ -4853,6 +5033,25 @@ export interface components {
              */
             throughput_persons_per_hour: components["schemas"]["Constant"];
         };
+        /** RouteDeltaResponse */
+        RouteDeltaResponse: {
+            /** Feasible After */
+            feasible_after: boolean;
+            /** Feasible Before */
+            feasible_before: boolean;
+            /** Habitation Id */
+            habitation_id: string;
+            /** Reliability After */
+            reliability_after: number;
+            /** Reliability Before */
+            reliability_before: number;
+            /** Site Id */
+            site_id: string;
+            /** Travel After Min */
+            travel_after_min: number;
+            /** Travel Before Min */
+            travel_before_min: number;
+        };
         /**
          * RouteDeltaRow
          * @description How one pair changed between the open network and the closed one.
@@ -4996,10 +5195,20 @@ export interface components {
          */
         Scenario: {
             /**
+             * Changes
+             * @description Perturbations applied against the baseline scenario.
+             */
+            changes?: components["schemas"]["Perturbation"][];
+            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Derived From
+             * @description Scenario this one perturbs, when it is not the baseline.
+             */
+            derived_from?: string | null;
             /** Description */
             description: string;
             /** Disclaimer */
@@ -5013,15 +5222,67 @@ export interface components {
             is_baseline: boolean;
             /** Name */
             name: string;
-            /**
-             * Perturbations
-             * @description Named perturbations applied against the baseline scenario.
-             */
-            perturbations?: {
-                [key: string]: number;
-            };
             /** Study Area Id */
             study_area_id: string;
+        };
+        /**
+         * ScenarioDiffResponse
+         * @description Before and after as two complete assessments, compared field by field.
+         */
+        ScenarioDiffResponse: {
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentDeltaResponse"][];
+            /** Changes */
+            changes: components["schemas"]["PerturbationResponse"][];
+            /** Critical Area Km2 After */
+            critical_area_km2_after: number;
+            /** Critical Area Km2 Before */
+            critical_area_km2_before: number;
+            /** Decision Authority */
+            decision_authority: string;
+            /** Effective Capacity After */
+            effective_capacity_after: number;
+            /** Effective Capacity Before */
+            effective_capacity_before: number;
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /** Engine Version */
+            engine_version: string;
+            /** Feasible Routes After */
+            feasible_routes_after: number;
+            /** Feasible Routes Before */
+            feasible_routes_before: number;
+            /** Habitations */
+            habitations: components["schemas"]["HabitationDeltaResponse"][];
+            /** Headline */
+            headline: string;
+            /** Model Config Version */
+            model_config_version: string;
+            /** Newly Immediate Population */
+            newly_immediate_population: number;
+            /** Placed After */
+            placed_after: number;
+            /** Placed Before */
+            placed_before: number;
+            plan_after: components["schemas"]["PlanResponse"];
+            /** Routes */
+            routes: components["schemas"]["RouteDeltaResponse"][];
+            scenario: components["schemas"]["Scenario"];
+            /** Sites */
+            sites: components["schemas"]["SiteDeltaResponse"][];
+            /** Stage Ms */
+            stage_ms: {
+                [key: string]: number;
+            };
+            /** Tier Changes */
+            tier_changes: components["schemas"]["HabitationDeltaResponse"][];
+            /** Unmet After */
+            unmet_after: number;
+            /** Unmet Before */
+            unmet_before: number;
+            /** Zones */
+            zones: components["schemas"]["ZoneDeltaResponse"][];
+            zones_after: components["schemas"]["ZonesResponse"];
         };
         /** ScenarioListResponse */
         ScenarioListResponse: {
@@ -5107,6 +5368,21 @@ export interface components {
          * @enum {string}
          */
         ServiceType: "LAND" | "SHELTER" | "WATER" | "SANITATION" | "HEALTHCARE" | "POWER" | "ACCESS";
+        /**
+         * SimulateRequest
+         * @description Ask what the corridor looks like under these changes.
+         */
+        SimulateRequest: {
+            /**
+             * Changes
+             * @description Perturbations to apply to the baseline.
+             */
+            changes?: components["schemas"]["Perturbation"][];
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+        };
         /**
          * SiteAccessResponse
          * @description What the road network means for one candidate site.
@@ -5201,6 +5477,39 @@ export interface components {
             /** Theoretical Capacity */
             theoretical_capacity: number;
             usable_area: components["schemas"]["UsableAreaResponse"];
+        };
+        /** SiteDeltaResponse */
+        SiteDeltaResponse: {
+            /** Bottleneck After */
+            bottleneck_after: string | null;
+            /** Bottleneck Before */
+            bottleneck_before: string | null;
+            /** Effective After */
+            effective_after: number;
+            /** Effective Before */
+            effective_before: number;
+            /** Effective Delta */
+            effective_delta: number;
+            /**
+             * Failed Gates After
+             * @default []
+             */
+            failed_gates_after: string[];
+            /**
+             * Failed Gates Before
+             * @default []
+             */
+            failed_gates_before: string[];
+            /** Name */
+            name: string;
+            /** Site Id */
+            site_id: string;
+            /** Suitable After */
+            suitable_after: boolean;
+            /** Suitable Before */
+            suitable_before: boolean;
+            /** Withdrawn */
+            withdrawn: boolean;
         };
         /**
          * SiteLoadResponse
@@ -5520,6 +5829,21 @@ export interface components {
             count: number;
             /** Population Intersected */
             population_intersected: number;
+        };
+        /** ZoneDeltaResponse */
+        ZoneDeltaResponse: {
+            /** Area Km2 After */
+            area_km2_after: number;
+            /** Area Km2 Before */
+            area_km2_before: number;
+            /** Area Km2 Delta */
+            area_km2_delta: number;
+            /** Population After */
+            population_after: number;
+            /** Population Before */
+            population_before: number;
+            /** Zone Class */
+            zone_class: string;
         };
         /** ZoneFeature */
         ZoneFeature: {
@@ -6092,6 +6416,26 @@ export interface operations {
             };
         };
     };
+    critical_segments_routes_critical_segments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDependencyListResponse"];
+                };
+            };
+        };
+    };
     evaluate_routes_evaluate_post: {
         parameters: {
             query?: never;
@@ -6217,6 +6561,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDiffResponse"];
                 };
             };
             /** @description Validation Error */

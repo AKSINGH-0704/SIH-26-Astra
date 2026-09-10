@@ -28,12 +28,22 @@ BASELINE = Scenario(
     is_baseline=True,
     created_at=BASELINE_CREATED_AT,
     disclaimer=SCENARIO_DISCLAIMER,
-    perturbations={},
+    changes=[],
 )
 
 SCENARIOS: dict[str, Scenario] = {BASELINE.id: BASELINE}
 
 DEFAULT_SCENARIO_ID = BASELINE.id
+
+SIMULATED_HISTORY = 50
+"""How many simulated scenarios are kept.
+
+A what-if is stored so a result can be traced back to the exact set of changes
+that produced it, which is what lets an audit record point at something. But a
+user dragging a slider produces a scenario per run, and an unbounded store would
+turn a demo into a slow memory leak and the scenario list into a junk drawer.
+The oldest simulated scenario is evicted; the baseline never is.
+"""
 
 
 def get_scenario(scenario_id: str) -> Scenario | None:
@@ -41,4 +51,18 @@ def get_scenario(scenario_id: str) -> Scenario | None:
 
 
 def list_scenarios() -> list[Scenario]:
-    return list(SCENARIOS.values())
+    """The baseline first, then simulated scenarios newest first."""
+    simulated = [s for s in SCENARIOS.values() if not s.is_baseline]
+    simulated.sort(key=lambda scenario: scenario.created_at, reverse=True)
+    return [s for s in SCENARIOS.values() if s.is_baseline] + simulated
+
+
+def remember_scenario(scenario: Scenario) -> Scenario:
+    """Store a simulated scenario, evicting the oldest beyond the history bound."""
+    SCENARIOS[scenario.id] = scenario
+    simulated = [s for s in SCENARIOS.values() if not s.is_baseline]
+    if len(simulated) > SIMULATED_HISTORY:
+        simulated.sort(key=lambda entry: entry.created_at)
+        for stale in simulated[: len(simulated) - SIMULATED_HISTORY]:
+            SCENARIOS.pop(stale.id, None)
+    return scenario
